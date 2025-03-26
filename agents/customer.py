@@ -6,6 +6,7 @@ from openai import AzureOpenAI
 from profiles import CUSTOMER_PROFILES, PRODUCT_INFO
 from agents.conversation_phase import ConversationPhaseManager, ConversationPhase
 
+
 class CustomerAgent:
     """Agent that simulates a Microsoft 365 customer with specific traits."""
     
