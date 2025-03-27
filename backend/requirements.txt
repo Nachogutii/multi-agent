@@ -1,5 +1,4 @@
 absl-py==2.1.0
-ace-tools @ file:///home/sandbox/.openai_internal/ace-tools
 aeppl==0.0.31
 aesara==2.7.3
 affine==2.4.0
