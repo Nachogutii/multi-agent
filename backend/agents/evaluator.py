@@ -46,7 +46,10 @@ class ObserverCoach:
         self.feedback_points = []
         self.phase_manager = ConversationPhaseManager()
         self.phase_scores = {
-            phase: PLGPhaseScore(phase) for phase in ConversationPhase
+            ConversationPhase.INTRODUCTION_DISCOVERY: PLGPhaseScore(ConversationPhase.INTRODUCTION_DISCOVERY),
+            ConversationPhase.VALUE_PROPOSITION: PLGPhaseScore(ConversationPhase.VALUE_PROPOSITION),
+            ConversationPhase.OBJECTION_HANDLING: PLGPhaseScore(ConversationPhase.OBJECTION_HANDLING),
+            ConversationPhase.CLOSING: PLGPhaseScore(ConversationPhase.CLOSING)
         }
         self.pain_points = []
         self.objections = []
@@ -136,11 +139,10 @@ class ObserverCoach:
             score.missed_opportunities = []
         
         # Analyze each phase
-        self._analyze_discovery_phase()
-        self._analyze_value_alignment_phase()
-        self._analyze_product_experience_phase()
+        self._analyze_introduction_discovery_phase()
+        self._analyze_value_proposition_phase()
         self._analyze_objection_handling_phase()
-        self._analyze_follow_up_phase()
+        self._analyze_closing_phase()
         
         # Calculate overall score
         total_score = sum(score.score for score in self.phase_scores.values())
@@ -169,9 +171,9 @@ class ObserverCoach:
             "blockers": self.blockers
         }
     
-    def _analyze_discovery_phase(self):
-        """Analyzes the discovery phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.DISCOVERY]
+    def _analyze_introduction_discovery_phase(self):
+        """Analyzes the introduction and discovery phase effectiveness."""
+        score = self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY]
         
         # Check for pain point discovery
         if self.pain_points:
@@ -208,16 +210,16 @@ class ObserverCoach:
             score.add_suggestion("Ask more questions about specific requirements")
         
         # Check for industry context
-        if any(message.get("phase") == ConversationPhase.DISCOVERY 
+        if any(message.get("phase") == ConversationPhase.INTRODUCTION_DISCOVERY 
                for message in self.conversation_history):
             score.adjust_score(5)
             score.add_strength("Maintained focus on industry-specific context")
         else:
             score.add_missed_opportunity("Could have explored industry-specific challenges")
     
-    def _analyze_value_alignment_phase(self):
-        """Analyzes the value alignment phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.VALUE_ALIGNMENT]
+    def _analyze_value_proposition_phase(self):
+        """Analyzes the value proposition phase effectiveness."""
+        score = self.phase_scores[ConversationPhase.VALUE_PROPOSITION]
         
         # Check for value proposition clarity
         value_indicators = ["benefit", "value", "roi", "improve", "enhance", "increase"]
@@ -264,60 +266,6 @@ class ObserverCoach:
         else:
             score.add_missed_opportunity("Could have included more ROI analysis")
     
-    def _analyze_product_experience_phase(self):
-        """Analyzes the product experience phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.PRODUCT_EXPERIENCE]
-        
-        # Check for demo/trial discussion
-        demo_indicators = ["demo", "demonstration", "trial", "try", "experience", "hands-on"]
-        found_demo = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                        for message in self.conversation_history 
-                        for indicator in demo_indicators)
-        
-        if found_demo:
-            score.adjust_score(5)
-            score.add_strength("Proactively offered product experience")
-        else:
-            score.add_feedback("Could have offered product demonstration")
-            score.add_suggestion("Suggest a demo or trial to showcase value")
-        
-        # Check for implementation discussion
-        implementation_indicators = ["implement", "deploy", "setup", "configure", "integrate"]
-        found_implementation = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                                 for message in self.conversation_history 
-                                 for indicator in implementation_indicators)
-        
-        if found_implementation:
-            score.adjust_score(5)
-            score.add_strength("Addressed implementation considerations")
-        else:
-            score.add_missed_opportunity("Could have discussed implementation details")
-        
-        # Check for technical requirements
-        tech_indicators = ["technical", "requirement", "compatibility", "integration", "system"]
-        found_tech = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                        for message in self.conversation_history 
-                        for indicator in tech_indicators)
-        
-        if found_tech:
-            score.adjust_score(5)
-            score.add_strength("Addressed technical requirements")
-        else:
-            score.add_feedback("Could have better addressed technical aspects")
-            score.add_suggestion("Discuss technical requirements and compatibility")
-        
-        # Check for user adoption
-        adoption_indicators = ["adoption", "training", "learn", "use", "utilize"]
-        found_adoption = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                           for message in self.conversation_history 
-                           for indicator in adoption_indicators)
-        
-        if found_adoption:
-            score.adjust_score(5)
-            score.add_strength("Addressed user adoption considerations")
-        else:
-            score.add_missed_opportunity("Could have discussed user adoption strategy")
-    
     def _analyze_objection_handling_phase(self):
         """Analyzes the objection handling phase effectiveness."""
         score = self.phase_scores[ConversationPhase.OBJECTION_HANDLING]
@@ -343,7 +291,7 @@ class ObserverCoach:
             score.add_suggestion("Acknowledge concerns before addressing them")
         
         # Check for value-driven responses
-        if found_empathy and any(message.get("phase") == ConversationPhase.VALUE_ALIGNMENT 
+        if found_empathy and any(message.get("phase") == ConversationPhase.VALUE_PROPOSITION 
                                for message in self.conversation_history):
             score.adjust_score(5)
             score.add_strength("Connected objections to value proposition")
@@ -365,9 +313,9 @@ class ObserverCoach:
                 score.add_feedback("Could have better addressed blockers")
                 score.add_suggestion("Provide specific solutions for identified blockers")
     
-    def _analyze_follow_up_phase(self):
-        """Analyzes the follow-up phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.FOLLOW_UP]
+    def _analyze_closing_phase(self):
+        """Analyzes the closing phase effectiveness."""
+        score = self.phase_scores[ConversationPhase.CLOSING]
         
         # Check for next steps
         next_step_indicators = ["next step", "follow up", "schedule", "plan", "arrange"]
@@ -422,51 +370,96 @@ class ObserverCoach:
     def _generate_ai_feedback(self, phase: ConversationPhase, context: str) -> Dict:
         """Generates AI-powered feedback for a specific phase."""
         if not self.client or not self.deployment:
-            return {"feedback": "", "suggestion": ""}
+            return {"feedback": "", "suggestion": "", "strength": "", "opportunity": ""}
             
         prompt = f"""
-Analyze this conversation phase and provide specific, actionable feedback.
+        Analyze this conversation phase and provide comprehensive, actionable feedback.
 
-Phase: {phase.value}
-Context: {context}
+        Phase: {phase.value}
+        Conversation Context:
+        {context}
 
-Provide:
-1. Specific feedback about what was done well and what could be improved
-2. A concrete suggestion for improvement
-3. Focus on practical, actionable advice
+        Consider these aspects in your analysis:
 
-Format the response as JSON with "feedback" and "suggestion" fields.
-"""
+        1. Natural Flow and Progression:
+           - How well did the conversation flow through this phase?
+           - Were there smooth transitions between topics?
+           - Was the progression logical and natural?
+
+        2. Relationship Development:
+           - How well was rapport maintained?
+           - Was there appropriate emotional intelligence?
+           - How effectively was trust built?
+
+        3. Content Quality:
+           - How relevant and valuable was the information shared?
+           - Was the communication clear and effective?
+           - Were key points well-articulated?
+
+        4. Customer Engagement:
+           - How well was the customer engaged?
+           - Were questions and concerns addressed?
+           - Was there appropriate give-and-take?
+
+        5. Phase-Specific Effectiveness:
+           - How well were phase-specific goals achieved?
+           - Were there missed opportunities?
+           - What could have been done better?
+
+        Provide:
+        1. Specific feedback about strengths and areas for improvement
+        2. Concrete, actionable suggestions
+        3. Insights about the overall effectiveness
+        4. Recommendations for future conversations
+
+        Format the response as JSON with:
+        {
+            "feedback": "Detailed analysis of what was done well and what could be improved",
+            "suggestion": "Specific, actionable suggestion for improvement",
+            "strength": "Key strength observed in this phase",
+            "opportunity": "Missed opportunity or area for growth"
+        }
+        """
+        
         try:
             result = self.client.chat.completions.create(
                 model=self.deployment,
                 messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": "Please analyze this conversation phase and provide feedback."}
+                    {"role": "system", "content": """You are an expert conversation evaluator.
+                    Your task is to provide detailed, actionable feedback on conversation phases.
+                    Focus on natural flow, relationship development, and effectiveness.
+                    Provide specific, practical suggestions for improvement.
+                    Return the response in the specified JSON format."""},
+                    {"role": "user", "content": prompt}
                 ],
-                max_tokens=300,
+                max_tokens=500,
                 temperature=0.3,
             )
             
             # Parse the response as JSON
             import json
             try:
-                return json.loads(result.choices[0].message.content)
+                feedback_data = json.loads(result.choices[0].message.content)
+                return {
+                    "feedback": feedback_data.get("feedback", ""),
+                    "suggestion": feedback_data.get("suggestion", ""),
+                    "strength": feedback_data.get("strength", ""),
+                    "opportunity": feedback_data.get("opportunity", "")
+                }
             except:
-                return {"feedback": "", "suggestion": ""}
+                return {"feedback": "", "suggestion": "", "strength": "", "opportunity": ""}
                 
         except Exception as e:
             print(f"Error generating AI feedback: {e}")
-            return {"feedback": "", "suggestion": ""}
+            return {"feedback": "", "suggestion": "", "strength": "", "opportunity": ""}
     
     def _evaluate_closing_phase(self):
         """Performs a comprehensive evaluation of the conversation when entering the closing phase."""
         # Analyze each phase
-        self._analyze_discovery_phase()
-        self._analyze_value_alignment_phase()
-        self._analyze_product_experience_phase()
+        self._analyze_introduction_discovery_phase()
+        self._analyze_value_proposition_phase()
         self._analyze_objection_handling_phase()
-        self._analyze_follow_up_phase()
+        self._analyze_closing_phase()
         
         # Calculate phase coverage
         covered_phases = set()
@@ -483,7 +476,7 @@ Format the response as JSON with "feedback" and "suggestion" fields.
                     "to": self.conversation_history[i].get("phase")
                 })
         
-        # Generate AI-powered feedback for each phase
+        # Generate comprehensive AI feedback for each phase
         for phase in covered_phases:
             # Create context for the phase
             phase_messages = [msg for msg in self.conversation_history if msg.get("phase") == phase]
@@ -495,6 +488,10 @@ Format the response as JSON with "feedback" and "suggestion" fields.
                 self.phase_scores[phase].add_feedback(ai_feedback["feedback"])
             if ai_feedback["suggestion"]:
                 self.phase_scores[phase].add_suggestion(ai_feedback["suggestion"])
+            if ai_feedback["strength"]:
+                self.phase_scores[phase].add_strength(ai_feedback["strength"])
+            if ai_feedback["opportunity"]:
+                self.phase_scores[phase].add_missed_opportunity(ai_feedback["opportunity"])
         
         # Generate comprehensive feedback
         self._generate_comprehensive_feedback(covered_phases, phase_transitions)
@@ -503,11 +500,10 @@ Format the response as JSON with "feedback" and "suggestion" fields.
         """Generates comprehensive feedback based on the conversation analysis."""
         # Phase Coverage Analysis
         required_phases = {
-            ConversationPhase.DISCOVERY,
-            ConversationPhase.VALUE_ALIGNMENT,
-            ConversationPhase.PRODUCT_EXPERIENCE,
+            ConversationPhase.INTRODUCTION_DISCOVERY,
+            ConversationPhase.VALUE_PROPOSITION,
             ConversationPhase.OBJECTION_HANDLING,
-            ConversationPhase.FOLLOW_UP
+            ConversationPhase.CLOSING
         }
         
         missing_phases = required_phases - covered_phases
@@ -519,12 +515,12 @@ Format the response as JSON with "feedback" and "suggestion" fields.
         
         # Add feedback for phase transitions
         if len(phase_transitions) < 2:
-            self.phase_scores[ConversationPhase.DISCOVERY].add_feedback("Limited phase transitions observed")
-            self.phase_scores[ConversationPhase.DISCOVERY].add_suggestion("Work on smoother transitions between phases")
+            self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY].add_feedback("Limited phase transitions observed")
+            self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY].add_suggestion("Work on smoother transitions between phases")
         
         # Add contextual insights
         if self.pain_points:
-            self.phase_scores[ConversationPhase.DISCOVERY].add_strength(f"Identified {len(self.pain_points)} key pain points")
+            self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY].add_strength(f"Identified {len(self.pain_points)} key pain points")
         if self.objections:
             self.phase_scores[ConversationPhase.OBJECTION_HANDLING].add_strength(f"Handled {len(self.objections)} customer objections")
         if self.blockers:
