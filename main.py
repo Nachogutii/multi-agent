@@ -255,3 +255,60 @@ if __name__ == "__main__":
         print_colored("\n\nRoleplay terminated. Thanks for practicing!", "yellow")
     except Exception as e:
         print_colored(f"\n\nAn error occurred: {e}", "red") 
+
+# -------------------------------
+# FastAPI backend (modo web/API)
+# -------------------------------
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Modelo para recibir mensajes
+class Message(BaseModel):
+    text: str
+    phase: str
+
+# Instanciar el sistema (una vez)
+roleplay_system = RoleplaySystem()
+roleplay_system.initialize()
+scenario_info = roleplay_system.setup_scenario()
+
+@app.post("/api/chat")
+def chat(msg: Message):
+    response = roleplay_system.process_user_message(msg.text)
+    return {
+        "response": response,
+        "phase": msg.phase,
+        "feedback": roleplay_system.observer.get_summary()
+    }
+
+@app.get("/api/scenario")
+def get_scenario():
+    if not roleplay_system.scenario:
+        roleplay_system.setup_scenario()
+    
+    return {
+        "title": roleplay_system.scenario["title"],
+        "description": roleplay_system.scenario["description"],
+        "customer_profile": scenario_info["customer_profile"],
+        "initial_query": scenario_info["initial_query"]
+    }
+@app.get("/api/feedback")
+def get_feedback():
+    """Devuelve el feedback de la conversación actual"""
+    feedback = roleplay_system.observer.get_summary()
+    return { "feedback": feedback }
+# Alternativa para levantar como servidor
+def run_api():
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
