@@ -20,10 +20,10 @@ class CustomerAgent:
         self.conversation_history = []
         self.phase_manager = ConversationPhaseManager(
             azure_client=azure_client,
-            deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+            deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
         )
         self.client = azure_client
-        self.deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+        self.deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
         
     def _create_profile(self) -> Dict:
         """Create a complete customer profile."""
@@ -97,15 +97,9 @@ class CustomerAgent:
         base_remark = closing_remarks.get(self.personality, "Thank you for your time.")
         
         # Add context based on conversation phase and history
-        if current_phase == ConversationPhase.DECISION_MAKING:
-            return f"{base_remark} I'll discuss this with my team and let you know our decision."
-        elif current_phase == ConversationPhase.FOLLOW_UP:
-            return f"{base_remark} I'll be in touch if we need any clarification."
-        elif current_phase == ConversationPhase.OBJECTION_HANDLING:
+        if current_phase == ConversationPhase.OBJECTION_HANDLING:
             return f"{base_remark} I'll review the information you provided about my concerns."
-        elif current_phase == ConversationPhase.PRODUCT_EXPERIENCE:
-            return f"{base_remark} I'll try out the demo and get back to you with my feedback."
-        elif current_phase == ConversationPhase.VALUE_ALIGNMENT:
+        elif current_phase == ConversationPhase.VALUE_PROPOSITION:
             return f"{base_remark} I'll review the ROI calculations and discuss with our finance team."
         else:
             return base_remark
@@ -171,58 +165,59 @@ Generate a realistic, human-like response that this customer would give to the M
     def _get_phase_guidelines(self, phase: ConversationPhase) -> str:
         """Returns specific guidelines for the current conversation phase."""
         guidelines = {
-            ConversationPhase.DISCOVERY: """
+            ConversationPhase.INTRODUCTION_DISCOVERY: """
 - Show initial interest in the product
 - Ask basic questions about capabilities
 - Express curiosity about potential benefits
-- Keep questions general and exploratory""",
-            
-            ConversationPhase.NEEDS_ANALYSIS: """
+- Keep questions general and exploratory
 - Share specific challenges and pain points
 - Discuss current workflow issues
 - Express concerns about existing solutions
 - Provide context about your role and responsibilities""",
             
-            ConversationPhase.VALUE_ALIGNMENT: """
+            ConversationPhase.VALUE_PROPOSITION: """
 - Focus on ROI and business impact
 - Discuss efficiency improvements
 - Consider cost implications
-- Evaluate potential benefits for your organization""",
-            
-            ConversationPhase.PRODUCT_EXPERIENCE: """
+- Evaluate potential benefits for your organization
 - Express interest in trying the product
 - Ask about demo or trial options
 - Share concerns about implementation
 - Discuss technical requirements""",
             
-            ConversationPhase.SOLUTION_PRESENTATION: """
-- Evaluate proposed solutions
-- Compare with alternatives
-- Consider implementation timeline
-- Discuss resource requirements""",
-            
             ConversationPhase.OBJECTION_HANDLING: """
 - Express specific concerns
 - Question pricing or complexity
 - Share security or compliance worries
-- Discuss integration challenges""",
-            
-            ConversationPhase.DECISION_MAKING: """
+- Discuss integration challenges
 - Show readiness to make a decision
 - Discuss next steps
 - Consider approval process
 - Plan for implementation""",
             
-            ConversationPhase.FOLLOW_UP: """
-- Express appreciation for information
-- Plan for next interaction
-- Set expectations for follow-up
-- Summarize key points discussed""",
-            
             ConversationPhase.CLOSING: """
 - Provide appropriate closing remarks
 - Express gratitude
 - Set expectations for next steps
-- End conversation professionally"""
+- End conversation professionally
+- Express appreciation for information
+- Plan for next interaction
+- Set expectations for follow-up
+- Summarize key points discussed"""
         }
-        return guidelines.get(phase, "") 
+        return guidelines.get(phase, "")
+
+    def _generate_closing_response(self, message: str) -> str:
+        """Generates a closing response based on the current conversation phase."""
+        current_phase = self.phase_manager.get_current_phase()
+        
+        # Get base remark based on personality
+        base_remark = self._generate_closing_remark()
+        
+        # Add context based on conversation phase and history
+        if current_phase == ConversationPhase.OBJECTION_HANDLING:
+            return f"{base_remark} I'll review the information you provided about my concerns."
+        elif current_phase == ConversationPhase.VALUE_PROPOSITION:
+            return f"{base_remark} I'll review the ROI calculations and discuss with our finance team."
+        else:
+            return base_remark

@@ -21,7 +21,7 @@ class AzureConnection:
         # Get Azure configuration
         self.endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
         self.api_key = os.environ.get("AZURE_OPENAI_KEY")
-        self.deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+        self.deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
         self.client = None
     
     def initialize(self) -> bool:
