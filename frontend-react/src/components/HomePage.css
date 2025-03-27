@@ -1,0 +1,41 @@
+.home-container {
+    padding: 40px;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  .home-title {
+    font-size: 28px;
+    margin-bottom: 30px;
+  }
+  
+  .scenario-card {
+    background-color: #f5f5f5;
+    padding: 24px;
+    border-radius: 10px;
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    text-align: left;
+  }
+  
+  .scenario-card h2 {
+    margin-bottom: 10px;
+    color: #0078D4;
+  }
+  
+  .start-button {
+    margin-top: 20px;
+    background-color: #0078D4;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .start-button:hover {
+    background-color: #005a9e;
+  }
+  
