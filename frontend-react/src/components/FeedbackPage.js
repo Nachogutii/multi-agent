@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import './FeedbackPage.css';
 
 export default function FeedbackPage() {
-  const [feedback, setFeedback] = useState(null);
+  const [feedbackData, setFeedbackData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetch("http://localhost:8000/api/feedback")
       .then((res) => res.json())
-      .then((data) => setFeedback(data.feedback))
-      .catch((err) => setFeedback("Error fetching feedback."));
+      .then((data) => setFeedbackData(data))
+      .catch((err) => setFeedbackData({ feedback: "Error fetching feedback." }));
   }, []);
 
   const parseSection = (title, text) => {
@@ -35,7 +35,7 @@ export default function FeedbackPage() {
     );
   };
 
-  if (!feedback) {
+  if (!feedbackData) {
     return (
       <div className="feedback-page">
         <h2>Conversation Feedback</h2>
@@ -44,23 +44,25 @@ export default function FeedbackPage() {
     );
   }
 
+  const fullText = feedbackData.feedback || "";
+
   return (
     <div className="feedback-page">
       <h2>Conversation Feedback</h2>
 
       <div className="feedback-section">
         <h3>Overall Score</h3>
-        <p>{feedback.match(/Overall Score:.*\n/)?.[0]?.replace("Overall Score:", "").trim()}</p>
+        <p>{fullText.match(/Overall Score:.*\n/)?.[0]?.replace("Overall Score:", "").trim()}</p>
       </div>
 
-      {parseSection("Phase Coverage", feedback)}
-      {parseSection("Phase Transitions", feedback)}
-      {parseSection("Key Strengths", feedback)}
-      {parseSection("Areas for Improvement", feedback)}
-      {parseSection("Recommendations", feedback)}
-      {parseSection("Customer Objections", feedback)}
+      {parseSection("Phase Coverage", fullText)}
+      {parseSection("Phase Transitions", fullText)}
+      {parseSection("Key Strengths", fullText)}
+      {parseSection("Areas for Improvement", fullText)}
+      {parseSection("Recommendations", fullText)}
+      {parseSection("Customer Objections", fullText)}
 
-      <button onClick={() => navigate("/")} className="back-button">← Back to chat</button>
+      <button onClick={() => navigate("/")} className="back-button">← Back to Chat</button>
     </div>
   );
 }
