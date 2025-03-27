@@ -16,7 +16,7 @@ load_dotenv()
 # Check if Azure configuration is set
 AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY") 
-AZURE_OPENAI_DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+AZURE_OPENAI_DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
 
 if not AZURE_OPENAI_ENDPOINT or not AZURE_OPENAI_KEY:
     print("Please set your Azure OpenAI environment variables:")
