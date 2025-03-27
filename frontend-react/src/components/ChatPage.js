@@ -114,11 +114,17 @@ export default function ChatPage() {
   return (
     <div className="chat-container">
       <div className="chat-header">
-        {scenario && <h3 className="scenario-title">{scenario.title}</h3>}
-        <h2 className="chat-title">Microsoft Support Chat</h2>
-        <button className="info-button" onClick={() => setShowInfo(true)}>
-          i
-        </button>
+        <div className="chat-header-left">
+          {scenario && <h3 className="scenario-title">{scenario.title}</h3>}
+        </div>
+
+        <div className="chat-header-center">
+          <h2 className="chat-title">Microsoft Support Chat</h2>
+        </div>
+
+        <div className="chat-header-right">
+          <button className="info-button" onClick={() => setShowInfo(true)}>i</button>
+        </div>
       </div>
 
       <div className="messages-container">
