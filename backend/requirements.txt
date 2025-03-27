@@ -361,3 +361,4 @@ xml-python==0.4.3
 yarl==1.18.3
 zipp==3.21.0
 zopfli==0.2.3.post1
+pyarrow==0.0.0  # prevent install on Render
