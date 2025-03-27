@@ -7,7 +7,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/scenario")
+    fetch("https://plg-simulator.onrender.com/api/scenario")
       .then((res) => res.json())
       .then((data) => {
         setScenario(data);

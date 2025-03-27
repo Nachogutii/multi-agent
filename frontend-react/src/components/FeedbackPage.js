@@ -7,7 +7,7 @@ export default function FeedbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/feedback")
+    fetch("https://plg-simulator.onrender.com//api/feedback")
       .then((res) => res.json())
       .then((data) => {
         console.log("✅ Feedback fetched:", data);
