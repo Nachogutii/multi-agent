@@ -1,68 +1,87 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import './FeedbackPage.css';
+import "./FeedbackPage.css";
 
 export default function FeedbackPage() {
-  const [feedbackData, setFeedbackData] = useState(null);
+  const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetch("http://localhost:8000/api/feedback")
       .then((res) => res.json())
-      .then((data) => setFeedbackData(data))
-      .catch((err) => setFeedbackData({ feedback: "Error fetching feedback." }));
+      .then((data) => {
+        console.log("✅ Feedback fetched:", data);
+        setFeedback(data.feedback); // << acceder a feedback anidado
+      })
+      .catch((err) => {
+        console.error("❌ Error fetching feedback:", err);
+        setFeedback({ error: "Error fetching feedback." });
+      });
   }, []);
 
-  const parseSection = (title, text) => {
-    const sectionRegex = new RegExp(`${title}:(.*?)(\\n[A-Z]|$)`, 's');
-    const match = text.match(sectionRegex);
-    if (!match) return null;
-
-    const content = match[1]
-      .split("\n")
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith(title));
+  const renderList = (title, items) => {
+    if (!Array.isArray(items) || items.length === 0) return null;
 
     return (
       <div className="feedback-section">
         <h3>{title}</h3>
         <ul>
-          {content.map((item, idx) => (
-            <li key={idx}>{item.replace(/^• /, '').replace(/^✓ /, '✅ ').replace(/^✗ /, '❌ ')}</li>
+          {items.map((item, idx) => (
+            <li key={idx}>{item}</li>
           ))}
         </ul>
       </div>
     );
   };
 
-  if (!feedbackData) {
+  const renderPhaseScores = (scores) => {
+    if (!scores) return null;
+    return (
+      <div className="feedback-section">
+        <h3>Phase Scores</h3>
+        <ul>
+          {Object.entries(scores).map(([phase, value], idx) => (
+            <li key={idx}>
+              <strong>{phase.replaceAll("_", " ")}:</strong> {value}/20
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  if (!feedback || feedback.error) {
     return (
       <div className="feedback-page">
         <h2>Conversation Feedback</h2>
-        <p>Loading...</p>
+        <p>{feedback?.error || "Loading..."}</p>
       </div>
     );
   }
-
-  const fullText = feedbackData.feedback || "";
 
   return (
     <div className="feedback-page">
       <h2>Conversation Feedback</h2>
 
-      <div className="feedback-section">
-        <h3>Overall Score</h3>
-        <p>{fullText.match(/Overall Score:.*\n/)?.[0]?.replace("Overall Score:", "").trim()}</p>
-      </div>
+      {feedback.score && (
+        <div className="feedback-section">
+          <h3>Overall Score</h3>
+          <p>{feedback.score} / 100</p>
+        </div>
+      )}
 
-      {parseSection("Phase Coverage", fullText)}
-      {parseSection("Phase Transitions", fullText)}
-      {parseSection("Key Strengths", fullText)}
-      {parseSection("Areas for Improvement", fullText)}
-      {parseSection("Recommendations", fullText)}
-      {parseSection("Customer Objections", fullText)}
+      {renderPhaseScores(feedback.phase_scores)}
+      {renderList("Key Strengths", feedback.strengths)}
+      {renderList("Areas for Improvement", feedback.feedback)}
+      {renderList("Suggestions", feedback.suggestions)}
+      {renderList("Missed Opportunities", feedback.missed_opportunities)}
+      {renderList("Customer Objections", feedback.objections)}
+      {renderList("Pain Points", feedback.pain_points)}
+      {renderList("Blockers", feedback.blockers)}
 
-      <button onClick={() => navigate("/")} className="back-button">← Back to Chat</button>
+      <button onClick={() => navigate("/")} className="back-button">
+        ← Back to Chat
+      </button>
     </div>
   );
 }
