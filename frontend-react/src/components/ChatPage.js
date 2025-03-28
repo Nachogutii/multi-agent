@@ -119,7 +119,7 @@ export default function ChatPage() {
         </div>
 
         <div className="chat-header-center">
-          <h2 className="chat-title">Microsoft Support Chat</h2>
+          <h2 className="chat-title">GigPlus Support Chat</h2>
         </div>
 
         <div className="chat-header-right">

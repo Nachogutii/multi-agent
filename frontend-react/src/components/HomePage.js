@@ -19,7 +19,7 @@ export default function HomePage() {
 
   return (
     <div className="home-container">
-      <h1 className="home-title">Microsoft 365 Customer Simulation</h1>
+      <h1 className="home-title">GigPlus Customer Simulation</h1>
 
       {scenario ? (
         <div className="scenario-card">
