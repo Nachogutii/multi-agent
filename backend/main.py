@@ -309,6 +309,18 @@ def get_feedback():
     """Devuelve el feedback de la conversación actual"""
     feedback = roleplay_system.observer.get_summary()
     return { "feedback": feedback }
+
+@app.post("/api/reset")
+def reset_scenario():
+    """Reinicia el escenario y el observador."""
+    scenario_info = roleplay_system.setup_scenario()
+    roleplay_system.observer = ObserverCoach()  # Reinicia el observador
+    return {
+        "scenario": scenario_info["scenario"],
+        "description": scenario_info["description"],
+        "customer_profile": scenario_info["customer_profile"],
+        "initial_query": scenario_info["initial_query"]
+    }
 # Alternativa para levantar como servidor
 def run_api():
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
