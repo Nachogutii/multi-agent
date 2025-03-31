@@ -7,7 +7,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/scenario")
+    fetch("https://plg-simulator.onrender.com/api/scenario")
       .then((res) => res.json())
       .then((data) => {
         setScenario(data);
@@ -26,18 +26,17 @@ export default function HomePage() {
           <h2>{scenario.title}</h2>
           <p>{scenario.description}</p>
           <p><strong>Difficulty:</strong> Intermediate</p>
-          <p><strong>Initial Query:</strong> {scenario.initial_query}</p>
           <button className="start-button" onClick={() => navigate("/chat")}>
             Start Simulation
           </button>
           <button
             className="reset-button"
             onClick={() => {
-              fetch("http://localhost:8000/api/reset", { method: "POST" })
+              fetch("https://plg-simulator.onrender.com/api/reset", { method: "POST" })
                 .then((res) => res.json())
                 .then(() => {
                   // Reinicia el backend y luego recarga la página
-                  fetch("http://localhost:8000/api/scenario")
+                  fetch("https://plg-simulator.onrender.com/api/scenario")
                     .then((res) => res.json())
                     .then((data) => {
                       setScenario(data); // Actualiza el escenario en el frontend
@@ -52,7 +51,7 @@ export default function HomePage() {
                 });
             }}
           >
-            Nueva conversación
+            New Conversation
           </button>
         </div>
       ) : (

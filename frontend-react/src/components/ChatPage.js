@@ -20,7 +20,7 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/scenario")
+    fetch("https://plg-simulator.onrender.com/api/scenario")
       .then((res) => res.json())
       .then((data) => setScenario(data))
       .catch((err) => console.error("Error fetching scenario:", err));
@@ -80,7 +80,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/chat", {
+      const res = await fetch("https://plg-simulator.onrender.com/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: userInput, phase: "exploration" })
@@ -179,7 +179,6 @@ export default function ChatPage() {
             <ul>
               <li><strong>Title:</strong> {scenario.title}</li>
               <li><strong>Description:</strong> {scenario.description}</li>
-              <li><strong>Initial Query:</strong> {scenario.initial_query}</li>
             </ul>
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
               Close
