@@ -2,6 +2,7 @@
 
 ## Bot Behavior Improvements
 - Bot needs better understanding of closing phases
+- Each conversation should focus on only one common issue (profiles.py PRODUCT_INFO) to ensure a better conversation flow
 
 ## Evaluator Enhancements
 - Need to improve evaluator for better scorecard generation
