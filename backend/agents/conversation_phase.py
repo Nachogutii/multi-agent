@@ -87,18 +87,20 @@ class ConversationPhaseManager:
         }
     
     def add_message(self, message: str, is_agent: bool = True):
-        """Adds a message to the conversation history."""
+        """Adds a message to the conversation history and triggers phase analysis."""
         self.conversation_history.append({
             "message": message,
             "is_agent": is_agent,
             "timestamp": time.time()
         })
+        
+        # Analyze the message immediately without starting monitoring
+        new_phase = self._analyze_conversation_semantics()
+        if new_phase != self.current_phase:
+            self._update_phase(new_phase)
     
     def analyze_message(self, message: str) -> ConversationPhase:
         """Analyzes the conversation to determine the current phase using AI."""
-        # Add the new message to history
-        self.add_message(message)
-        
         # Get the current phase based on semantic analysis
         new_phase = self._analyze_conversation_semantics()
         
@@ -120,6 +122,10 @@ class ConversationPhaseManager:
         analysis_prompt = f"""
         Analyze this conversation and determine which phase it's currently in.
         Consider the natural flow, context, and intent of the entire conversation.
+
+        Current Phase: {self.current_phase.value}
+        Number of Messages: {len(self.conversation_history)}
+        Phase History: {[phase['to_phase'].value for phase in self.phase_history]}
 
         Conversation History:
         {conversation_context}
@@ -163,6 +169,8 @@ class ConversationPhaseManager:
         3. Pay attention to emotional and contextual indicators
         4. Consider the relationship development
         5. Look for signs of natural conclusion or resolution
+        6. Only move to CLOSING phase if there are clear signs of conversation ending
+        7. Consider the number of messages and current phase when making decisions
 
         Return only the phase name (e.g., "INTRODUCTION_DISCOVERY").
         """
@@ -175,6 +183,7 @@ class ConversationPhaseManager:
                     Your task is to analyze conversations holistically and determine their current phase.
                     Consider the natural flow, context, and relationship development.
                     Look for signs of natural conclusion and resolution.
+                    Be conservative about moving to the CLOSING phase - only do so with clear signs of conversation ending.
                     Return only the exact phase name without any additional text."""},
                     {"role": "user", "content": analysis_prompt}
                 ],
@@ -184,6 +193,7 @@ class ConversationPhaseManager:
             
             # Parse the response to get the phase
             phase_name = response.choices[0].message.content.strip()
+            print(f"Phase Analysis Result: {phase_name} (Current: {self.current_phase.value})")
             
             # Validate the phase name
             try:
@@ -206,6 +216,18 @@ class ConversationPhaseManager:
                     if new_order < current_order:
                         print(f"Invalid phase regression detected: {self.current_phase} -> {new_phase}")
                         return self.current_phase
+                    
+                    # Additional validation for CLOSING phase
+                    if new_phase == ConversationPhase.CLOSING:
+                        # Require at least 4 messages before allowing closing phase
+                        if len(self.conversation_history) < 4:
+                            print("Not enough messages for closing phase")
+                            return self.current_phase
+                        
+                        # Check if we've been through other phases
+                        if not any(phase['to_phase'] == ConversationPhase.VALUE_PROPOSITION for phase in self.phase_history):
+                            print("Haven't reached value proposition phase yet")
+                            return self.current_phase
                 
                 return new_phase
                 
@@ -251,4 +273,4 @@ class ConversationPhaseManager:
     
     def get_current_phase(self) -> ConversationPhase:
         """Returns the current conversation phase."""
-        return self.current_phase 
+        return self.current_phase
