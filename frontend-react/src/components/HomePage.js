@@ -7,7 +7,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://plg-simulator.onrender.com/api/scenario")
+    fetch("http://localhost:8000/api/scenario")
       .then((res) => res.json())
       .then((data) => {
         setScenario(data);
@@ -32,11 +32,11 @@ export default function HomePage() {
           <button
             className="reset-button"
             onClick={() => {
-              fetch("https://plg-simulator.onrender.com/api/reset", { method: "POST" })
+              fetch("http://localhost:8000/api/reset", { method: "POST" })
                 .then((res) => res.json())
                 .then(() => {
                   // Reinicia el backend y luego recarga la página
-                  fetch("https://plg-simulator.onrender.com/api/scenario")
+                  fetch("http://localhost:8000/api/scenario")
                     .then((res) => res.json())
                     .then((data) => {
                       setScenario(data); // Actualiza el escenario en el frontend
