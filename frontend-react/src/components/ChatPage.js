@@ -59,7 +59,8 @@ export default function ChatPage() {
     recognizer.recognizeOnceAsync(result => {
       setListening(false);
       if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-        setUserInput(result.text);
+        setUserInput(prev => `${prev} ${result.text}`.trim());
+
       } else {
         console.error("Speech not recognized.");
       }
