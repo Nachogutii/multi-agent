@@ -34,7 +34,7 @@ export default function FeedbackPage() {
     fetch("http://localhost:8000/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
-        console.log(":marca_de_verificación_blanca: Structured feedback received:", data);
+        console.log("Structured feedback received:", data);
         setFeedback(data);
       })
       .catch((err) => {
@@ -92,7 +92,7 @@ export default function FeedbackPage() {
       scales: {
         y: {
           min: 0,
-          max: 20,  // :flecha_a_la_izquierda: Máximo del eje Y
+          max: 20, 
           ticks: {
             stepSize: 5
           },
@@ -147,7 +147,7 @@ export default function FeedbackPage() {
     return (
       <div className="feedback-score">
         <h3>
-          :dardo: Overall note of the talk: <span>{average} / 100</span>
+          Overall note of the talk: <span>{average} / 100</span>
         </h3>
       </div>
     );
