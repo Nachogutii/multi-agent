@@ -171,6 +171,25 @@ export default function FeedbackPage() {
 
   return (
     <div className="feedback-page">
+      <h2>Conversation Feedback</h2>
+
+      {feedback.score && (
+        <div className="feedback-section">
+          <h3>Overall Score</h3>
+          <p>{feedback.score} / 100</p>
+        </div>
+      )}
+
+      {renderPhaseScores(feedback.phase_scores)}
+      {renderList("Key Strengths", feedback.strengths)}
+      {renderList("Areas for Improvement", feedback.feedback)}
+      {renderList("Suggestions", feedback.suggestions)}
+      {renderList("Missed Opportunities", feedback.missed_opportunities)}
+      {renderList("Customer Objections", feedback.objections)}
+      {renderList("Pain Points", feedback.pain_points)}
+      {renderList("Blockers", feedback.blockers)}
+
+      <button onClick={() => navigate("/chat")} className="back-button">
       <h2>📝 Feedback Summary</h2>
       {renderOverallScore(feedback.metrics)}
       {renderCharts(feedback.metrics)}
