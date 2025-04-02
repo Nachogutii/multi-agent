@@ -79,7 +79,7 @@ export default function FeedbackPage() {
       {renderList("Pain Points", feedback.pain_points)}
       {renderList("Blockers", feedback.blockers)}
 
-      <button onClick={() => navigate("/")} className="back-button">
+      <button onClick={() => navigate("/chat")} className="back-button">
         ← Back to Chat
       </button>
     </div>

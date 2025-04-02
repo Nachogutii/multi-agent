@@ -17,6 +17,24 @@ export default function HomePage() {
       });
   }, []);
 
+  const handleStartSimulation = () => {
+    fetch("http://localhost:8000/api/reset", { method: "POST" })
+      .then(() => fetch("http://localhost:8000/api/scenario"))
+      .then((res) => res.json())
+      .then((data) => {
+        localStorage.removeItem("chatMessages");
+        localStorage.setItem("scenario", JSON.stringify(data));
+        navigate("/chat");
+      })
+      .catch((err) => {
+        console.error("Error starting new simulation:", err);
+      });
+  };
+
+  const handleBackToChat = () => {
+    navigate("/chat");
+  };
+
   return (
     <div className="home-container">
       <h1 className="home-title">GigPlus Customer Simulation</h1>
@@ -26,32 +44,13 @@ export default function HomePage() {
           <h2>{scenario.title}</h2>
           <p>{scenario.description}</p>
           <p><strong>Difficulty:</strong> Intermediate</p>
-          <button className="start-button" onClick={() => navigate("/chat")}>
+
+          <button className="start-button" onClick={handleStartSimulation}>
             Start Simulation
           </button>
-          <button
-            className="reset-button"
-            onClick={() => {
-              fetch("http://localhost:8000/api/reset", { method: "POST" })
-                .then((res) => res.json())
-                .then(() => {
-                  // Reinicia el backend y luego recarga la página
-                  fetch("http://localhost:8000/api/scenario")
-                    .then((res) => res.json())
-                    .then((data) => {
-                      setScenario(data); // Actualiza el escenario en el frontend
-                      window.location.reload(); // Recarga la página para reflejar los cambios
-                    })
-                    .catch((err) => {
-                      console.error("Error fetching new scenario:", err);
-                    });
-                })
-                .catch((err) => {
-                  console.error("Error resetting scenario:", err);
-                });
-            }}
-          >
-            New Conversation
+
+          <button className="reset-button" onClick={handleBackToChat}>
+            Back to Chat
           </button>
         </div>
       ) : (
