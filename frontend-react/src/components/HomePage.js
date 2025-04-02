@@ -7,7 +7,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/scenario")
+    fetch("https://plg-simulator.onrender.com/api/scenario")
       .then((res) => res.json())
       .then((data) => {
         setScenario(data);
@@ -18,8 +18,8 @@ export default function HomePage() {
   }, []);
 
   const handleStartSimulation = () => {
-    fetch("http://localhost:8000/api/reset", { method: "POST" })
-      .then(() => fetch("http://localhost:8000/api/scenario"))
+    fetch("https://plg-simulator.onrender.com/api/reset", { method: "POST" })
+      .then(() => fetch("https://plg-simulator.onrender.com/api/scenario"))
       .then((res) => res.json())
       .then((data) => {
         localStorage.removeItem("chatMessages");
@@ -32,10 +32,10 @@ export default function HomePage() {
   };
 
   const handleNewConversation = () => {
-    fetch("http://localhost:8000/api/reset", { method: "POST" })
+    fetch("https://plg-simulator.onrender.com/api/reset", { method: "POST" })
       .then((res) => res.json())
       .then(() => {
-        fetch("http://localhost:8000/api/scenario")
+        fetch("https://plg-simulator.onrender.com/api/scenario")
           .then((res) => res.json())
           .then((data) => {
             setScenario(data);

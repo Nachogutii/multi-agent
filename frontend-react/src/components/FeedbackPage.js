@@ -31,7 +31,7 @@ export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
   useEffect(() => {
-    fetch("http://localhost:8000/api/feedback/structured")
+    fetch("https://plg-simulator.onrender.com/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
         console.log("Structured feedback received:", data);
