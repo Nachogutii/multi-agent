@@ -115,7 +115,7 @@ export default function FeedbackPage() {
                 responsive: true,
                 plugins: {
                   legend: { position: "top" },
-                  title: { display: true, text: "Evaluación de la charla (Radar)" },
+                  title: { display: true, text: "Evaluation of the conversation (Radar)" },
                 },
                 scales: {
                   r: {
@@ -156,15 +156,18 @@ export default function FeedbackPage() {
   if (feedback.error) return <div className="feedback-error">{feedback.error}</div>;
   return (
     <div className="feedback-page">
-      <h2>:nota: Feedback Summary</h2>
+      <h2>Feedback Summary</h2>
       {renderOverallScore(feedback.metrics)}
       {renderCharts(feedback.metrics)}
       <div className="feedback-lists">
-        {renderList(":bombilla: Suggestions", feedback.suggestions)}
-        {renderList(":mariquita: Issues", feedback.issues)}
+        {renderList("Suggestions", feedback.suggestions)}
+        {renderList("Issues", feedback.issues)}
       </div>
       <button onClick={() => navigate("/chat")} className="back-button">
         ← Back to Chat
+      </button>
+      <button onClick={() => navigate("/")} className="back-button">
+        ← Back to Lobby
       </button>
     </div>
   );

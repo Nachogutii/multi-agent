@@ -40,6 +40,7 @@
   border-radius: 6px;
   padding: 10px 20px;
   cursor: pointer;
+  margin-right: 10px;
 }
 
 .back-button:hover {
