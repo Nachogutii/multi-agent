@@ -7,7 +7,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://plg-simulator.onrender.com/api/scenario")
+    fetch("http://localhost:8000/api/scenario")
       .then((res) => res.json())
       .then((data) => {
         setScenario(data);
@@ -16,6 +16,39 @@ export default function HomePage() {
         console.error("Error fetching scenario:", err);
       });
   }, []);
+
+  const handleStartSimulation = () => {
+    fetch("http://localhost:8000/api/reset", { method: "POST" })
+      .then(() => fetch("http://localhost:8000/api/scenario"))
+      .then((res) => res.json())
+      .then((data) => {
+        localStorage.removeItem("chatMessages");
+        localStorage.setItem("scenario", JSON.stringify(data));
+        navigate("/chat");
+      })
+      .catch((err) => {
+        console.error("Error starting new simulation:", err);
+      });
+  };
+
+  const handleNewConversation = () => {
+    fetch("http://localhost:8000/api/reset", { method: "POST" })
+      .then((res) => res.json())
+      .then(() => {
+        fetch("http://localhost:8000/api/scenario")
+          .then((res) => res.json())
+          .then((data) => {
+            setScenario(data);
+            window.location.reload();
+          })
+          .catch((err) => {
+            console.error("Error fetching new scenario:", err);
+          });
+      })
+      .catch((err) => {
+        console.error("Error resetting scenario:", err);
+      });
+  };
 
   return (
     <div className="home-container">
@@ -26,31 +59,12 @@ export default function HomePage() {
           <h2>{scenario.title}</h2>
           <p>{scenario.description}</p>
           <p><strong>Difficulty:</strong> Intermediate</p>
-          <button className="start-button" onClick={() => navigate("/chat")}>
+
+          <button className="start-button" onClick={handleStartSimulation}>
             Start Simulation
           </button>
-          <button
-            className="reset-button"
-            onClick={() => {
-              fetch("https://plg-simulator.onrender.com/api/reset", { method: "POST" })
-                .then((res) => res.json())
-                .then(() => {
-                  // Reinicia el backend y luego recarga la página
-                  fetch("https://plg-simulator.onrender.com/api/scenario")
-                    .then((res) => res.json())
-                    .then((data) => {
-                      setScenario(data); // Actualiza el escenario en el frontend
-                      window.location.reload(); // Recarga la página para reflejar los cambios
-                    })
-                    .catch((err) => {
-                      console.error("Error fetching new scenario:", err);
-                    });
-                })
-                .catch((err) => {
-                  console.error("Error resetting scenario:", err);
-                });
-            }}
-          >
+
+          <button className="reset-button" onClick={handleNewConversation}>
             New Conversation
           </button>
         </div>

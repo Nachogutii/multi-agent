@@ -27,7 +27,7 @@ def print_banner(text: str) -> None:
 
 def print_scenario_info(scenario_info: Dict, product_info: Dict) -> None:
     """Print information about the current scenario."""
-    print_banner("MICROSOFT COPILOT PLG CUSTOMER SERVICE ROLEPLAY")
+    print_banner("PLG CUSTOMER SERVICE ROLEPLAY")
     print_colored("\nSCENARIO:", "yellow")
     print(f"{scenario_info['scenario']} - {scenario_info['description']}")
     

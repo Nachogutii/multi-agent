@@ -324,3 +324,15 @@ def reset_scenario():
 # Alternativa para levantar como servidor
 def run_api():
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+@app.get("/api/feedback/structured")
+def get_structured_feedback():
+    """Devuelve métricas, sugerencias e issues reales desde el evaluador."""
+    result = roleplay_system.observer.analyze_conversation()
+
+    return {
+        "metrics": result.get("phase_scores", {}),
+        "suggestions": result.get("suggestions", []),
+        "issues": result.get("missed_opportunities", [])
+    }

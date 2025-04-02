@@ -37,12 +37,12 @@ class CustomerAgent:
     
     def generate_response(self, user_message: str) -> str:
         """Generate a customer response based on the profile and conversation history."""
-        # Analyze conversation phase
-        current_phase = self.phase_manager.analyze_message(user_message)
+        # Add user message to phase manager first
+        self.phase_manager.add_message(user_message, is_agent=True)
         
-        # Check for closing phase
-        if current_phase == ConversationPhase.CLOSING:
-            return self._generate_closing_remark()
+        # Get current phase
+        current_phase = self.phase_manager.get_current_phase()
+        print(f"Current Phase: {current_phase.value}")
         
         # Update conversation history
         self.conversation_history.append({"role": "user", "content": user_message})
@@ -53,7 +53,7 @@ class CustomerAgent:
         try:
             # Generate response using Azure OpenAI
             response = self.client.chat.completions.create(
-                model=self.deployment,  # Use the deployment name from environment
+                model=self.deployment,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": "Please generate a realistic customer response based on my previous message."}
@@ -69,8 +69,17 @@ class CustomerAgent:
             customer_response = re.sub(r'^"', '', customer_response).strip()
             customer_response = re.sub(r'"$', '', customer_response).strip()
             
+            # Add customer response to phase manager
+            self.phase_manager.add_message(customer_response, is_agent=False)
+            
             # Update conversation history
             self.conversation_history.append({"role": "assistant", "content": customer_response})
+            
+            # Check if we should generate a closing remark
+            if self.phase_manager.is_closing_phase():
+                closing_remark = self._generate_closing_remark()
+                print(f"Generating closing remark: {closing_remark}")
+                return closing_remark
             
             return customer_response
             
@@ -83,18 +92,8 @@ class CustomerAgent:
         current_phase = self.phase_manager.get_current_phase()
         phase_history = self.phase_manager.get_phase_history()
         
-        # Base closing remarks by personality
-        closing_remarks = {
-            "Friendly": "Thanks so much for your help today! I really appreciate it.",
-            "Busy": "Alright, thanks for the info. Got to run!",
-            "Skeptical": "I'll think about what you've said and get back to you if I have more questions.",
-            "Direct": "That's all I needed to know. Thanks.",
-            "Budget-conscious": "Thanks for the detailed information. I'll review the pricing and get back to you.",
-            "Security-focused": "Thank you for addressing my security concerns. I'll discuss this with our IT team."
-        }
-        
         # Get base remark based on personality
-        base_remark = closing_remarks.get(self.personality, "Thank you for your time.")
+        base_remark = self._get_closing_remark_by_personality()
         
         # Add context based on conversation phase and history
         if current_phase == ConversationPhase.OBJECTION_HANDLING:
@@ -103,6 +102,18 @@ class CustomerAgent:
             return f"{base_remark} I'll review the ROI calculations and discuss with our finance team."
         else:
             return base_remark
+    
+    def _get_closing_remark_by_personality(self) -> str:
+        """Returns the appropriate closing remark based on customer personality."""
+        closing_remarks = {
+            "Friendly": "Thanks so much for your help today! I really appreciate it.",
+            "Busy": "Alright, thanks for the info. Got to run!",
+            "Skeptical": "I'll think about what you've said and get back to you if I have more questions.",
+            "Direct": "That's all I needed to know. Thanks.",
+            "Budget-conscious": "Thanks for the detailed information. I'll review the pricing and get back to you.",
+            "Security-focused": "Thank you for addressing my security concerns. I'll discuss this with our IT team."
+        }
+        return closing_remarks.get(self.personality, "Thanks for your time. I'll be in touch if I have any questions.")
     
     def _build_prompt(self, user_message: str, current_phase: ConversationPhase) -> str:
         """Build a detailed prompt for the customer agent."""
