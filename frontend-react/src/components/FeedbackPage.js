@@ -178,6 +178,9 @@ export default function FeedbackPage() {
         {renderList("💡 Suggestions", feedback.suggestions)}
         {renderList("🐞 Issues", feedback.issues)}
       </div>
+      <button onClick={() => navigate("/")} className="back-button">
+        ← Back to Chat
+      </button>
     </div>
   );
 }
