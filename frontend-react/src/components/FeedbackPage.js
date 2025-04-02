@@ -15,7 +15,6 @@ import {
   LineElement,
 } from "chart.js";
 import "./FeedbackPage.css";
-
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -28,27 +27,23 @@ ChartJS.register(
   PointElement,
   LineElement
 );
-
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
-
   useEffect(() => {
     fetch("http://localhost:8000/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
-        console.log("✅ Structured feedback received:", data);
+        console.log(":marca_de_verificación_blanca: Structured feedback received:", data);
         setFeedback(data);
       })
       .catch((err) => {
-        console.error("❌ Error fetching feedback:", err);
+        console.error(":x: Error fetching feedback:", err);
         setFeedback({ error: "Error fetching feedback." });
       });
   }, []);
-
   const renderList = (title, items) => {
     if (!Array.isArray(items) || items.length === 0) return null;
-
     return (
       <div className="feedback-section">
         <h3>{title}</h3>
@@ -60,13 +55,10 @@ export default function FeedbackPage() {
       </div>
     );
   };
-
   const renderCharts = (metrics) => {
     if (!metrics || typeof metrics !== "object") return null;
-
     const labels = Object.keys(metrics);
     const dataValues = Object.values(metrics);
-
     const barData = {
       labels,
       datasets: [
@@ -79,7 +71,6 @@ export default function FeedbackPage() {
         },
       ],
     };
-
     const radarData = {
       labels,
       datasets: [
@@ -92,7 +83,6 @@ export default function FeedbackPage() {
         },
       ],
     };
-
     const options = {
       responsive: true,
       plugins: {
@@ -102,7 +92,7 @@ export default function FeedbackPage() {
       scales: {
         y: {
           min: 0,
-          max: 20,  // ⬅️ Máximo del eje Y
+          max: 20,  // :flecha_a_la_izquierda: Máximo del eje Y
           ticks: {
             stepSize: 5
           },
@@ -113,7 +103,6 @@ export default function FeedbackPage() {
         }
       }
     };
-
     return (
       <div className="feedback-charts">
         <div className="chart-container">
@@ -148,56 +137,33 @@ export default function FeedbackPage() {
       </div>
     );
   };
-
   const renderOverallScore = (metrics) => {
     if (!metrics || typeof metrics !== "object") return null;
     const values = Object.values(metrics);
     if (!values.length) return null;
-
     const average = (
       values.reduce((acc, v) => acc + v, 0) / values.length
     ).toFixed(1);
     return (
       <div className="feedback-score">
         <h3>
-          🎯 Overall note of the talk: <span>{average} / 100</span>
+          :dardo: Overall note of the talk: <span>{average} / 100</span>
         </h3>
       </div>
     );
   };
-
   if (!feedback) return <div className="feedback-loading">Loading feedback...</div>;
   if (feedback.error) return <div className="feedback-error">{feedback.error}</div>;
-
   return (
     <div className="feedback-page">
-      <h2>Conversation Feedback</h2>
-
-      {feedback.score && (
-        <div className="feedback-section">
-          <h3>Overall Score</h3>
-          <p>{feedback.score} / 100</p>
-        </div>
-      )}
-
-      {renderPhaseScores(feedback.phase_scores)}
-      {renderList("Key Strengths", feedback.strengths)}
-      {renderList("Areas for Improvement", feedback.feedback)}
-      {renderList("Suggestions", feedback.suggestions)}
-      {renderList("Missed Opportunities", feedback.missed_opportunities)}
-      {renderList("Customer Objections", feedback.objections)}
-      {renderList("Pain Points", feedback.pain_points)}
-      {renderList("Blockers", feedback.blockers)}
-
-      <button onClick={() => navigate("/chat")} className="back-button">
-      <h2>📝 Feedback Summary</h2>
+      <h2>:nota: Feedback Summary</h2>
       {renderOverallScore(feedback.metrics)}
       {renderCharts(feedback.metrics)}
       <div className="feedback-lists">
-        {renderList("💡 Suggestions", feedback.suggestions)}
-        {renderList("🐞 Issues", feedback.issues)}
+        {renderList(":bombilla: Suggestions", feedback.suggestions)}
+        {renderList(":mariquita: Issues", feedback.issues)}
       </div>
-      <button onClick={() => navigate("/")} className="back-button">
+      <button onClick={() => navigate("/chat")} className="back-button">
         ← Back to Chat
       </button>
     </div>
