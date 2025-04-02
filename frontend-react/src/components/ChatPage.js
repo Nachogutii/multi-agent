@@ -7,7 +7,8 @@ const speechKey = process.env.REACT_APP_SPEECH_KEY;
 const speechRegion = process.env.REACT_APP_SPEECH_REGION;
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([]);
+  const initialMessages = JSON.parse(localStorage.getItem("chatMessages")) || [];
+  const [messages, setMessages] = useState(initialMessages);
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
@@ -16,14 +17,20 @@ export default function ChatPage() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/scenario")
-      .then((res) => res.json())
-      .then((data) => setScenario(data))
-      .catch((err) => console.error("Error fetching scenario:", err));
+    const storedScenario = localStorage.getItem("scenario");
+    if (storedScenario) {
+      setScenario(JSON.parse(storedScenario));
+    } else {
+      fetch("http://localhost:8000/api/scenario")
+        .then((res) => res.json())
+        .then((data) => setScenario(data))
+        .catch((err) => console.error("Error fetching scenario:", err));
+    }
   }, []);
 
   const scrollToBottom = () => {
@@ -60,7 +67,6 @@ export default function ChatPage() {
       setListening(false);
       if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
         setUserInput(prev => `${prev} ${result.text}`.trim());
-
       } else {
         console.error("Speech not recognized.");
       }
@@ -105,12 +111,11 @@ export default function ChatPage() {
     setLoading(false);
   };
 
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const handleFeedbackClick = () => {
-    navigate("/feedback"); 
+    navigate("/feedback");
   };
-
 
   return (
     <div className="chat-container">
@@ -144,33 +149,32 @@ export default function ChatPage() {
       </div>
 
       <form className="input-container" onSubmit={sendMessage}>
-      <input
-        type="text"
-        className="message-input"
-        value={userInput}
-        onChange={(e) => setUserInput(e.target.value)}
-        placeholder="Type your message..."
-      />
-      <button
-        type="button"
-        className={`voice-button ${listening ? 'listening' : ''}`}
-        onClick={recognizeSpeech}
-        disabled={loading || listening}
-      >
-        Speak
-      </button>
-      <button type="submit" className="send-button">
-        Send
-      </button>
-      <button
-        type="button"
-        className="feedback-button"
-        onClick={handleFeedbackClick}
-      >
-        Feedback
-      </button>
+        <input
+          type="text"
+          className="message-input"
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+          placeholder="Type your message..."
+        />
+        <button
+          type="button"
+          className={`voice-button ${listening ? 'listening' : ''}`}
+          onClick={recognizeSpeech}
+          disabled={loading || listening}
+        >
+          Speak
+        </button>
+        <button type="submit" className="send-button">
+          Send
+        </button>
+        <button
+          type="button"
+          className="feedback-button"
+          onClick={handleFeedbackClick}
+        >
+          Feedback
+        </button>
       </form>
-
 
       {showInfo && scenario && (
         <>
