@@ -1,17 +1,44 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Bar, Radar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  RadialLinearScale,
+  ArcElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
+} from "chart.js";
 import "./FeedbackPage.css";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  RadialLinearScale,
+  ArcElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement
+);
 
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/feedback")
+    fetch("http://localhost:8000/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
-        console.log("✅ Feedback fetched:", data);
-        setFeedback(data.feedback); // << acceder a feedback anidado
+        console.log("✅ Structured feedback received:", data);
+        setFeedback(data);
       })
       .catch((err) => {
         console.error("❌ Error fetching feedback:", err);
@@ -34,54 +61,123 @@ export default function FeedbackPage() {
     );
   };
 
-  const renderPhaseScores = (scores) => {
-    if (!scores) return null;
+  const renderCharts = (metrics) => {
+    if (!metrics || typeof metrics !== "object") return null;
+
+    const labels = Object.keys(metrics);
+    const dataValues = Object.values(metrics);
+
+    const barData = {
+      labels,
+      datasets: [
+        {
+          label: "Score by Phase",
+          data: dataValues,
+          backgroundColor: "rgba(54, 162, 235, 0.6)",
+          borderColor: "rgba(54, 162, 235, 1)",
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    const radarData = {
+      labels,
+      datasets: [
+        {
+          label: "Talk evaluation",
+          data: dataValues,
+          backgroundColor: "rgba(255, 99, 132, 0.2)",
+          borderColor: "rgba(255, 99, 132, 1)",
+          borderWidth: 2,
+        },
+      ],
+    };
+
+    const options = {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: { display: true, text: "Evaluation of the talk by section" },
+      },
+      scales: {
+        y: {
+          min: 0,
+          max: 20,  // ⬅️ Máximo del eje Y
+          ticks: {
+            stepSize: 5
+          },
+          title: {
+            display: true,
+            text: "Puntuation (max. 20)"
+          }
+        }
+      }
+    };
+
     return (
-      <div className="feedback-section">
-        <h3>Phase Scores</h3>
-        <ul>
-          {Object.entries(scores).map(([phase, value], idx) => (
-            <li key={idx}>
-              <strong>{phase.replaceAll("_", " ")}:</strong> {value}/20
-            </li>
-          ))}
-        </ul>
+      <div className="feedback-charts">
+        <div className="chart-container">
+          <Bar data={barData} options={options} />
+        </div>
+          <div className="chart-container">
+            <Radar
+              data={radarData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: { position: "top" },
+                  title: { display: true, text: "Evaluación de la charla (Radar)" },
+                },
+                scales: {
+                  r: {
+                    min: 0,
+                    max: 20,
+                    ticks: {
+                      stepSize: 5,
+                    },
+                    pointLabels: {
+                      font: {
+                        size: 12,
+                      },
+                    },
+                  },
+                },
+              }}
+            />
+          </div>
       </div>
     );
   };
 
-  if (!feedback || feedback.error) {
+  const renderOverallScore = (metrics) => {
+    if (!metrics || typeof metrics !== "object") return null;
+    const values = Object.values(metrics);
+    if (!values.length) return null;
+
+    const average = (
+      values.reduce((acc, v) => acc + v, 0) / values.length
+    ).toFixed(1);
     return (
-      <div className="feedback-page">
-        <h2>Conversation Feedback</h2>
-        <p>{feedback?.error || "Loading..."}</p>
+      <div className="feedback-score">
+        <h3>
+          🎯 Overall note of the talk: <span>{average} / 100</span>
+        </h3>
       </div>
     );
-  }
+  };
+
+  if (!feedback) return <div className="feedback-loading">Loading feedback...</div>;
+  if (feedback.error) return <div className="feedback-error">{feedback.error}</div>;
 
   return (
     <div className="feedback-page">
-      <h2>Conversation Feedback</h2>
-
-      {feedback.score && (
-        <div className="feedback-section">
-          <h3>Overall Score</h3>
-          <p>{feedback.score} / 100</p>
-        </div>
-      )}
-
-      {renderPhaseScores(feedback.phase_scores)}
-      {renderList("Key Strengths", feedback.strengths)}
-      {renderList("Areas for Improvement", feedback.feedback)}
-      {renderList("Suggestions", feedback.suggestions)}
-      {renderList("Missed Opportunities", feedback.missed_opportunities)}
-      {renderList("Customer Objections", feedback.objections)}
-      {renderList("Pain Points", feedback.pain_points)}
-      {renderList("Blockers", feedback.blockers)}
-
-      <button onClick={() => navigate("/")} className="back-button">
-        ← Back to Chat
-      </button>
+      <h2>📝 Feedback Summary</h2>
+      {renderOverallScore(feedback.metrics)}
+      {renderCharts(feedback.metrics)}
+      <div className="feedback-lists">
+        {renderList("💡 Suggestions", feedback.suggestions)}
+        {renderList("🐞 Issues", feedback.issues)}
+      </div>
     </div>
   );
 }
