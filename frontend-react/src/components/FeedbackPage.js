@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bar, Radar } from "react-chartjs-2";
+import { submitFeedbackToSupabase } from "../services/feedbackService.js"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,14 +35,22 @@ export default function FeedbackPage() {
     fetch("http://localhost:8000/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Structured feedback received:", data);
-        setFeedback(data);
+        console.log("Structured feedback received:", data)
+        setFeedback(data)
+  
+        // Check if we already sent this session's feedback
+        const alreadySent = sessionStorage.getItem("feedback_submitted")
+      
+        console.log("Submitting feedback to Supabase:", data)
+        submitFeedbackToSupabase(data)
+        //sessionStorage.setItem("feedback_submitted", "true")
+        
       })
       .catch((err) => {
-        console.error(":x: Error fetching feedback:", err);
-        setFeedback({ error: "Error fetching feedback." });
-      });
-  }, []);
+        console.error("❌ Error fetching feedback:", err)
+        setFeedback({ error: "Error fetching feedback." })
+      })
+  }, [])
   const renderList = (title, items) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
