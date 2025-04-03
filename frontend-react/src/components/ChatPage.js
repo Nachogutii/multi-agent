@@ -14,6 +14,8 @@ export default function ChatPage() {
   const [listening, setListening] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [scenario, setScenario] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -38,20 +40,47 @@ export default function ChatPage() {
   };
 
   const speakResponse = (text) => {
-    if (!speechKey || !speechRegion || !text) return;
+    if (isMuted || !speechKey || !speechRegion || !text) return;
+
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
     speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
     const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
     const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+    synthesizerRef.current = synthesizer;
 
     synthesizer.speakTextAsync(
       text,
-      () => synthesizer.close(),
+      () => {
+        synthesizer.close();
+        if (synthesizerRef.current === synthesizer) {
+          synthesizerRef.current = null;
+        }
+      },
       (err) => {
         console.error("Speech synthesis error:", err);
         synthesizer.close();
+        if (synthesizerRef.current === synthesizer) {
+          synthesizerRef.current = null;
+        }
       }
     );
+  };
+
+  const toggleMute = () => {
+    const newMuteState = !isMuted;
+    setIsMuted(newMuteState);
+
+    if (newMuteState && synthesizerRef.current) {
+      synthesizerRef.current.stopSpeakingAsync(() => {
+        synthesizerRef.current.close();
+        synthesizerRef.current = null;
+        console.log("Bot silenciado manualmente.");
+      }, (err) => {
+        console.error("Error al detener voz:", err);
+        synthesizerRef.current?.close();
+        synthesizerRef.current = null;
+      });
+    }
   };
 
   const recognizeSpeech = async () => {
@@ -129,6 +158,13 @@ export default function ChatPage() {
         </div>
 
         <div className="chat-header-right">
+          <button
+            className={`mute-button ${isMuted ? 'muted' : ''}`}
+            onClick={toggleMute}
+            title={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted ? "🔇" : "🔊"}
+          </button>
           <button className="info-button" onClick={() => setShowInfo(true)}>i</button>
         </div>
       </div>

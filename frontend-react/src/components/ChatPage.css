@@ -179,3 +179,24 @@
   color: #ffffff;
   margin-left: 16px;
 }
+
+.mute-button {
+  background-color: #fff;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.mute-button:hover {
+  background-color: #eee;
+}
+
+.mute-button.muted {
+  background-color: #ffd4d4;
+  border-color: #ff6666;
+}
