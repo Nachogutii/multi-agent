@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import background from '../background.png'; // ✅ Importa el fondo
 import "./HomePage.css";
+import logo from '../GIG+.png'
 
 export default function HomePage() {
   const [scenario, setScenario] = useState(null);
@@ -51,26 +53,46 @@ export default function HomePage() {
   };
 
   return (
-    <div className="home-container">
-      <h1 className="home-title">GigPlus Customer Simulation</h1>
+    <div
+      className="home-background"
+      style={{
+        backgroundImage: `url(${background})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+        minHeight: "100vh",
+        width: "100vw",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem",
+      }}
+    >
+      <div className="home-container">
+      <div className="home-title-row">
+        <img src={logo} alt="GigPlus logo" className="home-logo-inline" />
+        <h1 className="home-title">GigPlus Customer Simulation</h1>
+      </div>
 
-      {scenario ? (
-        <div className="scenario-card">
-          <h2>{scenario.title}</h2>
-          <p>{scenario.description}</p>
-          <p><strong>Difficulty:</strong> Intermediate</p>
+        {scenario ? (
+          <div className="scenario-card">
+            <h2>{scenario.title}</h2>
+            <p>{scenario.description}</p>
+            <p><strong>Difficulty:</strong> Intermediate</p>
 
-          <button className="start-button" onClick={handleStartSimulation}>
-            Start Simulation
-          </button>
+            <button className="start-button" onClick={handleStartSimulation}>
+              Start Simulation
+            </button>
 
-          <button className="reset-button" onClick={handleNewConversation}>
-            New Conversation
-          </button>
-        </div>
-      ) : (
-        <p>Loading scenario...</p>
-      )}
+            <button className="reset-button" onClick={handleNewConversation}>
+              New Conversation
+            </button>
+          </div>
+        ) : (
+          <p>Loading scenario...</p>
+        )}
+      </div>
     </div>
   );
 }
