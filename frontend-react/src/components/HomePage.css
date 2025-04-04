@@ -1,12 +1,31 @@
 .home-container {
-    padding: 40px;
-    text-align: center;
-    font-family: 'Segoe UI', sans-serif;
-  }
+  background-color: rgba(255, 255, 255, 0.85); /* blanco semitransparente */
+  padding: 3rem 2rem;
+  border-radius: 16px;
+  max-width: 700px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  font-family: 'Arial', sans-serif;
+}
   
   .home-title {
     font-size: 28px;
     margin-bottom: 30px;
+  }
+  
+  .home-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  
+  .home-logo-inline {
+    width: 40px;
+    height: auto;
+    object-fit: contain;
   }
   
   .scenario-card {
@@ -15,7 +34,7 @@
     border-radius: 10px;
     max-width: 600px;
     margin: 0 auto;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 6px rgba(0,0,0,0.1);
     text-align: left;
   }
   

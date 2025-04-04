@@ -1,20 +1,40 @@
-/* src/components/LoginPage.css */
+html, body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    height: 100%;
+    width: 100%;
+  }
 
 .login-container {
     max-width: 420px;
+    width: 100%;
     margin: 80px auto;
     background-color: #ffffff;
     padding: 2rem;
     border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
     text-align: center;
-    margin-top: 13%;
-    font-family: 'Arial', sans-serif; 
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .login-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .login-logo-inline {
+    width: 36px;
+    height: auto;
+    object-fit: contain;
   }
   
   .login-container h2 {
     font-size: 24px;
-    margin-bottom: 1.5rem;
+    margin: 0;
     font-weight: 600;
   }
   
@@ -56,12 +76,12 @@
     margin-top: 1rem;
     font-size: 20px;
     color: green;
-    font-family: 'Arial', sans-serif; 
+    font-family: 'Arial', sans-serif;
   }
   
   .login-error {
     margin-top: 0.5rem;
     color: red;
     font-size: 20px;
-    font-family: 'Arial', sans-serif; 
+    font-family: 'Arial', sans-serif;
   }
