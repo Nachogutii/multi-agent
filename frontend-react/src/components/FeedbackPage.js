@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Bar, Radar } from "react-chartjs-2";
+import { submitFeedbackToSupabase } from "../services/feedbackService.js"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,18 +31,49 @@ ChartJS.register(
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const effectRan = useRef(false);
+
   useEffect(() => {
+    // Evitar múltiples ejecuciones en modo desarrollo
+    if (effectRan.current) return;
+    effectRan.current = true;
+
+    // Generar un ID único para esta sesión basado en la ruta y timestamp
+    const timestamp = new Date().getTime();
+    const path = location.pathname;
+    const sessionId = btoa(`${path}_${timestamp}`).slice(0, 32);
+    
+    // Verificar si ya se envió feedback para esta sesión
+    const feedbackKey = `feedback_sent_${sessionId}`;
+    const alreadySent = localStorage.getItem(feedbackKey);
+
+    if (alreadySent) {
+      console.log('Feedback ya enviado para esta sesión');
+      return;
+    }
+
     fetch("http://localhost:8000/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Structured feedback received:", data);
-        setFeedback(data);
+        console.log("Structured feedback received:", data)
+        setFeedback(data)
+  
+        // Enviar feedback a Supabase con sessionId
+        if (data?.metrics) {
+          submitFeedbackToSupabase({
+            ...data,
+            sessionId
+          })
+          // Marcar que el feedback ya fue enviado para esta sesión
+          localStorage.setItem(feedbackKey, 'true');
+        }
       })
       .catch((err) => {
-        console.error(":x: Error fetching feedback:", err);
-        setFeedback({ error: "Error fetching feedback." });
-      });
-  }, []);
+        console.error("❌ Error fetching feedback:", err)
+        setFeedback({ error: "Error fetching feedback." })
+      })
+  }, [location.pathname]) // Se ejecuta cuando cambia la ruta
   const renderList = (title, items) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
