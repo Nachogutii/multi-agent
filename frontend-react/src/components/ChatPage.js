@@ -150,7 +150,7 @@ export default function ChatPage() {
     <div className="chat-container">
       <div className="chat-header">
         <div className="chat-header-left">
-          {scenario && <h3 className="scenario-title">{scenario.title}</h3>}
+          {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
         </div>
 
         <div className="chat-header-center">
@@ -218,8 +218,8 @@ export default function ChatPage() {
           <div className="popup">
             <h3>Scenario Information</h3>
             <ul>
-              <li><strong>Title:</strong> {scenario.title}</li>
-              <li><strong>Description:</strong> {scenario.description}</li>
+              <li><strong>Title:</strong>Copilot Welcome</li>
+              <li><strong>Description:</strong>Customer is already using some Microsoft products and wants to know more about Copilot</li>
             </ul>
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
               Close
