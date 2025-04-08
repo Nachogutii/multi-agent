@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import background from '../background.png'; // ✅ Importa el fondo
+import background from '../background.png';
 import "./HomePage.css";
 import logo from '../GIG+.png'
 
@@ -77,17 +77,19 @@ export default function HomePage() {
 
         {scenario ? (
           <div className="scenario-card">
-            <h2>{scenario.title}</h2>
-            <p>{scenario.description}</p>
+            <h2>Copilot Welcome</h2>
+            <p>Customer is already using some Microsoft products and wants to know more about Copilot.</p>
             <p><strong>Difficulty:</strong> Intermediate</p>
 
             <button className="start-button" onClick={handleStartSimulation}>
               Start Simulation
             </button>
 
+            {/*
             <button className="reset-button" onClick={handleNewConversation}>
               New Conversation
-            </button>
+            </button>*/}
+            
           </div>
         ) : (
           <p>Loading scenario...</p>
