@@ -33,27 +33,6 @@ export default function HomePage() {
       });
   };
 
-  {/*
-  const handleNewConversation = () => {
-    fetch("http://localhost:8000/api/reset", { method: "POST" })
-      .then((res) => res.json())
-      .then(() => {
-        fetch("http://localhost:8000/api/scenario")
-          .then((res) => res.json())
-          .then((data) => {
-            setScenario(data);
-            window.location.reload();
-          })
-          .catch((err) => {
-            console.error("Error fetching new scenario:", err);
-          });
-      })
-      .catch((err) => {
-        console.error("Error resetting scenario:", err);
-      });
-  };
-  */}
-
   return (
     <div
       className="home-background"
@@ -86,11 +65,6 @@ export default function HomePage() {
             <button className="start-button" onClick={handleStartSimulation}>
               Start Simulation
             </button>
-
-            {/*
-            <button className="reset-button" onClick={handleNewConversation}>
-              New Conversation
-            </button>*/}
             
           </div>
         ) : (
