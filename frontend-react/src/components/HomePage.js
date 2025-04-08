@@ -33,6 +33,7 @@ export default function HomePage() {
       });
   };
 
+  {/*
   const handleNewConversation = () => {
     fetch("http://localhost:8000/api/reset", { method: "POST" })
       .then((res) => res.json())
@@ -51,6 +52,7 @@ export default function HomePage() {
         console.error("Error resetting scenario:", err);
       });
   };
+  */}
 
   return (
     <div
