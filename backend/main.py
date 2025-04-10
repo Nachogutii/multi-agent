@@ -10,6 +10,7 @@ from agents.customer import CustomerAgent
 from agents.evaluator import ObserverCoach
 from agents.conversation_phase import ConversationPhase
 from profiles import CUSTOMER_PROFILES, PRODUCT_INFO, SCENARIOS
+from agents.Orchestrator import Orchestrator
 
 class AzureConnection:
     """Manages Azure OpenAI connection and configuration."""
@@ -23,6 +24,7 @@ class AzureConnection:
         self.api_key = os.environ.get("AZURE_OPENAI_KEY")
         self.deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
         self.client = None
+        print(f"Deployment set to: {self.deployment}")
     
     def initialize(self) -> bool:
         """Initialize Azure OpenAI client."""
@@ -65,19 +67,9 @@ class AzureConnection:
             )
             
             print("\n✅ Successfully connected to Azure OpenAI!")
-            print(f"Endpoint: {self.endpoint}")
-            print(f"Deployment: {self.deployment}")
             print(f"Test response: {response.choices[0].message.content}")
             return True
             
-        except ValueError as e:
-            print("\n❌ Configuration Error:")
-            print(f"Error: {str(e)}")
-            print("\nPlease ensure you have set the following environment variables:")
-            print("export AZURE_OPENAI_ENDPOINT='your-endpoint'")
-            print("export AZURE_OPENAI_KEY='your-key'")
-            print("export AZURE_OPENAI_DEPLOYMENT='your-deployment-name'")
-            return False
         except Exception as e:
             print("\n❌ Error connecting to Azure OpenAI:")
             print(f"Error: {str(e)}")
@@ -89,9 +81,10 @@ class AzureConnection:
             raise ValueError("Azure OpenAI client not initialized")
         return self.client
 
+
 class RoleplaySystem:
     """Main system that manages the roleplay scenario."""
-    
+
     def __init__(self):
         self.scenario = None
         self.customer_agent = None
@@ -101,7 +94,14 @@ class RoleplaySystem:
     
     def initialize(self) -> bool:
         """Initialize the roleplay system."""
-        return self.azure.initialize()
+        if not self.azure.initialize():
+            print_colored("\nFailed to initialize Azure OpenAI connection. Please check your configuration.", "red")
+            return False
+        # Check if Azure client is initialized
+        if self.azure.client is None:
+            print("Error: Azure OpenAI client not initialized.")
+            return False
+        return True
     
     def setup_scenario(self):
         """Set up a new roleplay scenario."""
@@ -117,12 +117,19 @@ class RoleplaySystem:
         
         # Create customer agent with Azure client
         self.customer_agent = CustomerAgent(
-            personality, tech_level, role, industry, company_size,
+            personality,
+            tech_level,
+            role,
+            industry,
+            company_size,
             azure_client=self.azure.get_client()
         )
-        
-        # Create observer
-        self.observer = ObserverCoach()
+
+        # Create observer with client and deployment
+        self.observer = ObserverCoach(
+            azure_client=self.azure.get_client(),
+            deployment=self.azure.deployment
+        )
         
         # Format initial query with product name
         initial_query = self.scenario["initial_query"].format(product_name=PRODUCT_INFO["name"])
@@ -134,15 +141,15 @@ class RoleplaySystem:
             "scenario": self.scenario["title"],
             "description": self.scenario["description"],
             "customer_profile": {
-                "personality": personality,
-                "tech_level": tech_level,
-                "role": role,
-                "industry": industry,
-                "company_size": company_size
+                "personality": CUSTOMER_PROFILES["personalities"][personality],
+                "tech_level": CUSTOMER_PROFILES["tech_levels"][tech_level],
+                "role": CUSTOMER_PROFILES["roles"][role],
+                "industry": CUSTOMER_PROFILES["industries"][industry],
+                "company_size": CUSTOMER_PROFILES["company_size"][company_size]
             },
             "initial_query": initial_query
         }
-    
+
     def process_user_message(self, message: str) -> str:
         """Process user message and get customer response."""
         if not self.customer_agent:
@@ -171,40 +178,48 @@ class RoleplaySystem:
         """Return product information."""
         return PRODUCT_INFO
 
+
 def main():
     """Main function to run the roleplay system."""
     system = RoleplaySystem()
-    
+
     # Initialize Azure connection
     if not system.initialize():
         print_colored("\nFailed to initialize Azure OpenAI connection. Please check your configuration.", "red")
         sys.exit(1)
     
-    # Set up initial scenario
     scenario_info = system.setup_scenario()
     print_scenario_info(scenario_info, PRODUCT_INFO)
+
+    # Crear instancia del Orchestrator después de inicializar correctamente Azure
+    print(f"DEBUG | system.observer is: {system.observer}")
+    orchestrator = Orchestrator(system.azure.get_client(), deployment=system.azure.deployment, observer=system.observer)
+
+    # Set up initial scenario
     
-    initial_query = scenario_info['initial_query']
-    
+
     # Start conversation loop
     while True:
         # Get user input
         user_input = input("You: ").strip()
-        
+
         # Check for commands
         if user_input.lower() in ['/quit', '/exit', '/q']:
             print_colored("\n=== FINAL SUMMARY ===", "yellow")
             print_colored(system.observer.get_summary(), "cyan")
             print_colored("\nExiting roleplay. Thanks for practicing!", "yellow")
             break
-        
+
         if user_input.lower() in ['/new', '/reset']:
             scenario_info = system.setup_scenario()
-            system.observer = ObserverCoach()  # Reset observer
+            system.observer = ObserverCoach(
+                azure_client=system.azure.get_client(),
+                deployment=system.azure.deployment
+            )  # Reset observer
             print_colored("\n\n", "reset")
             print_scenario_info(scenario_info, PRODUCT_INFO)
             continue
-            
+
         if user_input.lower() in ['/help', '/?']:
             print_colored("\nCOMMANDS:", "cyan")
             print("/new or /reset - Start a new scenario")
@@ -215,17 +230,17 @@ def main():
             print("/feedback - Show current conversation feedback")
             print("/phase - Show current conversation phase")
             continue
-            
+
         if user_input.lower() == '/feedback':
             print_colored("\n=== CURRENT FEEDBACK ===", "yellow")
             print_colored(system.observer.get_summary(), "cyan")
             continue
-            
+
         if user_input.lower() == '/phase':
             current_phase = system.observer.phase_manager.get_current_phase()
             print_colored(f"\nCurrent Conversation Phase: {current_phase.value}", "cyan")
             continue
-            
+
         if user_input.lower() == '/info':
             print_colored("\nCURRENT SCENARIO:", "cyan")
             profile = scenario_info['customer_profile']
@@ -233,28 +248,25 @@ def main():
             print(f"Customer: {profile['personality']} {profile['role']} in {profile['industry']} (Tech: {profile['tech_level']}, Size: {profile['company_size']})")
             print(f"Product: {PRODUCT_INFO['name']}")
             continue
-            
+
         if user_input.lower() == '/list':
             print_colored("\nAVAILABLE SCENARIOS:", "cyan")
             for i, scenario in enumerate(SCENARIOS, 1):
                 print(f"{i}. {scenario['title']} - {scenario['description']}")
             continue
-        
-        # Process user message
+
+        # Process user message through Orchestrator
         print_colored("Processing...", "yellow")
-        customer_response = system.process_user_message(user_input)
-        
+        customer_response = orchestrator.process_user_input(user_input)
+
         # Print customer response
         print_colored(f"Customer: {customer_response}", "magenta")
         print()
 
+
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print_colored("\n\nRoleplay terminated. Thanks for practicing!", "yellow")
-    except Exception as e:
-        print_colored(f"\n\nAn error occurred: {e}", "red") 
+    main()
+
 
 # -------------------------------
 # FastAPI backend (modo web/API)
@@ -314,7 +326,7 @@ def get_feedback():
 def reset_scenario():
     """Reinicia el escenario y el observador."""
     scenario_info = roleplay_system.setup_scenario()
-    roleplay_system.observer = ObserverCoach()  # Reinicia el observador
+    roleplay_system.observer = ObserverCoach(azure_client=roleplay_system.azure.get_client(), deployment=roleplay_system.azure.deployment)  # Reinicia el observador
     return {
         "scenario": scenario_info["scenario"],
         "description": scenario_info["description"],

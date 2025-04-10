@@ -1,6 +1,9 @@
 import time
 from typing import Dict, List, Tuple
 from agents.conversation_phase import ConversationPhase, ConversationPhaseManager
+import json
+import re
+
 
 class PLGPhaseScore:
     """Tracks scoring and feedback for each PLG phase."""
@@ -38,13 +41,17 @@ class PLGPhaseScore:
 
 class ObserverCoach:
     """Analyzes user interaction with the customer and provides feedback."""
-    
+
     def __init__(self, azure_client=None, deployment=None):
+        if azure_client is None:
+            raise ValueError("Azure OpenAI client not initialized in ObserverCoach.")
+        self.client = azure_client  # Ensure the client is correctly set
+        self.deployment = deployment
         self.conversation_history = []
         self.score = 0
         self.max_score = 100
         self.feedback_points = []
-        self.phase_manager = ConversationPhaseManager()
+        self.phase_manager = ConversationPhaseManager(azure_client, deployment)
         self.phase_scores = {
             ConversationPhase.INTRODUCTION_DISCOVERY: PLGPhaseScore(ConversationPhase.INTRODUCTION_DISCOVERY),
             ConversationPhase.VALUE_PROPOSITION: PLGPhaseScore(ConversationPhase.VALUE_PROPOSITION),
@@ -55,31 +62,131 @@ class ObserverCoach:
         self.objections = []
         self.blockers = []
         self.has_evaluated_closing = False
-        self.client = azure_client
-        self.deployment = deployment
-    
+
+    def evaluate_interaction_with_llm(self, user_message: str, customer_response: str) -> Dict[str, any]:
+        if not self.client:
+            raise ValueError("Azure OpenAI client not initialized")
+        if not self.deployment:
+            raise ValueError("Azure OpenAI deployment not set")
+        
+        current_phase = self.phase_manager.get_current_phase()
+        current_guidelines = self.phase_manager.phase_patterns[current_phase]["key_aspects"]
+
+        prompt = f"""
+        Evaluate the following interaction between a Microsoft support agent and a customer.
+        Based on the current phase of the conversation, identify how many key aspects are fulfilled.
+
+        PHASE: {current_phase.value}
+        KEY ASPECTS:
+        - {chr(10).join(current_guidelines)}
+
+        AGENT MESSAGE:
+        {user_message}
+
+        CUSTOMER RESPONSE:
+        {customer_response}
+
+        Return a JSON with the following keys:
+        - fulfilled_aspects: a list of the fulfilled key aspects (from the list above)
+        - progress: a percentage (0 to 100) of how many key aspects were fulfilled
+        - CustomerBelievesAgentIsEmpathetic: boolean
+        - CustomerBelievesAgentIsLegit: boolean
+
+        Format example:
+        {{
+            "fulfilled_aspects": ["understanding customer context", "identifying customer role"],
+            "progress": 40,
+            "CustomerBelievesAgentIsEmpathetic": true,
+            "CustomerBelievesAgentIsLegit": true
+        }}
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.deployment,
+                messages=[
+                    {"role": "system", "content": "You are a senior customer experience analyst."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=300,
+                temperature=0.3
+            )
+
+            raw_output = response.choices[0].message.content
+            print(f"🧠 Raw Evaluator Output:\n{raw_output}")
+
+            # Limpia bloques ```json o ``` y deja solo el JSON
+            cleaned_output = raw_output.strip()
+            if cleaned_output.startswith("```json"):
+                cleaned_output = cleaned_output[len("```json"):].strip()
+            if cleaned_output.endswith("```"):
+                cleaned_output = cleaned_output[:-3].strip()
+
+            return json.loads(cleaned_output)
+
+        except Exception as e:
+            print(f"⚠️ Error parsing JSON from evaluator output: {e}")
+            return {
+                "fulfilled_aspects": [],
+                "progress": 0,
+                "CustomerBelievesAgentIsEmpathetic": False,
+                "CustomerBelievesAgentIsLegit": False
+            }
+
+
+        except Exception as e:
+            print(f"⚠️ Error evaluating with LLM: {e}")
+            return {
+                "fulfilled_aspects": [],
+                "progress": 0,
+                "CustomerBelievesAgentIsEmpathetic": False,
+                "CustomerBelievesAgentIsLegit": False
+            }
+
+
+    def update_customer_state(self, user_message: str, customer_response: str) -> Dict[str, any]:
+        """Wrapper that calls the LLM evaluation for customer state and fulfilled aspects."""
+        # Verifica si el cliente está correctamente inicializado antes de llamar a la función de evaluación
+        if not self.client:
+            print("Azure OpenAI client is NOT initialized in update_customer_state!")
+            raise ValueError("Azure OpenAI client not initialized")
+        
+        print("Azure OpenAI client is initialized in update_customer_state!")
+        
+        return self.evaluate_interaction_with_llm(user_message, customer_response)
+
+
     def add_interaction(self, user_message: str, customer_response: str):
-        """Adds an interaction to the conversation history."""
-        current_phase = self.phase_manager.analyze_message(user_message)
+        # Evalúa el mensaje con LLM (incluye empatía, legitimidad y aspectos cumplidos)
+        evaluation_result = self.evaluate_interaction_with_llm(user_message, customer_response)
+        print(f"✅ Evaluation Result: {evaluation_result}")
+
+        # Decide fase usando el resultado completo
+        current_phase = self.phase_manager.decide_phase(evaluation_result)
+        print(f"📊 Phase decided by LLM: {current_phase}")
+
+        # Guarda en el historial
         self.conversation_history.append({
             "user": user_message,
             "customer": customer_response,
             "timestamp": time.time(),
             "phase": current_phase
         })
-        
-        # Analyze for pain points, objections, and blockers
+
+        # Analiza preocupaciones del cliente
         self._analyze_customer_concerns(customer_response)
         
-        # If entering closing phase and hasn't been evaluated yet, perform comprehensive evaluation
+        # For debugging
+        print(f"Updated Customer State: {evaluation_result}")
+
+        # Evalúa cierre si es la última fase
         if current_phase == ConversationPhase.CLOSING and not self.has_evaluated_closing:
-            # Print the customer's closing message first
             print(f"\nCustomer: {customer_response}")
-            # Then show the evaluation
             print("\n=== CONVERSATION EVALUATION ===")
             self._evaluate_closing_phase()
             self.has_evaluated_closing = True
             print(self.get_summary())
+
     
     def _analyze_customer_concerns(self, message: str):
         """Analyzes message for pain points, objections, and blockers."""
