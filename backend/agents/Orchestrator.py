@@ -46,6 +46,6 @@ if __name__ == "__main__":
     azure_client = None  # Reemplazar con la instancia real de AzureOpenAI
 
     orchestrator = Orchestrator(azure_client)
-    user_input = "Hello, I am Miguel from Microsoft 365, I wanted to know how your Copilot Subscription is going."
+    user_input = "Hello, I am Nacho from Microsoft 365, I wanted to know how your Copilot Subscription is going."
     response = orchestrator.process_user_input(user_input)
     print(f"Response to User: {response}") 
