@@ -34,17 +34,18 @@ class CustomerAgent:
             "industry": CUSTOMER_PROFILES["industries"][self.industry],
             "company_size": CUSTOMER_PROFILES["company_size"][self.company_size]
         }
+
+
     
-    def generate_response(self, user_message: str) -> str:
+    def generate_response(self, user_message: str, current_phase: ConversationPhase = None) -> str:
         """Generate a customer response based on the profile and conversation history."""
-        # Add user message to phase manager first
-        self.phase_manager.add_message(user_message, is_agent=True)
         
-        # Get current phase
-        current_phase = self.phase_manager.get_current_phase()
+        # Use current phase passed from Orchestrator, or fallback
+        if current_phase is None:
+            current_phase = self.phase_manager.get_current_phase()
         print(f"Current Phase: {current_phase.value}")
         
-        # Update conversation history
+        # Save user message to conversation history
         self.conversation_history.append({"role": "user", "content": user_message})
         
         # Build the prompt for customer response generation
@@ -63,29 +64,26 @@ class CustomerAgent:
             )
             
             customer_response = response.choices[0].message.content
-            
-            # Clean up the response
             customer_response = re.sub(r'^.*?:', '', customer_response).strip()
             customer_response = re.sub(r'^"', '', customer_response).strip()
             customer_response = re.sub(r'"$', '', customer_response).strip()
             
-            # Add customer response to phase manager
+            # Add customer response to phase manager and history
             self.phase_manager.add_message(customer_response, is_agent=False)
-            
-            # Update conversation history
             self.conversation_history.append({"role": "assistant", "content": customer_response})
             
-            # Check if we should generate a closing remark
+            # Generate closing remark if needed
             if self.phase_manager.is_closing_phase():
                 closing_remark = self._generate_closing_remark()
                 print(f"Generating closing remark: {closing_remark}")
                 return closing_remark
             
             return customer_response
-            
+        
         except Exception as e:
             print(f"Error generating customer response: {e}")
             return "Sorry, I'm having trouble connecting right now. Can we try again in a moment?"
+
     
     def _generate_closing_remark(self) -> str:
         """Generates an appropriate closing remark based on personality and conversation context."""
@@ -118,60 +116,62 @@ class CustomerAgent:
     def _build_prompt(self, user_message: str, current_phase: ConversationPhase) -> str:
         """Build a detailed prompt for the customer agent."""
         product_name = PRODUCT_INFO["name"]
-        
+
         prompt = f"""
-You are roleplaying as a customer interested in {product_name}.
+    You are roleplaying as a customer interested in {product_name}.
 
-# YOUR CUSTOMER PROFILE:
-- Personality: {self.personality} - {self.profile['personality']['description']}
-- Technical knowledge: {self.tech_level} - {self.profile['tech_level']['description']}
-- Role: {self.role} - {self.profile['role']['description']}
-- Industry: {self.industry} with concerns about {', '.join(self.profile['industry']['concerns'])}
-- Company Size: {self.company_size} - {self.profile['company_size']['description']}
+    # YOUR CUSTOMER PROFILE:
+    - Personality: {self.profile['personality']['label']} - {self.profile['personality']['description']}
+    - Technical knowledge: {self.profile['tech_level']['label']} - {self.profile['tech_level']['description']}
+    - Role: {self.profile['role']['label']} - {self.profile['role']['description']}
+    - Industry: {self.profile['industry']['label']} with concerns about {', '.join(self.profile['industry']['concerns'])}
+    - Company Size: {self.profile['company_size']['label']} - {self.profile['company_size']['description']}
 
-# CURRENT CONVERSATION PHASE:
-{current_phase.value}
+    # CURRENT CONVERSATION PHASE:
+    {current_phase.value}
 
-# PHASE-SPECIFIC GUIDELINES:
-{self._get_phase_guidelines(current_phase)}
+    # PHASE-SPECIFIC GUIDELINES:
+    {self._get_phase_guidelines(current_phase)}
 
-# PERSONALITY TRAITS (reflect these in your responses):
-{', '.join(self.profile['personality']['traits'])}
+    # PERSONALITY TRAITS (reflect these in your responses):
+    {', '.join(self.profile['personality']['traits'])}
 
-# TECHNICAL KNOWLEDGE TRAITS (reflect these in your responses):
-{', '.join(self.profile['tech_level']['traits'])}
+    # TECHNICAL KNOWLEDGE TRAITS (reflect these in your responses):
+    {', '.join(self.profile['tech_level']['traits'])}
 
-# ROLE-BASED CONCERNS (reflect these in your responses):
-{', '.join(self.profile['role']['traits'])}
+    # ROLE-BASED CONCERNS (reflect these in your responses):
+    {', '.join(self.profile['role']['traits'])}
 
-# COMPANY SIZE TRAITS (reflect these in your responses):
-{', '.join(self.profile['company_size']['traits'])}
+    # COMPANY SIZE TRAITS (reflect these in your responses):
+    {', '.join(self.profile['company_size']['traits'])}
 
-# PREVIOUS CONVERSATION:
-"""
+    # PREVIOUS CONVERSATION:
+    """
+
         # Add conversation history to prompt
         for message in self.conversation_history[-4:]:  # Include last 4 messages only to save context
             role = "Microsoft Representative" if message["role"] == "user" else "You (Customer)"
             prompt += f"{role}: {message['content']}\n\n"
-        
+
         prompt += f"""
-# LATEST MESSAGE FROM MICROSOFT REPRESENTATIVE:
-{user_message}
+    # LATEST MESSAGE FROM MICROSOFT REPRESENTATIVE:
+    {user_message}
 
-# INSTRUCTIONS:
-1. Respond as this specific customer would, maintaining consistent personality, technical knowledge, and role-specific concerns
-2. Keep responses concise (1-3 sentences) and conversational
-3. Don't be overly polite or helpful - be realistic based on your profile
-4. Occasionally express frustration, confusion, or satisfaction as appropriate
-5. Use industry-specific terminology when relevant
-6. Never break character or mention that you're an AI
-7. Don't provide a prefix or explanation - just respond as the customer would
-8. Consider the current conversation phase ({current_phase.value}) in your response
-9. If the conversation naturally reaches a conclusion, provide an appropriate closing remark
+    # INSTRUCTIONS:
+    1. Respond as this specific customer would, maintaining consistent personality, technical knowledge, and role-specific concerns
+    2. Keep responses concise (1-3 sentences) and conversational
+    3. Don't be overly polite or helpful - be realistic based on your profile
+    4. Occasionally express frustration, confusion, or satisfaction as appropriate
+    5. Use industry-specific terminology when relevant
+    6. Never break character or mention that you're an AI
+    7. Don't provide a prefix or explanation - just respond as the customer would
+    8. Consider the current conversation phase ({current_phase.value}) in your response
+    9. If the conversation naturally reaches a conclusion, provide an appropriate closing remark
 
-Generate a realistic, human-like response that this customer would give to the Microsoft representative.
-"""
+    Generate a realistic, human-like response that this customer would give to the Microsoft representative.
+    """
         return prompt
+
     
     def _get_phase_guidelines(self, phase: ConversationPhase) -> str:
         """Returns specific guidelines for the current conversation phase."""
