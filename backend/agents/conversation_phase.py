@@ -118,10 +118,14 @@ class ConversationPhaseManager:
 
     def update_phase_if_needed(self, new_phase: ConversationPhase):
         if new_phase != self.current_phase:
-            print(f"🔄 Phase transition: {self.current_phase.value} ➜ {new_phase.value}")
             self.phase_history.append({
                 "from_phase": self.current_phase,
                 "to_phase": new_phase,
                 "timestamp": time.time()
             })
             self.current_phase = new_phase
+
+            # Reiniciar aspectos acumulados al cambiar de fase
+            if hasattr(self, 'observer') and hasattr(self.observer, 'cumulative_fulfilled_aspects'):
+                self.observer.cumulative_fulfilled_aspects.clear()
+

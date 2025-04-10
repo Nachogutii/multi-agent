@@ -16,6 +16,8 @@ class PLGPhaseScore:
         self.suggestions = []
         self.strengths = []
         self.missed_opportunities = []
+        
+
     
     def add_feedback(self, feedback: str, suggestion: str = None):
         """Adds feedback and optional suggestion."""
@@ -62,6 +64,7 @@ class ObserverCoach:
         self.objections = []
         self.blockers = []
         self.has_evaluated_closing = False
+        self.cumulative_fulfilled_aspects = set()
 
     def evaluate_interaction_with_llm(self, user_message: str, customer_response: str) -> Dict[str, any]:
         if not self.client:
@@ -145,15 +148,24 @@ class ObserverCoach:
 
 
     def update_customer_state(self, user_message: str, customer_response: str) -> Dict[str, any]:
-        """Wrapper that calls the LLM evaluation for customer state and fulfilled aspects."""
-        # Verifica si el cliente está correctamente inicializado antes de llamar a la función de evaluación
-        if not self.client:
-            print("Azure OpenAI client is NOT initialized in update_customer_state!")
-            raise ValueError("Azure OpenAI client not initialized")
-        
-        print("Azure OpenAI client is initialized in update_customer_state!")
-        
-        return self.evaluate_interaction_with_llm(user_message, customer_response)
+        evaluation_result = self.evaluate_interaction_with_llm(user_message, customer_response)
+
+        new_aspects = set(evaluation_result.get("fulfilled_aspects", []))
+        self.cumulative_fulfilled_aspects.update(new_aspects)
+
+        current_phase = self.phase_manager.get_current_phase()
+        total_aspects = len(self.phase_manager.phase_patterns[current_phase]["key_aspects"])
+        progress = round((len(self.cumulative_fulfilled_aspects) / total_aspects) * 100)
+
+        updated_state = {
+            "fulfilled_aspects": list(self.cumulative_fulfilled_aspects),
+            "progress": progress,
+            "CustomerBelievesAgentIsEmpathetic": evaluation_result.get("CustomerBelievesAgentIsEmpathetic", False),
+            "CustomerBelievesAgentIsLegit": evaluation_result.get("CustomerBelievesAgentIsLegit", False)
+        }
+
+        return updated_state
+
 
 
     def add_interaction(self, user_message: str, customer_response: str):
