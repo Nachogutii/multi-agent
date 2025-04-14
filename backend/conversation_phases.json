@@ -16,8 +16,8 @@
             "Agent fails to identify himself/herself properly.",
             "Agent does not state a clear, brief and concise goal for the call."
         ],
-        "on_success": "copilot_positive_experience",
-        "on_failure": "abrupt_closure"
+        "on_success": "Copilot Positive Experience",
+        "on_failure": "Abrupt closure"
         },
     
         {
