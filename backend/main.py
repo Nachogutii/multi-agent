@@ -146,6 +146,9 @@ if __name__ == "__main__":
 # -------------------------------
 # FastAPI backend (modo web/API)
 # -------------------------------
+# -------------------------------
+# FastAPI backend (modo web/API)
+# -------------------------------
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -161,63 +164,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Modelo para recibir mensajes
+# Clase para recibir mensajes del frontend
 class Message(BaseModel):
     text: str
-    phase: str
 
-# Instanciar el sistema (una vez)
+# Inicializa el sistema global
 roleplay_system = RoleplaySystem()
 roleplay_system.initialize()
-scenario_info = roleplay_system.setup_scenario()
+orchestrator = Orchestrator(roleplay_system.azure.get_client(), deployment=roleplay_system.azure.deployment)
+roleplay_system.setup_scenario()
 
 @app.post("/api/chat")
 def chat(msg: Message):
-    response = roleplay_system.process_user_message(msg.text)
+    customer_response = orchestrator.process_user_input(msg.text)
     return {
-        "response": response,
-        "phase": msg.phase,
+        "response": customer_response,
+        "phase": roleplay_system.observer.phase_manager.get_current_phase(),
         "feedback": roleplay_system.observer.get_summary()
     }
 
+@app.post("/api/reset")
+def reset():
+    roleplay_system.setup_scenario()
+    return {"message": "Scenario reset successfully."}
+
 @app.get("/api/scenario")
 def get_scenario():
-    if not roleplay_system.scenario:
-        roleplay_system.setup_scenario()
-    
     return {
-        "title": roleplay_system.scenario["title"],
-        "description": roleplay_system.scenario["description"],
-        "initial_query": scenario_info["initial_query"]
+        "title": "Copilot Welcome",
+        "description": "Customer is already using Microsoft 365 and is exploring how Copilot can improve her workflow.",
+        "initial_query": "Hi, I'm Rachel. I just got Copilot and was curious how to get the most out of it."
     }
+
 @app.get("/api/feedback")
 def get_feedback():
-    """Devuelve el feedback de la conversación actual"""
-    feedback = roleplay_system.observer.get_summary()
-    return { "feedback": feedback }
-
-@app.post("/api/reset")
-def reset_scenario():
-    """Reinicia el escenario y el observador."""
-    scenario_info = roleplay_system.setup_scenario()
-    roleplay_system.observer = ObserverCoach(azure_client=roleplay_system.azure.get_client(), deployment=roleplay_system.azure.deployment)  # Reinicia el observador
-    return {
-        "scenario": scenario_info["scenario"],
-        "description": scenario_info["description"],
-        "initial_query": scenario_info["initial_query"]
-    }
-# Alternativa para levantar como servidor
-def run_api():
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
+    return { "feedback": roleplay_system.observer.get_summary() }
 
 @app.get("/api/feedback/structured")
 def get_structured_feedback():
-    """Devuelve métricas, sugerencias e issues reales desde el evaluador."""
     result = roleplay_system.observer.analyze_conversation()
-
     return {
         "metrics": result.get("phase_scores", {}),
         "suggestions": result.get("suggestions", []),
         "issues": result.get("missed_opportunities", [])
     }
+
+# Para lanzar el backend manualmente si se desea
+def run_api():
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
