@@ -18,7 +18,9 @@ export async function submitFeedbackToSupabase(feedback) {
 
   console.log('🔄 Obteniendo usuario de Supabase...')
   const { data: { user } } = await supabase.auth.getUser()
-  const environment = process.env.NODE_ENV === 'development' ? 'dev' : 'prod'
+  const rawEnv = process.env.REACT_APP_ENV
+  const environment = rawEnv && rawEnv.toLowerCase() === 'development' ? 'dev' : 'prod'
+  
 
   console.log('👤 Usuario:', user?.email)
   console.log('🌍 Ambiente:', environment)
