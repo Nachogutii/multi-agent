@@ -82,7 +82,11 @@ class RoleplaySystem:
         return True
 
     def setup_scenario(self):
-        self.scenario = random.choice(SCENARIOS)
+        self.scenario = {
+            "title": "Copilot Welcome",
+            "description": "Customer is already using Microsoft 365 and is exploring how Copilot can improve her workflow.",
+            "initial_query": "Hi, I'm Rachel. I just got Copilot and was curious how to get the most out of it."
+        }
 
         self.customer_agent = CustomerAgent(
             azure_client=self.azure.get_client(),

@@ -1,31 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import background from '../background.png';
 import "./HomePage.css";
 import logo from '../GIG+.png'
 
 export default function HomePage() {
-  const [scenario, setScenario] = useState(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetch("http://localhost:8000/api/scenario")
-      .then((res) => res.json())
-      .then((data) => {
-        setScenario(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching scenario:", err);
-      });
-  }, []);
 
   const handleStartSimulation = () => {
     fetch("http://localhost:8000/api/reset", { method: "POST" })
-      .then(() => fetch("http://localhost:8000/api/scenario"))
-      .then((res) => res.json())
-      .then((data) => {
+      .then(() => {
         localStorage.removeItem("chatMessages");
-        localStorage.setItem("scenario", JSON.stringify(data));
         navigate("/chat");
       })
       .catch((err) => {
@@ -51,25 +36,20 @@ export default function HomePage() {
       }}
     >
       <div className="home-container">
-      <div className="home-title-row">
-        <img src={logo} alt="GigPlus logo" className="home-logo-inline" />
-        <h1 className="home-title">GigPlus Customer Simulation</h1>
-      </div>
+        <div className="home-title-row">
+          <img src={logo} alt="GigPlus logo" className="home-logo-inline" />
+          <h1 className="home-title">GigPlus Customer Simulation</h1>
+        </div>
 
-        {scenario ? (
-          <div className="scenario-card">
-            <h2>Copilot Welcome</h2>
-            <p>Customer is already using some Microsoft products and wants to know more about Copilot.</p>
-            <p><strong>Difficulty:</strong> Intermediate</p>
+        <div className="scenario-card">
+          <h2>Copilot Welcome</h2>
+          <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
+          <p><strong>Difficulty:</strong> Intermediate</p>
 
-            <button className="start-button" onClick={handleStartSimulation}>
-              Start Simulation
-            </button>
-            
-          </div>
-        ) : (
-          <p>Loading scenario...</p>
-        )}
+          <button className="start-button" onClick={handleStartSimulation}>
+            Start Simulation
+          </button>
+        </div>
       </div>
     </div>
   );

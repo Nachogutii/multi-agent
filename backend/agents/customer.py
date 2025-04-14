@@ -9,7 +9,7 @@ class CustomerAgent:
         self.deployment = deployment
         self.system_prompt = ""
         self.phase_manager = ConversationPhaseManager(azure_client, deployment)
-        self.general_context = Path("backend/scenario_context.md").read_text(encoding="utf-8")
+        self.general_context = Path("scenario_context.md").read_text(encoding="utf-8")
 
     def generate_response(self, user_message: str) -> str:
         system_prompt = self.phase_manager.get_system_prompt()
