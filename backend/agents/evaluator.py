@@ -1,45 +1,9 @@
 import time
 from typing import Dict, List, Tuple
-from agents.conversation_phase import ConversationPhase, ConversationPhaseManager
+from agents.conversation_phase import ConversationPhaseManager
 import json
 import re
 
-
-class PLGPhaseScore:
-    """Tracks scoring and feedback for each PLG phase."""
-    
-    def __init__(self, phase: ConversationPhase, max_score: int = 20):
-        self.phase = phase
-        self.max_score = max_score
-        self.score = 0
-        self.feedback = []
-        self.suggestions = []
-        self.strengths = []
-        self.missed_opportunities = []
-        
-
-    
-    def add_feedback(self, feedback: str, suggestion: str = None):
-        """Adds feedback and optional suggestion."""
-        self.feedback.append(feedback)
-        if suggestion:
-            self.suggestions.append(suggestion)
-    
-    def add_suggestion(self, suggestion: str):
-        """Adds a suggestion for improvement."""
-        self.suggestions.append(suggestion)
-    
-    def add_strength(self, strength: str):
-        """Adds a strength observation."""
-        self.strengths.append(strength)
-    
-    def add_missed_opportunity(self, opportunity: str):
-        """Adds a missed opportunity observation."""
-        self.missed_opportunities.append(opportunity)
-    
-    def adjust_score(self, points: int):
-        """Adjusts the score within max_score limits."""
-        self.score = min(max(0, self.score + points), self.max_score)
 
 class ObserverCoach:
     """Analyzes user interaction with the customer and provides feedback."""
@@ -47,19 +11,13 @@ class ObserverCoach:
     def __init__(self, azure_client=None, deployment=None):
         if azure_client is None:
             raise ValueError("Azure OpenAI client not initialized in ObserverCoach.")
-        self.client = azure_client  # Ensure the client is correctly set
+        self.client = azure_client
         self.deployment = deployment
         self.conversation_history = []
         self.score = 0
         self.max_score = 100
         self.feedback_points = []
         self.phase_manager = ConversationPhaseManager(azure_client, deployment)
-        self.phase_scores = {
-            ConversationPhase.INTRODUCTION_DISCOVERY: PLGPhaseScore(ConversationPhase.INTRODUCTION_DISCOVERY),
-            ConversationPhase.VALUE_PROPOSITION: PLGPhaseScore(ConversationPhase.VALUE_PROPOSITION),
-            ConversationPhase.OBJECTION_HANDLING: PLGPhaseScore(ConversationPhase.OBJECTION_HANDLING),
-            ConversationPhase.CLOSING: PLGPhaseScore(ConversationPhase.CLOSING)
-        }
         self.pain_points = []
         self.objections = []
         self.blockers = []
@@ -73,13 +31,15 @@ class ObserverCoach:
             raise ValueError("Azure OpenAI deployment not set")
         
         current_phase = self.phase_manager.get_current_phase()
-        current_guidelines = self.phase_manager.phase_patterns[current_phase]["key_aspects"]
+        current_phase_config = self.phase_manager.phase_config.get_phase(current_phase)
+        current_guidelines = current_phase_config.success_criteria if current_phase_config else []
+
 
         prompt = f"""
         Evaluate the following interaction between a Microsoft support agent and a customer.
         Based on the current phase of the conversation, identify how many key aspects are fulfilled.
 
-        PHASE: {current_phase.value}
+        PHASE: {current_phase}
         KEY ASPECTS:
         - {chr(10).join(current_guidelines)}
 
@@ -154,7 +114,8 @@ class ObserverCoach:
         self.cumulative_fulfilled_aspects.update(new_aspects)
 
         current_phase = self.phase_manager.get_current_phase()
-        total_aspects = len(self.phase_manager.phase_patterns[current_phase]["key_aspects"])
+        current_config = self.phase_manager.phase_config.get_phase(current_phase)
+        total_aspects = len(current_config.success_criteria) if current_config else 1
         progress = round((len(self.cumulative_fulfilled_aspects) / total_aspects) * 100)
 
         updated_state = {
@@ -192,13 +153,6 @@ class ObserverCoach:
         print(f"Updated Customer State: {evaluation_result}")
 
         # Evalúa cierre si es la última fase
-        if current_phase == ConversationPhase.CLOSING and not self.has_evaluated_closing:
-            print(f"\nCustomer: {customer_response}")
-            print("\n=== CONVERSATION EVALUATION ===")
-            self._evaluate_closing_phase()
-            self.has_evaluated_closing = True
-            print(self.get_summary())
-
     
     def _analyze_customer_concerns(self, message: str):
         """Analyzes message for pain points, objections, and blockers."""
@@ -292,8 +246,6 @@ class ObserverCoach:
     
     def _analyze_introduction_discovery_phase(self):
         """Analyzes the introduction and discovery phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY]
-        
         # Check for pain point discovery
         if self.pain_points:
             score.adjust_score(5)
@@ -329,17 +281,8 @@ class ObserverCoach:
             score.add_suggestion("Ask more questions about specific requirements")
         
         # Check for industry context
-        if any(message.get("phase") == ConversationPhase.INTRODUCTION_DISCOVERY 
-               for message in self.conversation_history):
-            score.adjust_score(5)
-            score.add_strength("Maintained focus on industry-specific context")
-        else:
-            score.add_missed_opportunity("Could have explored industry-specific challenges")
-    
     def _analyze_value_proposition_phase(self):
         """Analyzes the value proposition phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.VALUE_PROPOSITION]
-        
         # Check for value proposition clarity
         value_indicators = ["benefit", "value", "roi", "improve", "enhance", "increase"]
         found_value = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
@@ -387,8 +330,6 @@ class ObserverCoach:
     
     def _analyze_objection_handling_phase(self):
         """Analyzes the objection handling phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.OBJECTION_HANDLING]
-        
         # Check for objection acknowledgment
         if self.objections:
             score.adjust_score(5)
@@ -410,14 +351,6 @@ class ObserverCoach:
             score.add_suggestion("Acknowledge concerns before addressing them")
         
         # Check for value-driven responses
-        if found_empathy and any(message.get("phase") == ConversationPhase.VALUE_PROPOSITION 
-                               for message in self.conversation_history):
-            score.adjust_score(5)
-            score.add_strength("Connected objections to value proposition")
-        else:
-            score.add_feedback("Could have better connected responses to value")
-            score.add_suggestion("Link solutions to customer value")
-        
         # Check for blocker resolution
         if self.blockers:
             resolution_indicators = ["solution", "address", "resolve", "overcome", "handle"]
@@ -434,8 +367,6 @@ class ObserverCoach:
     
     def _analyze_closing_phase(self):
         """Analyzes the closing phase effectiveness."""
-        score = self.phase_scores[ConversationPhase.CLOSING]
-        
         # Check for next steps
         next_step_indicators = ["next step", "follow up", "schedule", "plan", "arrange"]
         found_next_steps = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
@@ -486,7 +417,7 @@ class ObserverCoach:
             score.add_feedback("Could have discussed support options")
             score.add_suggestion("Outline available support and resources")
     
-    def _generate_ai_feedback(self, phase: ConversationPhase, context: str) -> Dict:
+    def _generate_ai_feedback(self, phase: str, context: str) -> Dict:
         """Generates AI-powered feedback for a specific phase."""
         if not self.client or not self.deployment:
             return {"feedback": "", "suggestion": "", "strength": "", "opportunity": ""}
@@ -615,42 +546,46 @@ class ObserverCoach:
         # Generate comprehensive feedback
         self._generate_comprehensive_feedback(covered_phases, phase_transitions)
     
-    def _generate_comprehensive_feedback(self, covered_phases: set, phase_transitions: List[Dict]):
-        """Generates comprehensive feedback based on the conversation analysis."""
-        # Phase Coverage Analysis
-        required_phases = {
-            ConversationPhase.INTRODUCTION_DISCOVERY,
-            ConversationPhase.VALUE_PROPOSITION,
-            ConversationPhase.OBJECTION_HANDLING,
-            ConversationPhase.CLOSING
-        }
-        
-        missing_phases = required_phases - covered_phases
-        
-        # Add feedback for missing phases
-        for phase in missing_phases:
-            self.phase_scores[phase].add_feedback(f"Phase {phase.value} was not covered in the conversation")
-            self.phase_scores[phase].add_suggestion(f"Ensure to cover {phase.value} phase in future conversations")
-        
-        # Add feedback for phase transitions
-        if len(phase_transitions) < 2:
-            self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY].add_feedback("Limited phase transitions observed")
-            self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY].add_suggestion("Work on smoother transitions between phases")
-        
-        # Add contextual insights
+    def _generate_comprehensive_feedback(self):
+        """Generates final summary based on dynamic phases and phase transitions."""
+        covered_phases = {entry["to"] for entry in self.phase_manager.get_phase_history()}
+        covered_phases.add(self.phase_manager.get_current_phase())  # Include last phase even if not transitioned
+
+        all_phase_names = set(self.phase_manager.phase_config.get_all_phase_names())
+        missing_phases = all_phase_names - covered_phases
+        transitions = self.phase_manager.get_phase_history()
+
+        summary = "\n=== COMPREHENSIVE CONVERSATION EVALUATION ===\n"
+
+        summary += "\n🧩 Phase Coverage:\n"
+        for phase in self.phase_manager.phase_config.get_all_phase_names():
+            if phase in covered_phases:
+                summary += f"✅ {phase}\n"
+            else:
+                summary += f"❌ {phase} - Not covered\n"
+
+        summary += "\n🔁 Phase Transitions:\n"
+        if transitions:
+            for t in transitions:
+                summary += f"• {t['from']} → {t['to']}\n"
+        else:
+            summary += "No phase transitions detected.\n"
+
+        summary += "\n📌 Observations:\n"
         if self.pain_points:
-            self.phase_scores[ConversationPhase.INTRODUCTION_DISCOVERY].add_strength(f"Identified {len(self.pain_points)} key pain points")
+            summary += f"• Detected {len(self.pain_points)} pain points.\n"
         if self.objections:
-            self.phase_scores[ConversationPhase.OBJECTION_HANDLING].add_strength(f"Handled {len(self.objections)} customer objections")
+            summary += f"• Detected {len(self.objections)} objections.\n"
         if self.blockers:
-            self.phase_scores[ConversationPhase.OBJECTION_HANDLING].add_feedback(f"Identified {len(self.blockers)} potential blockers")
-        
-        # Calculate final scores
-        total_score = sum(score.score for score in self.phase_scores.values())
-        phase_scores = {phase.value: score.score for phase, score in self.phase_scores.items()}
-        
-        # Generate final summary
-        self._generate_final_summary(total_score, phase_scores, covered_phases, phase_transitions)
+            summary += f"• Detected {len(self.blockers)} blockers.\n"
+
+        if missing_phases:
+            summary += "\n🧠 Recommendations:\n"
+            for phase in missing_phases:
+                summary += f"• Consider covering the {phase} phase in future conversations.\n"
+
+        self.comprehensive_summary = summary
+
     
     def _generate_final_summary(self, total_score: int, phase_scores: Dict, covered_phases: set, phase_transitions: List[Dict]):
         """Generates a final comprehensive summary of the conversation."""

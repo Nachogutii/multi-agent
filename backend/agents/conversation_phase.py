@@ -1,62 +1,16 @@
-from enum import Enum
-from typing import List, Dict, Optional
+from typing import List, Dict
 import time
-
-class ConversationPhase(Enum):
-    INTRODUCTION_DISCOVERY = "introduction_discovery"
-    VALUE_PROPOSITION = "value_proposition"
-    OBJECTION_HANDLING = "objection_handling"
-    CLOSING = "closing"
-    ABRUPT_CLOSURE = "abrupt_closure"
+from openai import AzureOpenAI
+from phase_config import ConversationPhaseConfig
 
 class ConversationPhaseManager:
-    """Manages the progression of PLG conversation phases using AI-based semantic analysis."""
-
     def __init__(self, azure_client=None, deployment=None):
-        self.current_phase = ConversationPhase.INTRODUCTION_DISCOVERY
-        self.phase_history: List[Dict] = []
         self.client = azure_client
         self.deployment = deployment
         self.conversation_history: List[Dict] = []
-
-        self.phase_patterns = {
-            ConversationPhase.INTRODUCTION_DISCOVERY: {
-                "key_aspects": [
-                    "establishing rapport",
-                    "understanding customer context",
-                    "identifying customer role",
-                    "discovering customer needs",
-                    "understanding current situation"
-                ]
-            },
-            ConversationPhase.VALUE_PROPOSITION: {
-                "key_aspects": [
-                    "presenting product features",
-                    "explaining benefits",
-                    "showing value proposition",
-                    "demonstrating capabilities",
-                    "sharing success stories"
-                ]
-            },
-            ConversationPhase.OBJECTION_HANDLING: {
-                "key_aspects": [
-                    "addressing concerns",
-                    "providing solutions",
-                    "clarifying doubts",
-                    "handling objections",
-                    "building confidence"
-                ]
-            },
-            ConversationPhase.CLOSING: {
-                "key_aspects": [
-                    "confirming next steps",
-                    "expressing gratitude",
-                    "saying goodbye",
-                    "offering support",
-                    "ensuring satisfaction"
-                ]
-            }
-        }
+        self.phase_config = ConversationPhaseConfig()  
+        self.current_phase = self.phase_config.get_initial_phase()  
+        self.phase_history: List[Dict] = []
 
     def add_message(self, message: str, is_agent: bool = True):
         self.conversation_history.append({
@@ -65,67 +19,64 @@ class ConversationPhaseManager:
             "timestamp": time.time()
         })
 
-    def decide_phase(self, evaluation_result: Dict[str, any]) -> ConversationPhase:
-        """Decide the next phase based on the evaluation result from LLM."""
-        fulfilled_aspects = evaluation_result.get("fulfilled_aspects", [])
-        progress = evaluation_result.get("progress", 0)
-        is_empathetic = evaluation_result.get("CustomerBelievesAgentIsEmpathetic", False)
-        is_legit = evaluation_result.get("CustomerBelievesAgentIsLegit", False)
+    def analyze_message(self, agent_message: str, customer_response: str) -> str:
+        current_config = self.phase_config.get_phase(self.current_phase)
 
-        print(f"✅ Fulfilled Aspects: {fulfilled_aspects}")
-        print(f"✅ Progress: {progress}%")
-        print(f"✅ Empathy: {is_empathetic}")
-        print(f"✅ Legitimacy: {is_legit}")
+        prompt = f"""
+        You are an expert evaluator on Product led Growth conversation, evaluating whether the conversation can move to the next phase based on the following criteria.
 
-        # Obtener aspectos clave esperados de la fase actual
-        expected_aspects = self.phase_patterns.get(self.current_phase, {}).get("key_aspects", [])
+        ## CURRENT PHASE: {self.current_phase}
 
-        # Si el progreso es 100% y se cumplen todos los aspectos esperados
-        if progress == 100 and set(fulfilled_aspects) >= set(expected_aspects):
-            return self._get_next_phase()
+        ## SUCCESS CRITERIA
+        {chr(10).join('- ' + c for c in current_config.success_criteria)}
 
-        # Si no hay progreso o no se cumple nada
-        if progress < 40 or not fulfilled_aspects:
-            return ConversationPhase.ABRUPT_CLOSURE
+        ## FAILURE CRITERIA
+        {chr(10).join('- ' + c for c in current_config.failure_criteria)}
 
-        # Si está cumpliendo parcialmente, mantener la fase
-        return self.current_phase
-    
-    def _get_next_phase(self) -> ConversationPhase:
-        """Determina la siguiente fase lógica a partir de la actual."""
-        phase_order = [
-            ConversationPhase.INTRODUCTION_DISCOVERY,
-            ConversationPhase.VALUE_PROPOSITION,
-            ConversationPhase.OBJECTION_HANDLING,
-            ConversationPhase.CLOSING
-        ]
+        ## AGENT MESSAGE
+        {agent_message}
+
+        ## CUSTOMER RESPONSE
+        {customer_response}
+
+        Respond only with one of the following phase names:
+        - {current_config.success_transition}
+        - {current_config.failure_transition}
+        - {self.current_phase} (if criteria are partially met)
+        """
+
         try:
-            idx = phase_order.index(self.current_phase)
-            if idx < len(phase_order) - 1:
-                return phase_order[idx + 1]
-            return self.current_phase  # Si ya está en CLOSING
-        except ValueError:
+            response = self.client.chat.completions.create(
+                model=self.deployment,
+                messages=[
+                    {"role": "system", "content": "You are a conversation phase evaluator."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=20,
+                temperature=0
+            )
+
+            decision = response.choices[0].message.content.strip()
+
+            if decision != self.current_phase:
+                self.phase_history.append({
+                    "from": self.current_phase,
+                    "to": decision,
+                    "timestamp": time.time()
+                })
+                self.current_phase = decision
+
             return self.current_phase
 
-    def is_closing_phase(self) -> bool:
-        return self.current_phase == ConversationPhase.CLOSING
+        except Exception as e:
+            print(f"Error during phase evaluation: {str(e)}")
+            return self.current_phase
+
+    def get_current_phase(self) -> str:
+        return self.current_phase
+
+    def get_system_prompt(self) -> str:
+        return self.phase_config.get_phase(self.current_phase).system_prompt
 
     def get_phase_history(self) -> List[Dict]:
         return self.phase_history
-
-    def get_current_phase(self) -> ConversationPhase:
-        return self.current_phase
-
-    def update_phase_if_needed(self, new_phase: ConversationPhase):
-        if new_phase != self.current_phase:
-            self.phase_history.append({
-                "from_phase": self.current_phase,
-                "to_phase": new_phase,
-                "timestamp": time.time()
-            })
-            self.current_phase = new_phase
-
-            # Reiniciar aspectos acumulados al cambiar de fase
-            if hasattr(self, 'observer') and hasattr(self.observer, 'cumulative_fulfilled_aspects'):
-                self.observer.cumulative_fulfilled_aspects.clear()
-
