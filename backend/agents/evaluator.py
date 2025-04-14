@@ -215,10 +215,15 @@ class ObserverCoach:
             score.missed_opportunities = []
         
         # Analyze each phase
-        self._analyze_introduction_discovery_phase()
-        self._analyze_value_proposition_phase()
-        self._analyze_objection_handling_phase()
-        self._analyze_closing_phase()
+        self._analyze_welcome_phase()
+        self._analyze_abrupt_closure_phase()
+        self._analyze_copilot_positive_experience_phase()
+        self._analyze_business_goal_phase()
+        self._analyze_value_add_phase()
+        self._analyze_polite_closure_phase()
+        self._analyze_satisfied_closure_phase()
+        self._analyze_copilot_negative_experiences_phase()
+        self._analyze_copilot_negative_experience_handling_phase()
         
         # Calculate overall score
         total_score = sum(score.score for score in self.phase_scores.values())
@@ -247,178 +252,103 @@ class ObserverCoach:
             "blockers": self.blockers
         }
     
-    def _analyze_introduction_discovery_phase(self):
-        """Analyzes the introduction and discovery phase effectiveness."""
-        # Check for pain point discovery
-        if self.pain_points:
+    def _analyze_welcome_phase(self):
+        """Analyzes the welcome phase effectiveness."""
+        # Check for proper introduction
+        if any("name" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Successfully identified customer pain points")
+            score.add_strength("Agent properly introduced themselves")
         else:
-            score.add_feedback("Could have done more to uncover customer pain points")
-            score.add_suggestion("Ask more probing questions about current challenges")
-        
-        # Check for goal identification
-        goal_indicators = ["goal", "objective", "target", "aim", "want to achieve"]
-        found_goals = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                         for message in self.conversation_history 
-                         for indicator in goal_indicators)
-        
-        if found_goals:
+            score.add_feedback("Agent did not introduce themselves")
+            score.add_suggestion("Ensure to state your name and affiliation")
+
+        # Check for purpose clarity
+        if any("purpose" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Effectively identified customer goals")
+            score.add_strength("Agent clearly stated the purpose of the call")
         else:
-            score.add_feedback("Could have better understood customer objectives")
-            score.add_suggestion("Ask about specific business goals and desired outcomes")
-        
-        # Check for needs analysis
-        needs_indicators = ["need", "requirement", "looking for", "seeking", "want"]
-        found_needs = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                         for message in self.conversation_history 
-                         for indicator in needs_indicators)
-        
-        if found_needs:
+            score.add_feedback("Agent did not state the purpose of the call")
+            score.add_suggestion("Clearly state the purpose of the call")
+
+    def _analyze_abrupt_closure_phase(self):
+        """Analyzes the abrupt closure phase effectiveness."""
+        # Check for professional closure
+        if any("apologize" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Good understanding of customer needs")
+            score.add_strength("Agent apologized appropriately")
         else:
-            score.add_feedback("Could have better explored customer needs")
-            score.add_suggestion("Ask more questions about specific requirements")
-        
-        # Check for industry context
-    def _analyze_value_proposition_phase(self):
-        """Analyzes the value proposition phase effectiveness."""
-        # Check for value proposition clarity
-        value_indicators = ["benefit", "value", "roi", "improve", "enhance", "increase"]
-        found_value = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                         for message in self.conversation_history 
-                         for indicator in value_indicators)
-        
-        if found_value:
+            score.add_feedback("Agent did not apologize appropriately")
+            score.add_suggestion("Apologize to the customer when closing abruptly")
+
+    def _analyze_copilot_positive_experience_phase(self):
+        """Analyzes the Copilot positive experience phase effectiveness."""
+        # Check for positive feedback acknowledgment
+        if any("thank" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Clear communication of value proposition")
+            score.add_strength("Agent acknowledged positive feedback")
         else:
-            score.add_feedback("Could have better articulated product value")
-            score.add_suggestion("Focus more on specific benefits and ROI")
-        
-        # Check for pain point alignment
-        if self.pain_points and found_value:
+            score.add_feedback("Agent did not acknowledge positive feedback")
+            score.add_suggestion("Thank the customer for positive feedback")
+
+    def _analyze_business_goal_phase(self):
+        """Analyzes the business goal phase effectiveness."""
+        # Check for goal alignment
+        if any("goal" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Effectively aligned value with pain points")
+            score.add_strength("Agent aligned with business goals")
         else:
-            score.add_missed_opportunity("Could have better connected value to customer pain points")
-        
-        # Check for business impact
-        impact_indicators = ["impact", "result", "outcome", "improvement", "change"]
-        found_impact = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                          for message in self.conversation_history 
-                          for indicator in impact_indicators)
-        
-        if found_impact:
+            score.add_feedback("Agent did not align with business goals")
+            score.add_suggestion("Discuss business goals with the customer")
+
+    def _analyze_value_add_phase(self):
+        """Analyzes the value add phase effectiveness."""
+        # Check for value proposition
+        if any("value" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Strong focus on business impact")
+            score.add_strength("Agent provided value proposition")
         else:
-            score.add_feedback("Could have better emphasized business impact")
-            score.add_suggestion("Include more specific examples of business outcomes")
-        
-        # Check for ROI discussion
-        roi_indicators = ["roi", "return on investment", "cost savings", "efficiency"]
-        found_roi = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                       for message in self.conversation_history 
-                       for indicator in roi_indicators)
-        
-        if found_roi:
+            score.add_feedback("Agent did not provide value proposition")
+            score.add_suggestion("Discuss the value proposition with the customer")
+
+    def _analyze_polite_closure_phase(self):
+        """Analyzes the polite closure phase effectiveness."""
+        # Check for polite closure
+        if any("thank" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Effective ROI discussion")
+            score.add_strength("Agent closed the call politely")
         else:
-            score.add_missed_opportunity("Could have included more ROI analysis")
-    
-    def _analyze_objection_handling_phase(self):
-        """Analyzes the objection handling phase effectiveness."""
-        # Check for objection acknowledgment
-        if self.objections:
+            score.add_feedback("Agent did not close the call politely")
+            score.add_suggestion("Thank the customer when closing the call")
+
+    def _analyze_satisfied_closure_phase(self):
+        """Analyzes the satisfied closure phase effectiveness."""
+        # Check for satisfaction confirmation
+        if any("satisfied" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Identified and acknowledged customer objections")
+            score.add_strength("Agent confirmed customer satisfaction")
         else:
-            score.add_missed_opportunity("Could have proactively addressed potential objections")
-        
-        # Check for empathy in responses
-        empathy_indicators = ["understand", "appreciate", "recognize", "hear", "feel"]
-        found_empathy = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                          for message in self.conversation_history 
-                          for indicator in empathy_indicators)
-        
-        if found_empathy:
+            score.add_feedback("Agent did not confirm customer satisfaction")
+            score.add_suggestion("Confirm customer satisfaction before closing")
+
+    def _analyze_copilot_negative_experiences_phase(self):
+        """Analyzes the Copilot negative experiences phase effectiveness."""
+        # Check for negative feedback acknowledgment
+        if any("sorry" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Demonstrated empathy in responses")
+            score.add_strength("Agent acknowledged negative feedback")
         else:
-            score.add_feedback("Could have shown more empathy in responses")
-            score.add_suggestion("Acknowledge concerns before addressing them")
-        
-        # Check for value-driven responses
-        # Check for blocker resolution
-        if self.blockers:
-            resolution_indicators = ["solution", "address", "resolve", "overcome", "handle"]
-            found_resolution = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                                 for message in self.conversation_history 
-                                 for indicator in resolution_indicators)
-            
-            if found_resolution:
-                score.adjust_score(5)
-                score.add_strength("Effectively addressed blockers")
-            else:
-                score.add_feedback("Could have better addressed blockers")
-                score.add_suggestion("Provide specific solutions for identified blockers")
-    
-    def _analyze_closing_phase(self):
-        """Analyzes the closing phase effectiveness."""
-        # Check for next steps
-        next_step_indicators = ["next step", "follow up", "schedule", "plan", "arrange"]
-        found_next_steps = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                             for message in self.conversation_history 
-                             for indicator in next_step_indicators)
-        
-        if found_next_steps:
+            score.add_feedback("Agent did not acknowledge negative feedback")
+            score.add_suggestion("Acknowledge negative feedback appropriately")
+
+    def _analyze_copilot_negative_experience_handling_phase(self):
+        """Analyzes the Copilot negative experience handling phase effectiveness."""
+        # Check for transition to positive
+        if any("positive" in message["user"].lower() for message in self.conversation_history):
             score.adjust_score(5)
-            score.add_strength("Clear next steps established")
+            score.add_strength("Agent transitioned to positive experiences")
         else:
-            score.add_feedback("Could have established clearer next steps")
-            score.add_suggestion("Outline specific follow-up actions")
-        
-        # Check for success metrics
-        metric_indicators = ["measure", "track", "monitor", "evaluate", "assess"]
-        found_metrics = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                          for message in self.conversation_history 
-                          for indicator in metric_indicators)
-        
-        if found_metrics:
-            score.adjust_score(5)
-            score.add_strength("Discussed success metrics")
-        else:
-            score.add_missed_opportunity("Could have discussed success metrics")
-        
-        # Check for expansion opportunities
-        expansion_indicators = ["expand", "grow", "scale", "additional", "more"]
-        found_expansion = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                            for message in self.conversation_history 
-                            for indicator in expansion_indicators)
-        
-        if found_expansion:
-            score.adjust_score(5)
-            score.add_strength("Identified expansion opportunities")
-        else:
-            score.add_missed_opportunity("Could have discussed expansion opportunities")
-        
-        # Check for support discussion
-        support_indicators = ["support", "help", "assist", "guide", "resource"]
-        found_support = any(indicator in message["user"].lower() or indicator in message["customer"].lower()
-                          for message in self.conversation_history 
-                          for indicator in support_indicators)
-        
-        if found_support:
-            score.adjust_score(5)
-            score.add_strength("Addressed support and resources")
-        else:
-            score.add_feedback("Could have discussed support options")
-            score.add_suggestion("Outline available support and resources")
+            score.add_feedback("Agent did not transition to positive experiences")
+            score.add_suggestion("Transition to positive experiences after handling negatives")
     
     def _generate_ai_feedback(self, phase: str, context: str) -> Dict:
         """Generates AI-powered feedback for a specific phase."""
@@ -509,10 +439,15 @@ class ObserverCoach:
     def _evaluate_closing_phase(self):
         """Performs a comprehensive evaluation of the conversation when entering the closing phase."""
         # Analyze each phase
-        self._analyze_introduction_discovery_phase()
-        self._analyze_value_proposition_phase()
-        self._analyze_objection_handling_phase()
-        self._analyze_closing_phase()
+        self._analyze_welcome_phase()
+        self._analyze_abrupt_closure_phase()
+        self._analyze_copilot_positive_experience_phase()
+        self._analyze_business_goal_phase()
+        self._analyze_value_add_phase()
+        self._analyze_polite_closure_phase()
+        self._analyze_satisfied_closure_phase()
+        self._analyze_copilot_negative_experiences_phase()
+        self._analyze_copilot_negative_experience_handling_phase()
         
         # Calculate phase coverage
         covered_phases = set()
