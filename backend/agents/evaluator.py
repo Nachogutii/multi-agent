@@ -125,6 +125,9 @@ class ObserverCoach:
             "CustomerBelievesAgentIsLegit": evaluation_result.get("CustomerBelievesAgentIsLegit", False)
         }
 
+        new_phase = self.phase_manager.analyze_message(user_message, customer_response)
+        print(f"📍 Transitioned to phase: {new_phase}")
+
         return updated_state
 
 

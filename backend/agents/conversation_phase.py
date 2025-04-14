@@ -80,3 +80,7 @@ class ConversationPhaseManager:
 
     def get_phase_history(self) -> List[Dict]:
         return self.phase_history
+    
+    def is_closing_phase(self) -> bool:
+        return self.current_phase.lower() in ["satisfied closure", "polite closure", "abrupt closure"]
+
