@@ -47,11 +47,8 @@ class CustomerAgent:
         prompt = f"""
 You are roleplaying as a Microsoft 365 customer.
 
-# CUSTOMER PROFILE:
-- Role: {self.profile['role']}
-- Personality: {self.profile['personality']}
-- Intent: {self.profile['intent']}
-- Emotional State: {emotion}
+# CUSTOMER CONTEXT
+{self.general_context}
 
 # CURRENT PHASE:
 {current_phase}

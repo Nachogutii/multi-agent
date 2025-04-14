@@ -28,23 +28,4 @@ def print_banner(text: str) -> None:
 def print_scenario_info(scenario_info: Dict, product_info: Dict) -> None:
     """Print information about the current scenario."""
     print_banner("PLG CUSTOMER SERVICE ROLEPLAY")
-    print_colored("\nSCENARIO:", "yellow")
-    print(f"{scenario_info['scenario']} - {scenario_info['description']}")
-    
-    print_colored("\nCUSTOMER PROFILE:", "yellow")
-    profile = scenario_info['customer_profile']
-    print(f"Personality: {profile['personality']}")
-    print(f"Technical Level: {profile['tech_level']}")
-    print(f"Role: {profile['role']}")
-    print(f"Industry: {profile['industry']}")
-    print(f"Company Size: {profile['company_size']}")
-    
-    print_colored("\nPRODUCT:", "yellow")
-    print(f"{product_info['name']} - {product_info['description']}")
-    print("\nKey Features:")
-    for feature in product_info['key_features'][:3]:  # Show just 3 features
-        print(f"- {feature}")
-    
-    print_colored("\nCONVERSATION STARTS:", "green")
-    print_colored(f"Customer: {scenario_info['initial_query']}", "magenta")
     print() 

@@ -1,0 +1,172 @@
+{
+    "Phases":
+    [
+        {
+        "name": "welcome",
+        "system_prompt": "You have agreed to this call but you do not want to make much time for it...",
+        "success_criteria": [
+            "Agent states their name and affiliation with Microsoft.",
+            "Agent references the prior email communication.",
+            "Clearly state the purpose of the call, which is to do a brief check-in regarding Rachel's experience with Microsoft Copilot",
+            "Acknowledge Rachel's time constraints."
+        ],
+        "failure_criteria": [
+            "Agent sounds rushed, unpolite, or unprofessional.",
+            "Agent does not acknowledge Rachel's time constraints.",
+            "Agent fails to identify himself/herself properly.",
+            "Agent does not state a clear, brief and concise goal for the call."
+        ],
+        "on_success": "copilot_positive_experience",
+        "on_failure": "abrupt_closure"
+        },
+    
+        {
+        "name": "Abrupt closure",
+        "system_prompt": "You want to abruptly end the call due to time constraints and frustration. The agent has been unpolite or unprofessional, and you are not willing to continue the conversation. While you will continue to be polite, you express your willingness to finish conversation immediately no matter what the agent says.",
+        "success_criteria": [
+            "Agent remains professional and courteous.",
+            "Agent acknowledges the abrupt closure without argument.",
+            "Agent apologizes to the customer."
+        ],
+        "failure_criteria": [
+            "Agent expresses frustration or annoyance.",
+            "Agent attempts to prolong the call against Rachel's will.",
+            "Agent fails to document the interaction.",
+            "Agent becomes argumentative or accusatory."
+        ],
+        "on_success": "Conversation End",
+        "on_failure": "Conversation End"
+        },
+
+        {
+            "name": "Copilot Positive Experience",
+            "system_prompt": "You have found some aspects of Microsoft Copilot helpful for you marketing agency, especially in your personal work.  You have found the build-in Microsoft Word Copilot integration really helpful for drafting Marketing Copy effectively. You have found the AI suggestions particularly good for creating and reviewing social media content. ",
+            "success_criteria": [
+                "Agent actively listens, thanks and acknowledges Rachel's positive feedback.",
+                "Agent asks relevant follow-up questions to gather specific details.",
+                "Agent asks adequately about business goals and what the customer is trying to do with the subscription"
+            ],
+            "failure_criteria": [
+                "Agent dismisses or minimizes Rachel's positive feedback.",
+                "Agent does not thank Rachel’s positive feedback.",
+                "Agent is unpolite or rude",
+                "Agent continues to ask questions in a script-like fashion, without listening to the customer "
+            ],
+            "on_success": "Bussiness Goal",
+            "on_failure": "Abrupt closure"
+        },
+
+        {
+            "name": "Business Goal",
+            "system_prompt": "You are looking to expand your client base and take on larger projects, but you are strapped for cash and in an environment where you are not comfortable hiring more people. You want to streamline your processes so we you can handle more volume, and hope AI can help with that. ",
+            "success_criteria": [
+                "Agent actively shows genuine interest.",
+                "Agent asks insightful questions to gain a deeper understanding of Rachel's needs.",
+                "Agent proposes Copilot’s features that are well aligned with Rachel’s needs, and explains why. "
+            ],
+            "failure_criteria": [
+                "Agent shows disinterest or impatience.",
+                "Agent fails to connect Rachel's goals to Copilot's features.",
+                "Agent asks irrelevant or intrusive questions.",
+                "Agent talks about something else that is not related to the topic:"
+            ],
+            "on_success": "Value Add",
+            "on_failure": "Polite Closure"
+        },
+
+        {
+            "name": "Value Add",
+            "system_prompt": "You are interested in saving time and streamlining processes for your marketing agency, and you will express openness to learning about Copilot features that can directly address these needs. You will ask questions about the features, and even show interest in receiving training or documentation. However, you are already quite familiar with drafting and summarization AI features, so you will rather learn about a different. ",
+            "success_criteria": [
+            "Agent identifies Copilot features that directly address Rachel's time-saving and streamlining needs.",
+            "Agent clearly explains the benefits of these features in a concise and relevant manner.",
+            "Agent provides specific examples of how these features can be used in Rachel's daily workflow.",
+            "Agent mentions that he will share detailed documentation and training after the call. "
+            ],
+            "failure_criteria": [
+            "Agent recommends irrelevant or generic Copilot features.",
+            "Agent fails to explain the benefits of the features clearly.",
+            "Agent uses technical jargon. ",
+            "Agent provides vague or impractical examples.",
+            "Agent overwhelms Rachel with too much information.",
+            "Agent ignores Rachel's feedback or questions."
+            ],
+            "on_success": "Satisfied Closure",
+            "on_failure": "Polite Closure"
+        },
+
+        {
+            "name": "Polite Closure",
+            "system_prompt": "You may not find the call particularly helpful at this point, but you want to end the conversation amicably. You may want to avoid expressing negative feedback directly and you are mindful of your time.",
+            "success_criteria": [
+                "Agent accepts the polite closure without pushing for further interaction.",
+                "Agent confirms there are no outstanding issues or urgent needs.",
+                "Agent expresses appreciation for Rachel's time in a concise manner.",
+                "Agent ends the call professionally and courteously."
+            ],
+            "failure_criteria": [
+                "Agent attempts to prolong the call or persuade Rachel to continue the conversation.",
+                "Agent asks probing questions that might make Rachel uncomfortable.",
+                "Agent sounds disappointed or takes Rachel's polite closure personally."
+            ],
+            "on_success": "Conversation End",
+            "on_failure": "Conversation End"
+        },
+
+        {
+            "name": "Satisfied Closure",
+            "system_prompt": "Rachel is satisfied with the information and assistance provided by the agent. She has no further questions or concerns. She is still mindful of her time and appreciates a concise and efficient closing.",
+            "success_criteria": [
+            "Agent summarizes the key points of the conversation.",
+            "Agent confirms Rachel's satisfaction and offers any further assistance.",
+            "Agent expresses gratitude for Rachel's time and feedback.",
+            "Agent ends the call professionally and courteously."
+            ],
+            "failure_criteria": [
+            "Agent prolongs the call unnecessarily.",
+            "Agent introduces new topics or attempts to upsell aggressively.",
+            "Agent ends the call abruptly or unprofessionally."
+            ],
+            "on_success": "Conversation End",
+            "on_failure": "Conversation End"
+        },
+        
+        {
+            "name": "Copilot Negative Experiences",
+            "system_prompt": "You have encountered issues or has negative feedback about Microsoft Copilot. For instance, Copilot you find that Copilot has crashed a couple of times when you tried to use it in Excel. You also find it inaccurate when you ask it to apply basic formulas to row collections. While you really lke the drafting capabilities of Copilot, you don’t think the data analysis capabilities are there yet.",
+            "success_criteria": [
+                "Agent actively listens and acknowledges Rachel's negative feedback.",
+                "Agent remains calm and professional, even if Rachel is frustrated.",
+                "Agent thanks Rachel for sharing the negative feedback",
+                "Agent asks clarifying questions to understand the specific issues."
+            ],
+            "failure_criteria": [
+                "Agent becomes defensive or dismissive of Rachel's concerns.",
+                "Agent provides generic or unhelpful solutions.",
+                "Agent tries to push additional products, or services, when the customer is already upset.",
+                "Agent asks unhelpful questions"
+            ],
+            "on_success": "Copilot Negative Experience Handling",
+            "on_failure": "Polite Closure"
+            },
+        
+        {
+            "name": "Copilot Negative Experience Handling",
+            "system_prompt": "You have expressed negative feedback, and the agent has addressed it satisfactorily. You are now more receptive to continuing the conversation and talk about positive experiences you had with Copilot or more about your business. ",
+            "success_criteria": [
+                "Agent uses a smooth transition to shift the conversation.",
+                "Agent maintains a positive and professional tone.",
+                "Agent asks questions to identify positive experiences about Microsoft Copilot.",
+                "Agent asks questions to know more about the business of the Customer and what they are trying to achieve",
+                "Possible Scenarios and Agent's Actions: - Scenario 1 (Transition to Positives Experience): - Agent: Now that we've resolved the Excel crashing issue, I'm curious, have you had any positive experiences with Copilot in other areas? - Scenario 2 (Transition to Business Needs): - Agent: I'm glad we could get that sorted out. To help me understand how Copilot can best support your agency, could you tell me more about your key business goals?"
+            ],
+            "failure_criteria": [
+                "Agent makes an abrupt or forced transition.",
+                "Agent asks irrelevant or insensitive questions."
+            ],
+            "on_success": ["Copilot Positive Experience", "Business Goal"],
+            "on_failure": "Polite Closure"
+        }
+    ]
+}
+  

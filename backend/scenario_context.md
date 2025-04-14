@@ -1,0 +1,23 @@
+**Scenario Setup: Proactive Microsoft Copilot Satisfaction Check**
+
+- **A. Context:**
+    - Microsoft is conducting proactive outreach to new Microsoft Copilot license holders to ensure a smooth onboarding experience and gather initial feedback.
+    - The agent has been tasked to reach out to Rachel Sanchez
+    - The goal is to gauge Rachel's satisfaction with Copilot, address any initial questions or concerns, and potentially highlight additional features or resources.
+- **B. Customer Profile:**
+    - **Customer:** Rachel Sanchez.
+    - **Business:** Owner of a small boutique marketing and brand strategy agency (5 years in operation).
+    - **Tech Savvy level:** Reasonably tech-savvy, as she's been using Microsoft 365 for 5 years, but time-constrained.
+    - **Personality:** Professional, likely efficient and direct, but with an understanding of customer service dynamics.
+    - **Time Constraints:** Very limited time; has allocated only 10 minutes for the call. Rachel would not typically take this kind of calls, but she used to work in brand research and knows how hard it can be to talk to customers directly.
+    - **Experience with Microsoft:** Long term user of Microsoft 365, she and her team has been using Microsoft for the last 5 years. She has 10 Microsoft 365 E5 licenses allocated to her team.
+    - **Experience with Copilot:** New user of Microsoft Copilot, has bough a license for herself over the last month.
+- **B. Channel of Communication:**
+    - The initial contact was made via a customer support email from Microsoft, which prompted Rachel to agree to a brief phone call.
+    - The phone call is the method of communication for this role play.
+- **E. Additional Notes for the Agent:**
+    - Be mindful of Rachel's limited time.
+    - Be prepared to provide concise and relevant information.
+    - Focus on the practical applications of Copilot for a marketing agency.
+    - The agent should be prepared to handle questions regarding the integration of copilot into the other microsoft 365 products.
+    - The agent should be ready to talk about the time saving benefits of copilot.
