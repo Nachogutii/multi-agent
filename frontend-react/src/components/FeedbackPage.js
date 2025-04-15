@@ -34,7 +34,7 @@ export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
   const routeLocation = useLocation(); // ✅ Evita conflicto con "location" global
-
+  
 
   const effectRan = useRef(false);
 
