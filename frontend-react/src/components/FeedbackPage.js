@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Bar, Radar } from "react-chartjs-2";
 import { submitFeedbackToSupabase } from "../services/feedbackService.js"
+import { submitConversationToSupabase } from "../services/submitConversationToSupabase.js"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -28,47 +29,67 @@ ChartJS.register(
   PointElement,
   LineElement
 );
+
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();
+  const routeLocation = useLocation(); // ✅ Evita conflicto con "location" global
+  const storedMessages = localStorage.getItem("chatMessages");
+  const conversation = storedMessages ? JSON.parse(storedMessages) : [];
+
   const effectRan = useRef(false);
 
   useEffect(() => {
     if (effectRan.current) return;
     effectRan.current = true;
-
+  
     const timestamp = new Date().getTime();
-    const path = location.pathname;
+    const path = routeLocation.pathname;
     const sessionId = btoa(`${path}_${timestamp}`).slice(0, 32);
+  
     const feedbackKey = `feedback_sent_${sessionId}`;
-    const alreadySent = localStorage.getItem(feedbackKey);
-
-    if (alreadySent) {
-      console.log('Feedback ya enviado para esta sesión');
+    const conversationKey = `conversation_sent_${sessionId}`;
+  
+    const feedbackAlreadySent = localStorage.getItem(feedbackKey);
+    const conversationAlreadySent = localStorage.getItem(conversationKey);
+  
+    if (feedbackAlreadySent && conversationAlreadySent) {
+      console.log("✅ Feedback y conversación ya enviados para esta sesión");
       return;
     }
-
+  
     fetch("http://localhost:8000/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Structured feedback received:", data)
-        setFeedback(data)
-
+        console.log("Structured feedback received:", data);
+        setFeedback(data);
+  
         if (data?.metrics) {
           submitFeedbackToSupabase({
             ...data,
-            sessionId
-          })
-          localStorage.setItem(feedbackKey, 'true');
+            sessionId,
+          }).then((feedbackId) => {
+            localStorage.setItem(feedbackKey, "true");
+  
+            if (
+              feedbackId &&
+              conversation.length > 0 &&
+              !conversationAlreadySent
+            ) {
+              submitConversationToSupabase(feedbackId, conversation).then(() => {
+                localStorage.setItem(conversationKey, "true");
+              });
+            }
+          });
         }
       })
       .catch((err) => {
-        console.error("❌ Error fetching feedback:", err)
-        setFeedback({ error: "Error fetching feedback." })
-      })
-  }, [location.pathname]);
-
+        console.error("❌ Error fetching feedback:", err);
+        setFeedback({ error: "Error fetching feedback." });
+      });
+  }, [routeLocation.pathname]);
+  
+// Se ejecuta cuando cambia la ruta
   const renderList = (title, items) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
