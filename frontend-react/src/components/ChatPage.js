@@ -218,8 +218,9 @@ export default function ChatPage() {
           <div className="popup">
             <h3>Scenario Information</h3>
             <ul>
-              <li><strong>Title:</strong>Copilot Welcome</li>
-              <li><strong>Description:</strong>Customer is already using some Microsoft products and wants to know more about Copilot</li>
+            <li><strong>Title:</strong> Microsoft Copilot Satisfaction Check</li>
+              <li><strong>Description:</strong> Microsoft is reaching out to Rachel Sanchez, owner of a boutique marketing agency, for a brief (10 min) check-in. She recently began using Copilot and has used Microsoft 365 for 5 years.</li>
+              <li><strong>Customer:</strong> Rachel Sanchez<br /><strong>Business:</strong> Boutique brand strategy agency<br /><strong>Tech Level:</strong> Reasonably tech-savvy, time-constrained<br /><strong>Copilot Experience:</strong> 1 month<br /><strong>Communication:</strong> Scheduled phone call (after support email)</li>
             </ul>
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
               Close

@@ -634,48 +634,50 @@ Phase: {phase}
 Conversation Context:
 {context}
 
-Consider these aspects in your analysis:
+Evaluate the following aspects:
 
 1. Natural Flow and Progression:
-   - How well did the conversation flow through this phase?
-   - Were there smooth transitions between topics?
-   - Was the progression logical and natural?
+   - Was the phase transition smooth and coherent?
+   - Did the interaction progress logically?
 
-2. Relationship Development:
-   - How well was rapport maintained?
-   - Was there appropriate emotional intelligence?
-   - How effectively was trust built?
+2. Rapport and Relationship:
+   - Was rapport maintained or improved?
+   - Was there empathy and emotional intelligence?
 
-3. Content Quality:
-   - How relevant and valuable was the information shared?
-   - Was the communication clear and effective?
-   - Were key points well-articulated?
+3. Content and Clarity:
+   - Was the message clear, relevant, and valuable?
+   - Were key ideas communicated effectively?
 
-4. Customer Engagement:
-   - How well was the customer engaged?
-   - Were questions and concerns addressed?
-   - Was there appropriate give-and-take?
+4. Engagement and Interaction:
+   - Did the agent engage the customer effectively?
+   - Were questions handled well?
 
 5. Phase-Specific Effectiveness:
-   - How well were phase-specific goals achieved?
+   - Were the specific goals of this phase achieved?
    - Were there missed opportunities?
-   - What could have been done better?
 
-Provide:
-1. Specific feedback about strengths and areas for improvement
-2. Concrete, actionable suggestions
-3. Insights about the overall effectiveness
-4. Recommendations for future conversations
+---
 
-Format the response as JSON with:
+Score rubric:
+- 5: Outstanding execution with clear excellence in all dimensions.
+- 4: Strong performance with only minor areas of improvement.
+- 3: Satisfactory, but noticeable gaps or missed opportunities.
+- 2: Below expectations, with several important issues.
+- 1: Weak execution and limited achievement of goals.
+- 0: The phase was not addressed or was skipped.
+
+
+Respond in JSON with:
 {{
-    "score": 0-5,
-    "feedback": "Detailed analysis of what was done well and what could be improved",
-    "suggestion": "Specific, actionable suggestion for improvement",
-    "strength": "Key strength observed in this phase",
-    "opportunity": "Missed opportunity or area for growth"
+  "score": 0-5, based on the score rubric of each phase
+  "feedback": "Detailed analysis",
+  "suggestion": "Concrete, actionable suggestion",
+  "strength": "Main strength of the phase",
+  "opportunity": "Missed opportunity",
+  "training": "Relevant Microsoft Learn module (if any)"
 }}
 """
+
 
         response = self.client.chat.completions.create(
             model=self.deployment,
