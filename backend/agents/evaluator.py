@@ -139,12 +139,12 @@ class ObserverCoach:
         evaluation_result = self.evaluate_interaction_with_llm(user_message, customer_response)
         print(f"✅ Evaluation Result: {evaluation_result}")
 
-        # Decide la nueva fase
+        # Determinar nueva fase
         new_phase = self.phase_manager.analyze_message(user_message, customer_response)
         current_phase = self.phase_manager.get_current_phase()
         print(f"📊 Phase decided by LLM: {new_phase}")
 
-        # Si hay cambio de fase, evalúa la anterior
+        # Si cambia la fase, evaluar la anterior
         if new_phase != current_phase:
             previous_context = "\n".join([
                 f"User: {m['user']}\nCustomer: {m['customer']}"
@@ -155,10 +155,10 @@ class ObserverCoach:
                 print(f"🧠 Evaluating previous phase: {current_phase}")
                 self.evaluate_phase(current_phase, previous_context)
 
-            # Actualiza la fase si fue diferente
+            # Actualiza fase interna
             self.phase_manager.update_phase(new_phase)
 
-        # Guarda el mensaje con la fase actual
+        # Guardar la interacción con fase y timestamp
         self.conversation_history.append({
             "user": user_message,
             "customer": customer_response,
@@ -166,7 +166,7 @@ class ObserverCoach:
             "phase": new_phase
         })
 
-        # Evalúa la fase actual si no ha sido evaluada
+        # Evaluar la fase actual si no se ha hecho aún
         current_context = "\n".join([
             f"User: {m['user']}\nCustomer: {m['customer']}"
             for m in self.conversation_history
@@ -176,7 +176,7 @@ class ObserverCoach:
             print(f"🧠 Evaluating current phase: {new_phase}")
             self.evaluate_phase(new_phase, current_context)
 
-        # Analiza preocupaciones del cliente
+        # Analizar preocupaciones del cliente
         self._analyze_customer_concerns(customer_response)
 
         print(f"Updated Customer State: {evaluation_result}")
