@@ -195,7 +195,7 @@ def get_scenario():
         "description": "Customer is already using Microsoft 365 and is exploring how Copilot can improve her workflow.",
         "initial_query": "Hi, I'm Rachel. I just got Copilot and was curious how to get the most out of it."
     }
-
+# hola
 @app.get("/api/feedback")
 def get_feedback():
     return { "feedback": roleplay_system.observer.get_summary() }
