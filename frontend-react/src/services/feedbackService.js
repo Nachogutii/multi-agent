@@ -7,6 +7,8 @@ export async function submitFeedbackToSupabase(feedback) {
   // Verificar si ya se envió feedback para esta sesión
   const feedbackKey = `feedback_sent_${feedback.sessionId}`
   const alreadySent = localStorage.getItem(feedbackKey)
+  const vAccount = localStorage.getItem("v_account") || null
+
   
   console.log('🔑 Clave de feedback:', feedbackKey)
   console.log('📝 Estado de envío previo:', alreadySent)
@@ -19,22 +21,24 @@ export async function submitFeedbackToSupabase(feedback) {
   console.log('🔄 Obteniendo usuario de Supabase...')
   const { data: { user } } = await supabase.auth.getUser()
   const rawEnv = process.env.REACT_APP_ENV
-  const environment = rawEnv && rawEnv.toLowerCase() === 'development' ? 'dev' : 'prod'
+  const isDev = rawEnv && rawEnv.toLowerCase() === 'development'
+  const tableName = isDev ? 'feedback_dev' : 'feedback_prod'
   
 
   console.log('👤 Usuario:', user?.email)
-  console.log('🌍 Ambiente:', environment)
+  
 
   console.log('📤 Enviando feedback a Supabase...')
-  const { error } = await supabase.from('feedback').insert([
+  const { error } = await supabase.from(tableName).insert([
     {
       user_id: user?.email || null,
-      environment,
+      v_account: vAccount,
       metrics: feedback.metrics,
       suggestions: feedback.suggestions,
-      issues: feedback.issues
+      issues: feedback.issues,
     },
   ])
+  
 
   if (error) {
     console.error('❌ Error al enviar feedback:', error)

@@ -15,10 +15,14 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault()
     const { error } = await supabase.auth.signInWithOtp({ email })
     if (error) setError(error.message)
-    else setSent(true)
-
+    else {
+      setSent(true)
+      localStorage.setItem("v_account", vAccount)
+    }
+  
     console.log('V-Account:', vAccount)
   }
+  
 
   return (
     <div
