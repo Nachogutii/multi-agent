@@ -24,6 +24,8 @@ class ObserverCoach:
         self.has_evaluated_closing = False
         self.cumulative_fulfilled_aspects = set()
 
+        self.phase_scores = {}  # Nuevo: puntuación por fase
+        self.phase_feedback = {}  # Nuevo: feedback detallado por fase
     def evaluate_interaction_with_llm(self, user_message: str, customer_response: str) -> Dict[str, any]:
         if not self.client:
             raise ValueError("Azure OpenAI client not initialized")
@@ -133,29 +135,53 @@ class ObserverCoach:
 
 
     def add_interaction(self, user_message: str, customer_response: str):
-        # Evalúa el mensaje con LLM (incluye empatía, legitimidad y aspectos cumplidos)
+        # Evalúa el mensaje con LLM
         evaluation_result = self.evaluate_interaction_with_llm(user_message, customer_response)
         print(f"✅ Evaluation Result: {evaluation_result}")
 
-        # Decide fase usando el resultado completo
-        current_phase = self.phase_manager.decide_phase(evaluation_result)
-        print(f"📊 Phase decided by LLM: {current_phase}")
+        # Decide la nueva fase
+        new_phase = self.phase_manager.analyze_message(user_message, customer_response)
+        current_phase = self.phase_manager.get_current_phase()
+        print(f"📊 Phase decided by LLM: {new_phase}")
 
-        # Guarda en el historial
+        # Si hay cambio de fase, evalúa la anterior
+        if new_phase != current_phase:
+            previous_context = "\n".join([
+                f"User: {m['user']}\nCustomer: {m['customer']}"
+                for m in self.conversation_history
+                if m.get("phase") == current_phase
+            ])
+            if previous_context.strip() and current_phase not in self.phase_scores:
+                print(f"🧠 Evaluating previous phase: {current_phase}")
+                self.evaluate_phase(current_phase, previous_context)
+
+            # Actualiza la fase si fue diferente
+            self.phase_manager.update_phase(new_phase)
+
+        # Guarda el mensaje con la fase actual
         self.conversation_history.append({
             "user": user_message,
             "customer": customer_response,
             "timestamp": time.time(),
-            "phase": current_phase
+            "phase": new_phase
         })
+
+        # Evalúa la fase actual si no ha sido evaluada
+        current_context = "\n".join([
+            f"User: {m['user']}\nCustomer: {m['customer']}"
+            for m in self.conversation_history
+            if m.get("phase") == new_phase
+        ])
+        if current_context.strip() and new_phase not in self.phase_scores:
+            print(f"🧠 Evaluating current phase: {new_phase}")
+            self.evaluate_phase(new_phase, current_context)
 
         # Analiza preocupaciones del cliente
         self._analyze_customer_concerns(customer_response)
-        
-        # For debugging
+
         print(f"Updated Customer State: {evaluation_result}")
 
-        # Evalúa cierre si es la última fase
+    
     
     def _analyze_customer_concerns(self, message: str):
         """Analyzes message for pain points, objections, and blockers."""
@@ -599,3 +625,96 @@ class ObserverCoach:
             
         # Otherwise, return the basic analysis
         return self.analyze_conversation() 
+
+    def evaluate_phase(self, phase: str, context: str) -> Dict[str, any]:
+        prompt = f"""
+Analyze this conversation phase and provide comprehensive, actionable feedback.
+
+Phase: {phase}
+Conversation Context:
+{context}
+
+Consider these aspects in your analysis:
+
+1. Natural Flow and Progression:
+   - How well did the conversation flow through this phase?
+   - Were there smooth transitions between topics?
+   - Was the progression logical and natural?
+
+2. Relationship Development:
+   - How well was rapport maintained?
+   - Was there appropriate emotional intelligence?
+   - How effectively was trust built?
+
+3. Content Quality:
+   - How relevant and valuable was the information shared?
+   - Was the communication clear and effective?
+   - Were key points well-articulated?
+
+4. Customer Engagement:
+   - How well was the customer engaged?
+   - Were questions and concerns addressed?
+   - Was there appropriate give-and-take?
+
+5. Phase-Specific Effectiveness:
+   - How well were phase-specific goals achieved?
+   - Were there missed opportunities?
+   - What could have been done better?
+
+Provide:
+1. Specific feedback about strengths and areas for improvement
+2. Concrete, actionable suggestions
+3. Insights about the overall effectiveness
+4. Recommendations for future conversations
+
+Format the response as JSON with:
+{{
+    "score": 0-5,
+    "feedback": "Detailed analysis of what was done well and what could be improved",
+    "suggestion": "Specific, actionable suggestion for improvement",
+    "strength": "Key strength observed in this phase",
+    "opportunity": "Missed opportunity or area for growth"
+}}
+"""
+
+        response = self.client.chat.completions.create(
+            model=self.deployment,
+            messages=[
+                {"role": "system", "content": "You are a conversation evaluation expert."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        content = response.choices[0].message.content
+        try:
+            parsed = json.loads(content)
+            score = parsed.get("score", 0)
+            self.phase_scores[phase] = score
+            self.phase_feedback[phase] = parsed
+            return parsed
+        except json.JSONDecodeError:
+            return {
+                "score": 0,
+                "feedback": "Failed to parse feedback.",
+                "suggestion": "",
+                "strength": "",
+                "opportunity": ""
+            }
+
+    def summarize_conversation(self) -> Dict[str, any]:
+        total_score = sum(self.phase_scores.values())
+        avg_score = round(total_score / len(self.phase_scores), 2) if self.phase_scores else 0
+
+        recommendations = []
+        for phase, data in self.phase_feedback.items():
+            if data["score"] < 3:
+                if "copilot" in data["opportunity"].lower():
+                    recommendations.append("Explore the possibilities with Microsoft 365 Copilot")
+                else:
+                    recommendations.append("MS-900 Microsoft 365 Fundamentals")
+
+        return {
+            "average_score": avg_score,
+            "phase_scores": self.phase_scores,
+            "feedback": self.phase_feedback,
+            "recommended_modules": list(set(recommendations))
+        }
