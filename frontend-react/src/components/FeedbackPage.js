@@ -193,6 +193,8 @@ export default function FeedbackPage() {
       <div className="feedback-lists">
         {renderList("Suggestions", feedback.suggestions)}
         {renderList("Issues", feedback.issues)}
+        {renderList("Strengths", feedback.strength)}
+        {renderList("Training recommendations", feedback.training)}
       </div>
       <button onClick={() => navigate("/chat")} className="back-button">
         ← Back to Chat
