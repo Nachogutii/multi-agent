@@ -34,8 +34,7 @@ export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
   const routeLocation = useLocation(); // ✅ Evita conflicto con "location" global
-  const storedMessages = localStorage.getItem("chatMessages");
-  const conversation = storedMessages ? JSON.parse(storedMessages) : [];
+  
 
   const effectRan = useRef(false);
 
@@ -49,6 +48,9 @@ export default function FeedbackPage() {
   
     const feedbackKey = `feedback_sent_${sessionId}`;
     const conversationKey = `conversation_sent_${sessionId}`;
+
+    const storedMessages = localStorage.getItem("chatMessages");
+    const conversation = storedMessages ? JSON.parse(storedMessages) : [];
   
     const feedbackAlreadySent = localStorage.getItem(feedbackKey);
     const conversationAlreadySent = localStorage.getItem(conversationKey);
