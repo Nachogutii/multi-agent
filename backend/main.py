@@ -1,3 +1,4 @@
+
 import random
 import sys
 import os
@@ -76,10 +77,7 @@ class RoleplaySystem:
         self.azure = AzureConnection()
 
     def initialize(self) -> bool:
-        if not self.azure.initialize():
-            print_colored("\nFailed to initialize Azure OpenAI connection. Please check your configuration.", "red")
-            return False
-        return True
+        return self.azure.initialize()
 
     def setup_scenario(self):
         self.scenario = {
@@ -107,48 +105,38 @@ class RoleplaySystem:
         }
 
     def process_user_message(self, message: str) -> str:
-        try:
-            customer_response = self.customer_agent.generate_response(message)
-            self.conversation_history.append({"user": message, "customer": customer_response})
-            self.observer.add_interaction(message, customer_response)
-            return customer_response
-        except Exception as e:
-            print_colored(f"\nError generating customer response: {str(e)}", "red")
-            return "I'm having trouble processing your message. Please try again."
+        customer_response = self.customer_agent.generate_response(message)
+        self.conversation_history.append({"user": message, "customer": customer_response})
+        self.observer.add_interaction(message, customer_response)
+
+        phase = self.observer.phase_manager.get_current_phase()
+        context = "\n".join([f"User: {m['user']}\nCustomer: {m['customer']}" for m in self.conversation_history])
+        self.observer.evaluate_phase(phase, context)
+
+        return customer_response
 
 def main():
     system = RoleplaySystem()
-
     if not system.initialize():
         sys.exit(1)
+    system.setup_scenario()
 
     orchestrator = Orchestrator(system.azure.get_client(), deployment=system.azure.deployment)
 
     while True:
         user_input = input("You: ").strip()
-
         if user_input.lower() in ['/quit', '/exit', '/q']:
             print_colored("\n=== FINAL SUMMARY ===", "yellow")
-            print_colored(system.observer.get_summary(), "cyan")
-            print_colored("\nExiting roleplay. Thanks for practicing!", "yellow")
+            print_colored(system.observer.summarize_conversation(), "cyan")
             break
 
         print_colored("Processing...", "yellow")
-        customer_response = orchestrator.process_user_input(user_input)
-        print_colored(f"Customer: {customer_response}", "magenta")
+        response = system.process_user_message(user_input)
+        print_colored(f"Customer: {response}", "magenta")
         print()
 
-if __name__ == "__main__":
-    main()
+# === FASTAPI MODE ===
 
-
-
-# -------------------------------
-# FastAPI backend (modo web/API)
-# -------------------------------
-# -------------------------------
-# FastAPI backend (modo web/API)
-# -------------------------------
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -164,26 +152,89 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Clase para recibir mensajes del frontend
 class Message(BaseModel):
     text: str
 
-# Inicializa el sistema global
 roleplay_system = RoleplaySystem()
 roleplay_system.initialize()
-orchestrator = Orchestrator(roleplay_system.azure.get_client(), deployment=roleplay_system.azure.deployment)
 roleplay_system.setup_scenario()
 
 @app.post("/api/chat")
 def chat(msg: Message):
-    customer_response = orchestrator.process_user_input(msg.text)
+    # Genera respuesta del cliente
+    response = roleplay_system.process_user_message(msg.text)
+
+    # Obtener fase actual
+    phase = roleplay_system.observer.phase_manager.get_current_phase()
+
+    # Construir contexto para evaluar la fase
+    context = "\n".join([
+        f"User: {m['user']}\nCustomer: {m['customer']}"
+        for m in roleplay_system.conversation_history
+    ])
+
+    # Solo evaluar si hay contexto suficiente
+    if context.strip():
+        roleplay_system.observer.evaluate_phase(phase, context)
+
+    # Devolver respuesta y feedback estructurado
     return {
-        "response": customer_response,
-        "phase": roleplay_system.observer.phase_manager.get_current_phase(),
-        "feedback": roleplay_system.observer.get_summary()
+        "response": response,
+        "phase": phase,
+        "feedback": roleplay_system.observer.summarize_conversation()
     }
 
-@app.post("/api/reset")
+
+@app.get("/api/feedback/structured")
+def get_structured_feedback():
+    # Evaluar última fase si aún no fue evaluada
+    last_phase = roleplay_system.observer.phase_manager.get_current_phase()
+    if last_phase not in roleplay_system.observer.phase_scores:
+        context = "\n".join([
+            f"User: {m['user']}\nCustomer: {m['customer']}"
+            for m in roleplay_system.conversation_history
+            if m.get("phase") == last_phase
+        ])
+        if context.strip():
+            print(f"🧠 Auto-evaluating final phase: {last_phase}")
+            roleplay_system.observer.evaluate_phase(last_phase, context)
+
+    # Generar respuesta estructurada
+    result = roleplay_system.observer.summarize_conversation()
+
+    phase_scores = result.get("phase_scores", {})
+    feedback_data = result.get("feedback", {})
+
+    suggestions = []
+    strengths = []
+    opportunities = []
+    trainings = []
+
+    if isinstance(feedback_data, dict):
+        for f in feedback_data.values():
+            if isinstance(f, dict):
+                if f.get("suggestion"):
+                    suggestions.append(f["suggestion"])
+                if f.get("strength"):
+                    strengths.append(f["strength"])
+                if f.get("opportunity"):
+                    opportunities.append(f["opportunity"])
+                if f.get("training"):
+                    trainings.append(f["training"])
+
+    print("✅ Returning metrics to frontend:", phase_scores)
+
+    return {
+        "metrics": phase_scores,
+        "suggestions": suggestions,
+        "strength": strengths,
+        "opportunity": opportunities,
+        "training": trainings,
+        "issues": opportunities  # alias para compatibilidad frontend
+    }
+
+
+@app.get("/api/reset")
 def reset():
     roleplay_system.setup_scenario()
     return {"message": "Scenario reset successfully."}
@@ -195,20 +246,9 @@ def get_scenario():
         "description": "Customer is already using Microsoft 365 and is exploring how Copilot can improve her workflow.",
         "initial_query": "Hi, I'm Rachel. I just got Copilot and was curious how to get the most out of it."
     }
-# hola
-@app.get("/api/feedback")
-def get_feedback():
-    return { "feedback": roleplay_system.observer.get_summary() }
 
-@app.get("/api/feedback/structured")
-def get_structured_feedback():
-    result = roleplay_system.observer.analyze_conversation()
-    return {
-        "metrics": result.get("phase_scores", {}),
-        "suggestions": result.get("suggestions", []),
-        "issues": result.get("missed_opportunities", [])
-    }
-
-# Para lanzar el backend manualmente si se desea
 def run_api():
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+if __name__ == "__main__":
+    main()

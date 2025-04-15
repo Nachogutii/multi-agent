@@ -35,16 +35,12 @@ export default function FeedbackPage() {
   const effectRan = useRef(false);
 
   useEffect(() => {
-    // Evitar múltiples ejecuciones en modo desarrollo
     if (effectRan.current) return;
     effectRan.current = true;
 
-    // Generar un ID único para esta sesión basado en la ruta y timestamp
     const timestamp = new Date().getTime();
     const path = location.pathname;
     const sessionId = btoa(`${path}_${timestamp}`).slice(0, 32);
-    
-    // Verificar si ya se envió feedback para esta sesión
     const feedbackKey = `feedback_sent_${sessionId}`;
     const alreadySent = localStorage.getItem(feedbackKey);
 
@@ -58,14 +54,12 @@ export default function FeedbackPage() {
       .then((data) => {
         console.log("Structured feedback received:", data)
         setFeedback(data)
-  
-        // Enviar feedback a Supabase con sessionId
+
         if (data?.metrics) {
           submitFeedbackToSupabase({
             ...data,
             sessionId
           })
-          // Marcar que el feedback ya fue enviado para esta sesión
           localStorage.setItem(feedbackKey, 'true');
         }
       })
@@ -73,7 +67,8 @@ export default function FeedbackPage() {
         console.error("❌ Error fetching feedback:", err)
         setFeedback({ error: "Error fetching feedback." })
       })
-  }, [location.pathname]) // Se ejecuta cuando cambia la ruta
+  }, [location.pathname]);
+
   const renderList = (title, items) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
@@ -87,6 +82,7 @@ export default function FeedbackPage() {
       </div>
     );
   };
+
   const renderCharts = (metrics) => {
     if (!metrics || typeof metrics !== "object") return null;
     const labels = Object.keys(metrics);
@@ -124,13 +120,13 @@ export default function FeedbackPage() {
       scales: {
         y: {
           min: 0,
-          max: 20, 
+          max: 5,
           ticks: {
-            stepSize: 5
+            stepSize: 1
           },
           title: {
             display: true,
-            text: "Puntuation (max. 20)"
+            text: "Puntuation (max. 5)"
           }
         }
       }
@@ -140,35 +136,36 @@ export default function FeedbackPage() {
         <div className="chart-container">
           <Bar data={barData} options={options} />
         </div>
-          <div className="chart-container">
-            <Radar
-              data={radarData}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: { position: "top" },
-                  title: { display: true, text: "Evaluation of the conversation (Radar)" },
-                },
-                scales: {
-                  r: {
-                    min: 0,
-                    max: 20,
-                    ticks: {
-                      stepSize: 5,
-                    },
-                    pointLabels: {
-                      font: {
-                        size: 12,
-                      },
+        <div className="chart-container">
+          <Radar
+            data={radarData}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: { position: "top" },
+                title: { display: true, text: "Evaluation of the conversation (Radar)" },
+              },
+              scales: {
+                r: {
+                  min: 0,
+                  max: 5,
+                  ticks: {
+                    stepSize: 1,
+                  },
+                  pointLabels: {
+                    font: {
+                      size: 12,
                     },
                   },
                 },
-              }}
-            />
-          </div>
+              },
+            }}
+          />
+        </div>
       </div>
     );
   };
+
   const renderOverallScore = (metrics) => {
     if (!metrics || typeof metrics !== "object") return null;
     const values = Object.values(metrics);
@@ -179,13 +176,15 @@ export default function FeedbackPage() {
     return (
       <div className="feedback-score">
         <h3>
-          Overall note of the talk: <span>{average} / 100</span>
+          Overall note of the talk: <span>{average} / 5</span>
         </h3>
       </div>
     );
   };
+
   if (!feedback) return <div className="feedback-loading">Loading feedback...</div>;
   if (feedback.error) return <div className="feedback-error">{feedback.error}</div>;
+
   return (
     <div className="feedback-page">
       <h2>Feedback Summary</h2>

@@ -23,27 +23,27 @@ class ConversationPhaseManager:
         current_config = self.phase_config.get_phase(self.current_phase)
 
         prompt = f"""
-        You are an expert evaluator on Product led Growth conversation, evaluating whether the conversation can move to the next phase based on the following criteria.
+    You are an expert evaluator on Product led Growth conversation, evaluating whether the conversation can move to the next phase based on the following criteria.
 
-        ## CURRENT PHASE: {self.current_phase}
+    ## CURRENT PHASE: {self.current_phase}
 
-        ## SUCCESS CRITERIA
-        {chr(10).join('- ' + c for c in current_config.success_criteria)}
+    ## SUCCESS CRITERIA
+    {chr(10).join('- ' + c for c in current_config.success_criteria)}
 
-        ## FAILURE CRITERIA
-        {chr(10).join('- ' + c for c in current_config.failure_criteria)}
+    ## FAILURE CRITERIA
+    {chr(10).join('- ' + c for c in current_config.failure_criteria)}
 
-        ## AGENT MESSAGE
-        {agent_message}
+    ## AGENT MESSAGE
+    {agent_message}
 
-        ## CUSTOMER RESPONSE
-        {customer_response}
+    ## CUSTOMER RESPONSE
+    {customer_response}
 
-        Respond only with one of the following phase names:
-        - {current_config.success_transition}
-        - {current_config.failure_transition}
-        - {self.current_phase} (if criteria are partially met)
-        """
+    Respond only with one of the following phase names:
+    - {current_config.success_transition}
+    - {current_config.failure_transition}
+    - {self.current_phase} (if criteria are partially met)
+    """
 
         try:
             response = self.client.chat.completions.create(
@@ -72,6 +72,7 @@ class ConversationPhaseManager:
             print(f"Error during phase evaluation: {str(e)}")
             return self.current_phase
 
+
     def get_current_phase(self) -> str:
         return self.current_phase
 
@@ -83,4 +84,8 @@ class ConversationPhaseManager:
     
     def is_closing_phase(self) -> bool:
         return self.current_phase.lower() in ["satisfied closure", "polite closure", "abrupt closure"]
+    
+    def update_phase(self, new_phase: str):
+        self.current_phase = new_phase
+
 
