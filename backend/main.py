@@ -1,4 +1,3 @@
-
 import random
 import sys
 import os
@@ -106,34 +105,8 @@ class RoleplaySystem:
 
     def process_user_message(self, message: str) -> str:
         customer_response = self.customer_agent.generate_response(message)
-        self.conversation_history.append({"user": message, "customer": customer_response})
         self.observer.add_interaction(message, customer_response)
-
-        phase = self.observer.phase_manager.get_current_phase()
-        context = "\n".join([f"User: {m['user']}\nCustomer: {m['customer']}" for m in self.conversation_history])
-        self.observer.evaluate_phase(phase, context)
-
         return customer_response
-
-def main():
-    system = RoleplaySystem()
-    if not system.initialize():
-        sys.exit(1)
-    system.setup_scenario()
-
-    orchestrator = Orchestrator(system.azure.get_client(), deployment=system.azure.deployment)
-
-    while True:
-        user_input = input("You: ").strip()
-        if user_input.lower() in ['/quit', '/exit', '/q']:
-            print_colored("\n=== FINAL SUMMARY ===", "yellow")
-            print_colored(system.observer.summarize_conversation(), "cyan")
-            break
-
-        print_colored("Processing...", "yellow")
-        response = system.process_user_message(user_input)
-        print_colored(f"Customer: {response}", "magenta")
-        print()
 
 # === FASTAPI MODE ===
 
@@ -159,49 +132,36 @@ roleplay_system = RoleplaySystem()
 roleplay_system.initialize()
 roleplay_system.setup_scenario()
 
+orchestrator = Orchestrator(
+    azure_client=roleplay_system.azure.get_client(),
+    deployment=roleplay_system.azure.deployment,
+    shared_observer=roleplay_system.observer
+)
+
 @app.post("/api/chat")
 def chat(msg: Message):
-    # Genera respuesta del cliente
     response = roleplay_system.process_user_message(msg.text)
-
-    # Obtener fase actual
     phase = roleplay_system.observer.phase_manager.get_current_phase()
-
-    # Construir contexto para evaluar la fase
-    context = "\n".join([
-        f"User: {m['user']}\nCustomer: {m['customer']}"
-        for m in roleplay_system.conversation_history
-    ])
-
-    # Solo evaluar si hay contexto suficiente
-    if context.strip():
-        roleplay_system.observer.evaluate_phase(phase, context)
-
-    # Devolver respuesta y feedback estructurado
     return {
         "response": response,
         "phase": phase,
         "feedback": roleplay_system.observer.summarize_conversation()
     }
 
-
 @app.get("/api/feedback/structured")
 def get_structured_feedback():
-    # Evaluar última fase si aún no fue evaluada
-    last_phase = roleplay_system.observer.phase_manager.get_current_phase()
-    if last_phase not in roleplay_system.observer.phase_scores:
-        context = "\n".join([
-            f"User: {m['user']}\nCustomer: {m['customer']}"
-            for m in roleplay_system.conversation_history
-            if m.get("phase") == last_phase
-        ])
-        if context.strip():
-            print(f"🧠 Auto-evaluating final phase: {last_phase}")
-            roleplay_system.observer.evaluate_phase(last_phase, context)
+    all_phases_in_history = list({m.get("phase") for m in roleplay_system.observer.conversation_history})
+    for phase in all_phases_in_history:
+        if phase and phase not in roleplay_system.observer.phase_scores:
+            context = "\n".join([
+                f"User: {m['user']}\nCustomer: {m['customer']}"
+                for m in roleplay_system.observer.conversation_history
+                if m.get("phase") == phase
+            ])
+            if context.strip():
+                roleplay_system.observer.evaluate_phase(phase, context)
 
-    # Generar respuesta estructurada
     result = roleplay_system.observer.summarize_conversation()
-
     phase_scores = result.get("phase_scores", {})
     feedback_data = result.get("feedback", {})
 
@@ -222,17 +182,14 @@ def get_structured_feedback():
                 if f.get("training"):
                     trainings.append(f["training"])
 
-    print("✅ Returning metrics to frontend:", phase_scores)
-
     return {
         "metrics": phase_scores,
         "suggestions": suggestions,
         "strength": strengths,
         "opportunity": opportunities,
         "training": trainings,
-        "issues": opportunities  # alias para compatibilidad frontend
+        "issues": opportunities
     }
-
 
 @app.get("/api/reset")
 def reset():
