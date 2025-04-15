@@ -191,10 +191,25 @@ def get_structured_feedback():
         "issues": opportunities
     }
 
-@app.get("/api/reset")
+@app.post("/api/reset")
 def reset():
-    roleplay_system.setup_scenario()
-    return {"message": "Scenario reset successfully."}
+    # Reinicia todo el RoleplaySystem (agente + observador + escenario)
+    new_scenario = roleplay_system.setup_scenario()
+
+    # Reinicia también el Orchestrator
+    global orchestrator
+    orchestrator = Orchestrator(
+        azure_client=roleplay_system.azure.get_client(),
+        deployment=roleplay_system.azure.deployment,
+        shared_observer=roleplay_system.observer
+    )
+
+    return {
+        "scenario": new_scenario["scenario"],
+        "description": new_scenario["description"],
+        "initial_query": new_scenario["initial_query"]
+    }
+
 
 @app.get("/api/scenario")
 def get_scenario():
