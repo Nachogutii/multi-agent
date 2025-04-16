@@ -1,13 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import background from '../background.png';
 import "./HomePage.css";
-import logo from '../GIG+.png'
+import logo from '../GIG+.png';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleStartSimulation = () => {
+    setLoading(true);
+
     fetch("http://localhost:8000/api/reset", { method: "POST" })
       .then(() => {
         localStorage.removeItem("chatMessages");
@@ -15,6 +18,7 @@ export default function HomePage() {
       })
       .catch((err) => {
         console.error("Error starting new simulation:", err);
+        setLoading(false);
       });
   };
 
@@ -46,8 +50,19 @@ export default function HomePage() {
           <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
           <p><strong>Difficulty:</strong> Intermediate</p>
 
-          <button className="start-button" onClick={handleStartSimulation}>
-            Start Simulation
+          <button
+            className="start-button"
+            onClick={handleStartSimulation}
+            disabled={loading}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            {loading ? (
+              <>
+                <span className="spinner" /> Starting simulation...
+              </>
+            ) : (
+              "Start Simulation"
+            )}
           </button>
         </div>
       </div>
