@@ -149,7 +149,7 @@ export default function FeedbackPage() {
           },
           title: {
             display: true,
-            text: "Puntuation (max. 5)"
+            text: "Score (max. 5)"
           }
         }
       }
@@ -199,7 +199,7 @@ export default function FeedbackPage() {
     return (
       <div className="feedback-score">
         <h3>
-          Overall note of the talk: <span>{average} / 5</span>
+            Session  overall score: <span>{average} / 5</span>
         </h3>
       </div>
     );

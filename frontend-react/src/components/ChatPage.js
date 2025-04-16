@@ -219,8 +219,7 @@ export default function ChatPage() {
             <h3>Scenario Information</h3>
             <ul>
             <li><strong>Title:</strong> Microsoft Copilot Satisfaction Check</li>
-              <li><strong>Description:</strong> Microsoft is reaching out to Rachel Sanchez, owner of a boutique marketing agency, for a brief (10 min) check-in. She recently began using Copilot and has used Microsoft 365 for 5 years.</li>
-              <li><strong>Customer:</strong> Rachel Sanchez<br /><strong>Business:</strong> Boutique brand strategy agency<br /><strong>Tech Level:</strong> Reasonably tech-savvy, time-constrained<br /><strong>Copilot Experience:</strong> 1 month<br /><strong>Communication:</strong> Scheduled phone call (after support email)</li>
+              <li><strong>• Your role:</strong> You are a Copilot Welcome Ambassador<br /><strong>• Case History:</strong> You have been in touch with Rachel via email, and she agreed to a short call<p/><strong>• Your goals:</strong><br />• Have a product led growth conversation with Rachel<br />• Gather Copilot product insights</li>
             </ul>
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
               Close
