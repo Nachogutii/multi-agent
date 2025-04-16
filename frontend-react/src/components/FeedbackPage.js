@@ -54,6 +54,9 @@ export default function FeedbackPage() {
   
     const feedbackAlreadySent = localStorage.getItem(feedbackKey);
     const conversationAlreadySent = localStorage.getItem(conversationKey);
+
+    const storedMessages = localStorage.getItem("chatMessages");
+    const conversation = storedMessages ? JSON.parse(storedMessages) : [];
   
     if (feedbackAlreadySent && conversationAlreadySent) {
       console.log("✅ Feedback y conversación ya enviados para esta sesión");
@@ -149,7 +152,7 @@ export default function FeedbackPage() {
           },
           title: {
             display: true,
-            text: "Puntuation (max. 5)"
+            text: "Score (max. 5)"
           }
         }
       }
@@ -199,13 +202,21 @@ export default function FeedbackPage() {
     return (
       <div className="feedback-score">
         <h3>
-          Overall note of the talk: <span>{average} / 5</span>
+            Session  overall score: <span>{average} / 5</span>
         </h3>
       </div>
     );
   };
 
-  if (!feedback) return <div className="feedback-loading">Loading feedback...</div>;
+  if (!feedback) {
+    return (
+      <div className="feedback-loading">
+        <div className="spinner" />
+        <p>Hang tight, we’re analyzing your conversation to generate feedback.</p>
+      </div>
+    );
+  }
+  
   if (feedback.error) return <div className="feedback-error">{feedback.error}</div>;
 
   return (
