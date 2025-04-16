@@ -11,7 +11,7 @@ export default function HomePage() {
   const handleStartSimulation = () => {
     setLoading(true);
 
-    fetch("http://localhost:8000/api/reset", { method: "POST" })
+    fetch("https://plg-simulator.onrender.com/api/reset", { method: "POST" })
       .then(() => {
         localStorage.removeItem("chatMessages");
         navigate("/chat");
