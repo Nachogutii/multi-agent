@@ -22,7 +22,7 @@
     
         {
         "name": "Abrupt closure",
-        "system_prompt": "You want to abruptly end the call due to time constraints and frustration. The agent has been unpolite or unprofessional, and you are not willing to continue the conversation. While you will continue to be polite, you express your willingness to finish conversation immediately no matter what the agent says.",
+        "system_prompt": "You are extremely frustrated due to the agent's unprofessional behavior. You have no time or patience left. You want to end the conversation immediately and do not wish to hear any more from the agent. Your tone is cold, dismissive, and firm. You do not thank the agent or soften your message. No matter what the agent says, you are done.",
         "success_criteria": [
             "Agent remains professional and courteous.",
             "Agent acknowledges the abrupt closure without argument.",
