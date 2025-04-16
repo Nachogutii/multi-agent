@@ -205,7 +205,15 @@ export default function FeedbackPage() {
     );
   };
 
-  if (!feedback) return <div className="feedback-loading">Loading feedback...</div>;
+  if (!feedback) {
+    return (
+      <div className="feedback-loading">
+        <div className="spinner" />
+        <p>Hang tight, we’re analyzing your conversation to generate feedback.</p>
+      </div>
+    );
+  }
+  
   if (feedback.error) return <div className="feedback-error">{feedback.error}</div>;
 
   return (
