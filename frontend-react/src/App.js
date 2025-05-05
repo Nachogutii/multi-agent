@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./components/HomePage";
@@ -6,6 +5,8 @@ import ChatPage from "./components/ChatPage";
 import FeedbackPage from "./components/FeedbackPage";
 import LoginPage from "./components/LoginPage";
 import { supabase } from "./lib/supabaseClient";
+import CopilotChatScenario from "./components/CopilotChatScenario";
+import FeedbackChat from "./components/Feedback_chat";
 
 function App() {
   const [user, setUser] = useState(null)
@@ -24,6 +25,8 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/copilot-chat" element={<CopilotChatScenario />} />
+        <Route path="/feedback-chat" element={<FeedbackChat />} />
       </Routes>
     </Router>
   );

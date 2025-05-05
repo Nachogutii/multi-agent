@@ -1,20 +1,29 @@
 import React, { useState, useEffect, useRef } from "react";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import './ChatPage.css';
 
 const speechKey = process.env.REACT_APP_SPEECH_KEY;
 const speechRegion = process.env.REACT_APP_SPEECH_REGION;
 
+// Hardcoded responses for Copilot Chat scenario
+const HARDCODED_SEQUENCE = [
+  "hola",
+  "me llamo nacho",
+  "alvaro piratilla"
+];
+
 export default function ChatPage() {
+  const location = useLocation();
   const initialMessages = JSON.parse(localStorage.getItem("chatMessages")) || [];
   const [messages, setMessages] = useState(initialMessages);
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [scenario, setScenario] = useState(null);
+  const [scenario, setScenario] = useState(location.state?.scenario || 'welcome');
   const [isMuted, setIsMuted] = useState(false);
+  const [hardcodedStep, setHardcodedStep] = useState(0); // Para el escenario hardcodeado
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -107,6 +116,16 @@ export default function ChatPage() {
     });
   };
 
+  const getHardcodedResponse = (input) => {
+    const lowerInput = input.toLowerCase();
+    for (const [key, response] of Object.entries(HARDCODED_SEQUENCE)) {
+      if (lowerInput.includes(key)) {
+        return response;
+      }
+    }
+    return HARDCODED_SEQUENCE[HARDCODED_SEQUENCE.length - 1];
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!userInput.trim()) return;
@@ -116,23 +135,39 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: userInput, phase: "exploration" })
-      });
-      const data = await res.json();
-
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: data.response }
-      ]);
-      speakResponse(data.response);
+      if (scenario === 'chat') {
+        // Hardcoded sequence logic
+        let response;
+        if (hardcodedStep < HARDCODED_SEQUENCE.length) {
+          response = HARDCODED_SEQUENCE[hardcodedStep];
+          setHardcodedStep(hardcodedStep + 1);
+        } else {
+          response = HARDCODED_SEQUENCE[HARDCODED_SEQUENCE.length - 1];
+        }
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: response }
+        ]);
+        speakResponse(response);
+      } else {
+        // Use API for Copilot Welcome scenario
+        const res = await fetch("http://localhost:8000/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: userInput, phase: "exploration" })
+        });
+        const data = await res.json();
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: data.response }
+        ]);
+        speakResponse(data.response);
+      }
     } catch (err) {
-      console.error("Error connecting to backend:", err);
+      console.error("Error:", err);
       setMessages((prev) => [
         ...prev,
-        { sender: "bot", text: "Error connecting to the backend." }
+        { sender: "bot", text: "Error processing your request." }
       ]);
     }
 
@@ -150,7 +185,9 @@ export default function ChatPage() {
     <div className="chat-container">
       <div className="chat-header">
         <div className="chat-header-left">
-          {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
+          <h3 className="scenario-title">
+            {scenario === 'chat' ? 'Copilot Chat' : 'Copilot Welcome'}
+          </h3>
         </div>
 
         <div className="chat-header-center">
@@ -212,7 +249,18 @@ export default function ChatPage() {
         </button>
       </form>
 
-      {showInfo && scenario && (
+      {showInfo && scenario === 'chat' && (
+        <>
+          <div className="popup-overlay" onClick={() => setShowInfo(false)} />
+          <div className="popup">
+            <h3>sinem arslan maquinota</h3>
+            <button onClick={() => setShowInfo(false)} className="popup-close-button">
+              Close
+            </button>
+          </div>
+        </>
+      )}
+      {showInfo && scenario !== 'chat' && (
         <>
           <div className="popup-overlay" onClick={() => setShowInfo(false)} />
           <div className="popup">
