@@ -25,7 +25,52 @@ export default function CopilotChatScenario() {
   const [isMuted, setIsMuted] = useState(false);
   const [hardcodedStep, setHardcodedStep] = useState(0);
   const messagesEndRef = useRef(null);
+  const synthesizerRef = useRef(null);
   const navigate = useNavigate();
+
+  const speakResponse = (text) => {
+    if (isMuted || !speechKey || !speechRegion || !text) return;
+
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
+    speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+    const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+    const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+    synthesizerRef.current = synthesizer;
+
+    synthesizer.speakTextAsync(
+      text,
+      () => {
+        synthesizer.close();
+        if (synthesizerRef.current === synthesizer) {
+          synthesizerRef.current = null;
+        }
+      },
+      (err) => {
+        console.error("Speech synthesis error:", err);
+        synthesizer.close();
+        if (synthesizerRef.current === synthesizer) {
+          synthesizerRef.current = null;
+        }
+      }
+    );
+  };
+
+  const toggleMute = () => {
+    const newMuteState = !isMuted;
+    setIsMuted(newMuteState);
+
+    if (newMuteState && synthesizerRef.current) {
+      synthesizerRef.current.stopSpeakingAsync(() => {
+        synthesizerRef.current.close();
+        synthesizerRef.current = null;
+        console.log("Bot muted manually.");
+      }, (err) => {
+        console.error("Error stopping voice:", err);
+        synthesizerRef.current?.close();
+        synthesizerRef.current = null;
+      });
+    }
+  };
 
   const recognizeSpeech = async () => {
     if (!speechKey || !speechRegion) return;
@@ -73,6 +118,7 @@ export default function CopilotChatScenario() {
         ...prev,
         { sender: "bot", text: response }
       ]);
+      speakResponse(response);
       setLoading(false);
     }, 1500);
   };
@@ -93,7 +139,7 @@ export default function CopilotChatScenario() {
         <div className="chat-header-right">
           <button
             className={`mute-button ${isMuted ? 'muted' : ''}`}
-            onClick={() => setIsMuted(!isMuted)}
+            onClick={toggleMute}
             title={isMuted ? "Unmute" : "Mute"}
           >
             {isMuted ? "🔇" : "🔊"}
