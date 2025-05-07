@@ -6,6 +6,11 @@ import "./FeedbackChat_copilot.css";
 export default function FeedbackChat() {
   const navigate = useNavigate();
 
+  const handleBackToChat = () => {
+    localStorage.removeItem("chatMessages");
+    navigate("/copilot-chat");
+  };
+
   const feedback = {
     overallScore: 4.6,
     generalFeedback:

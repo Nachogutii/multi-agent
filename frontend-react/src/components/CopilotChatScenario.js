@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 import './ChatPage.css';
@@ -17,7 +17,8 @@ const speechKey = process.env.REACT_APP_SPEECH_KEY;
 const speechRegion = process.env.REACT_APP_SPEECH_REGION;
 
 export default function CopilotChatScenario() {
-  const [messages, setMessages] = useState([]);
+  const initialMessages = JSON.parse(localStorage.getItem("chatMessages")) || [];
+  const [messages, setMessages] = useState(initialMessages);
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
@@ -27,6 +28,15 @@ export default function CopilotChatScenario() {
   const messagesEndRef = useRef(null);
   const synthesizerRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const speakResponse = (text) => {
     if (isMuted || !speechKey || !speechRegion || !text) return;
