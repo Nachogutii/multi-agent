@@ -26,7 +26,10 @@ export default function FeedbackChat() {
       "💡 Consider adding a small 'next step' CTA beyond the link—like inviting Jamie to try a specific task with Copilot.",
     ],
     training: [
-      "https://learn.microsoft.com/en-us/training/modules/get-started-microsoft-365-copilot-business-chat/"
+      {
+        title: "Get started with Microsoft 365 Copilot Chat",
+        url: "https://learn.microsoft.com/en-us/training/modules/get-started-microsoft-365-copilot-business-chat/"
+      }
     ]
   };
 
@@ -37,7 +40,15 @@ export default function FeedbackChat() {
         <h3>{title}</h3>
         <ul>
           {items.map((item, idx) => (
-            <li key={idx}>{item}</li>
+            <li key={idx}>
+              {typeof item === 'object' && item.url ? (
+                <a href={item.url} target="_blank" rel="noopener noreferrer">
+                  {item.title}
+                </a>
+              ) : (
+                item
+              )}
+            </li>
           ))}
         </ul>
       </div>
