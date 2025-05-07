@@ -205,11 +205,17 @@ export default function CopilotChatScenario() {
         <>
           <div className="popup-overlay" onClick={() => setShowInfo(false)} />
           <div className="popup">
-            <h3>sinem arslan maquinota</h3>
+            <h3>Scenario Information</h3>
+            <ul>
+              <li><strong>Title:</strong> Microsoft Copilot Chat Scenario</li>
+              <li><strong>• Your role:</strong> You are a Copilot Chat Ambassador<br /><strong>• Case History:</strong> You have been in touch with Jamie via email, and he agreed to a short call<p/><strong>• Your goals:</strong><br />• Have a product led growth conversation with Jamie<br />• Gather Copilot product insights</li>
+            </ul>
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
               Close
             </button>
           </div>
+
+
         </>
       )}
     </div>

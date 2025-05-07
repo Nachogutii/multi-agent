@@ -67,8 +67,10 @@ export default function HomePage() {
             style={{ borderColor: selectedScenario === 'chat' ? '#0078D4' : 'transparent' }}
           >
             <h2>Copilot Chat</h2>
-            <p>Predefined conversation scenario with hardcoded responses.</p>
+            <p>Quick follow-up with a COO to introduce Copilot Chat and explore its value for staffing operations.</p>
             <p><strong>Difficulty:</strong> Beginner</p>
+
+
           </div>
         </div>
 
