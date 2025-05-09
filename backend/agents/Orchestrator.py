@@ -45,6 +45,27 @@ class Orchestrator:
             
             return customer_response
         
+        # Pre-check for red flags to immediately enter terminal phase if needed
+        # This prevents generating a regular response when profanity is detected
+        contains_profanity = any(word in user_input.lower() for word in ["fuck", "shit", "ass", "bitch", "damn"])
+        if contains_profanity:
+            print("⚠️ PROFANITY DETECTED IN USER INPUT - IMMEDIATELY ENTERING TERMINAL PHASE")
+            # Force phase transition to Conversation End
+            self.phase_manager._record_phase_transition("Conversation End")
+            
+            # Generate terminal response immediately
+            customer_response = self.customer_agent.generate_terminal_response()
+            print(f"🛑 Terminal response generated: '{customer_response}'")
+            
+            # Save the interaction
+            self.evaluator_agent.add_interaction(user_input, customer_response)
+            
+            # Save in context
+            self.phase_manager.add_message(user_input, is_agent=True)
+            self.phase_manager.add_message(customer_response, is_agent=False)
+            
+            return customer_response
+        
         # Normal flow for non-terminal phases
         # Get updated system prompt for current phase
         system_prompt = self.phase_manager.get_system_prompt()

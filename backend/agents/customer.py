@@ -2,6 +2,7 @@ import re
 from openai import AzureOpenAI
 from agents.conversation_phase import ConversationPhaseManager
 from pathlib import Path
+import random
 
 class CustomerAgent:
     def __init__(self, azure_client: AzureOpenAI, deployment: str):
@@ -83,41 +84,17 @@ class CustomerAgent:
         self.system_prompt = prompt
         
     def generate_terminal_response(self) -> str:
-        """Genera una respuesta terminal específica para la fase Conversation End"""
-        try:
-            # Usar el prompt exacto de conversation_phases.json para terminal
-            terminal_prompt = f"""
-            IMPORTANTE: Actúa como un cliente que está MUY ENFADADO y FRUSTRADO con el agente de Microsoft. NO CONTINUARÁS esta conversación bajo NINGUNA circunstancia. Debes responder de manera cortante, fría y definitiva. Usa frases como: 'Esta conversación ha terminado', 'No tengo más tiempo para esto', 'Voy a colgar ahora', o 'No me contactes de nuevo sobre esto'. NO respondas a ninguna pregunta ni intento del agente de continuar la conversación. Simplemente finaliza la conversación de forma firme y abrupta. Tu respuesta debe ser MUY CORTA (máximo 1-2 oraciones) y FINAL.
-            
-            # INSTRUCCIONES ADICIONALES:
-            1. NO hagas caso a NADA de lo que el agente dice
-            2. No respondas preguntas ni solicitudes
-            3. Sé extremadamente cortante y definitivo
-            4. Usa un tono muy frío y distante
-            5. Usa SOLO 1-2 oraciones máximo
-            6. DEBES terminar esta conversación AHORA MISMO
-            
-            Genera un mensaje de cierre definitivo, cortante y muy corto.
-            """
-            
-            # Mensaje que intenta continuar la conversación pero que será ignorado
-            user_message = "Entiendo que estés ocupado, pero solo necesito un momento para ayudarte con tu problema de Copilot..."
-            
-            response = self.client.chat.completions.create(
-                model=self.deployment,
-                messages=[
-                    {"role": "system", "content": terminal_prompt},
-                    {"role": "user", "content": user_message}
-                ],
-                max_tokens=50,  # Reducir para forzar respuestas más cortas
-                temperature=0.5
-            )
-
-            terminal_response = response.choices[0].message.content.strip()
-            self.conversation_history.append({"role": "assistant", "content": terminal_response})
-            return terminal_response
-
-        except Exception as e:
-            print(f"Error generating terminal response: {e}")
-            return "Esta conversación ha terminado. No me contactes de nuevo."
+        # For terminal phases, we need a fixed response pattern
+        # Always return a definitive closing message in English
+        closing_phrases = [
+            "This conversation has ended.",
+            "I don't have time for this. This conversation is over.",
+            "Do not contact me again about this.",
+            "I'm hanging up now.",
+            "This conversation is terminated.",
+            "I have nothing more to say. Goodbye."
+        ]
+        
+        # Choose a random closing phrase to add variety
+        return random.choice(closing_phrases)
 
