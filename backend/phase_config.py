@@ -6,14 +6,19 @@ import os
 
 class Phase:
     def __init__(self, name: str, system_prompt: str,
-                 success_criteria: List[str], failure_criteria: List[str],
-                 success_transition: str, failure_transition: str):
+                 success_transition: str, failure_transition: str,
+                 critical_aspects: List[str] = None, 
+                 red_flags: List[str] = None,
+                 optional_aspects: List[str] = None):
         self.name = name
         self.system_prompt = system_prompt
-        self.success_criteria = success_criteria
-        self.failure_criteria = failure_criteria
         self.success_transition = success_transition
         self.failure_transition = failure_transition
+        
+        # Fields for the improved transition system
+        self.critical_aspects = critical_aspects or []
+        self.red_flags = red_flags or []
+        self.optional_aspects = optional_aspects or []
 
 
 class ConversationPhaseConfig:
@@ -31,10 +36,11 @@ class ConversationPhaseConfig:
             phase = Phase(
                 name=phase_data["name"],
                 system_prompt=phase_data["system_prompt"],
-                success_criteria=phase_data["success_criteria"],
-                failure_criteria=phase_data["failure_criteria"],
                 success_transition=phase_data["on_success"],
-                failure_transition=phase_data["on_failure"]
+                failure_transition=phase_data["on_failure"],
+                critical_aspects=phase_data.get("critical_aspects", []),
+                red_flags=phase_data.get("red_flags", []),
+                optional_aspects=phase_data.get("optional_aspects", [])
             )
             self.phases[phase.name] = phase
             self.phase_order.append(phase.name)

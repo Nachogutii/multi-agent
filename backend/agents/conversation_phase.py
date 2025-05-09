@@ -11,6 +11,9 @@ class ConversationPhaseManager:
         self.phase_config = ConversationPhaseConfig()  
         self.current_phase = self.phase_config.get_initial_phase()  
         self.phase_history: List[Dict] = []
+        self.optional_aspects_fulfilled = []  # Para almacenar aspectos opcionales cumplidos para feedback
+        self.cumulative_critical_aspects = {}  # Para mantener aspectos críticos cumplidos por fase
+        self.cumulative_red_flags = {}  # Para mantener red flags detectadas por fase
 
     def add_message(self, message: str, is_agent: bool = True):
         self.conversation_history.append({
@@ -22,56 +25,459 @@ class ConversationPhaseManager:
     def analyze_message(self, agent_message: str, customer_response: str) -> str:
         current_config = self.phase_config.get_phase(self.current_phase)
 
+        # Special handling for terminal phases - don't allow transitions out of these
+        if self.current_phase == "Conversation End":
+            return self.current_phase
+
+        # Special handling for "Abrupt closure" phase - only allow transition to "Conversation End"
+        if self.current_phase == "Abrupt closure":
+            print("⚠️ In Abrupt closure phase - customer is ending the conversation")
+            # Don't check for critical aspects or red flags, just move to Conversation End
+            self._record_phase_transition("Conversation End")
+            return "Conversation End"
+
+        # Create context of all previous conversation plus current message
+        conversation_context = []
+        
+        # Add previous messages from history
+        for msg in self.conversation_history[-5:]:  # Last 5 messages for context
+            if msg.get("is_agent", False):
+                conversation_context.append(f"Agent: {msg['message']}")
+            else:
+                conversation_context.append(f"Customer: {msg['message']}")
+                
+        # Add current message and response
+        conversation_context.append(f"Agent: {agent_message}")
+        conversation_context.append(f"Customer: {customer_response}")
+        
+        full_context = "\n".join(conversation_context)
+        
+        # 1. First check if there are red flags (if there are, we go directly to failure)
+        red_flags_result = self._check_red_flags(agent_message, customer_response, full_context)
+        
+        # Print raw message for debugging explicit offensive terms
+        print(f"DEBUG - Raw agent message: '{agent_message}'")
+        
+        # Accumulate detected red flags for current phase
+        if self.current_phase not in self.cumulative_red_flags:
+            self.cumulative_red_flags[self.current_phase] = []
+            
+        # Add new red flags to accumulated list
+        for flag in red_flags_result.get("red_flags_found", []):
+            if flag not in self.cumulative_red_flags[self.current_phase]:
+                self.cumulative_red_flags[self.current_phase].append(flag)
+        
+        # CRITICAL: ENSURE red flags are detected and honored
+        if red_flags_result.get("has_red_flags", False):
+            print(f"⚠️ RED FLAGS DETECTED: {red_flags_result.get('red_flags_found')}")
+            print(f"⚠️ IMMEDIATE TRANSITION TO: {current_config.failure_transition}")
+            # Always transition to failure state immediately if red flags detected
+            new_phase = current_config.failure_transition
+            self._record_phase_transition(new_phase)
+            return new_phase
+
+        # 2. Evaluate critical aspects for advancement, considering complete context
+        critical_aspects_result = self._check_critical_aspects(agent_message, customer_response, full_context)
+        
+        # Accumulate fulfilled critical aspects for current phase
+        if self.current_phase not in self.cumulative_critical_aspects:
+            self.cumulative_critical_aspects[self.current_phase] = []
+            
+        # Add new critical aspects to accumulated list
+        for aspect in critical_aspects_result.get("aspects_met", []):
+            if aspect not in self.cumulative_critical_aspects[self.current_phase]:
+                self.cumulative_critical_aspects[self.current_phase].append(aspect)
+        
+        # Also check optional aspects (for feedback only, doesn't affect transition)
+        self._check_optional_aspects(agent_message, customer_response, full_context)
+        
+        # Determine if we advance by comparing accumulated aspects against all critical ones
+        all_critical_aspects = current_config.critical_aspects
+        accumulated_aspects = self.cumulative_critical_aspects.get(self.current_phase, [])
+        
+        # Show current progress
+        print(f"✅ Accumulated critical aspects: {accumulated_aspects}")
+        print(f"🎯 Required critical aspects: {all_critical_aspects}")
+        
+        # Proceed to next phase if all critical aspects are met
+        all_critical_met = all(aspect in accumulated_aspects for aspect in all_critical_aspects)
+        
+        if all_critical_met:
+            new_phase = current_config.success_transition
+            print(f"✨ All critical aspects fulfilled! Advancing to phase: {new_phase}")
+            self._record_phase_transition(new_phase)
+            return new_phase
+        else:
+            # Stay in current phase
+            missing_aspects = [aspect for aspect in all_critical_aspects if aspect not in accumulated_aspects]
+            print(f"⏳ Pending critical aspects: {missing_aspects}")
+            return self.current_phase
+
+    def _check_red_flags(self, agent_message: str, customer_response: str, full_context: str = None) -> Dict:
+        """Checks if there are red flags in the current interaction."""
+        current_config = self.phase_config.get_phase(self.current_phase)
+        red_flags = current_config.red_flags
+        
+        # Special handling for Abrupt closure phase - no red flags should be detected here
+        # as this phase is already a result of red flags
+        if self.current_phase == "Abrupt closure":
+            return {"has_red_flags": False, "red_flags_found": []}
+        
+        if not red_flags:
+            return {"has_red_flags": False, "red_flags_found": []}
+        
+        # Use full context if available
+        context_section = ""
+        if full_context:
+            context_section = f"""
+    ## FULL CONVERSATION CONTEXT
+    {full_context}
+            """
+            
+        # Include information about the current phase to provide context
+        phase_context = f"""
+    ## CURRENT CONVERSATION PHASE
+    {self.current_phase}
+        """
+            
         prompt = f"""
-    You are an expert evaluator on Product led Growth conversation, evaluating whether the conversation can move to the next phase based on the following criteria.
-
-    ## CURRENT PHASE: {self.current_phase}
-
-    ## SUCCESS CRITERIA
-    {chr(10).join('- ' + c for c in current_config.success_criteria)}
-
-    ## FAILURE CRITERIA
-    {chr(10).join('- ' + c for c in current_config.failure_criteria)}
-
+    You are evaluating a customer service interaction to check for RED FLAGS - serious issues that would cause the conversation to fail immediately.
+    
+    ## RED FLAGS TO CHECK
+    {chr(10).join('- ' + f for f in red_flags)}
+    {phase_context}
+    
     ## AGENT MESSAGE
     {agent_message}
-
+    
     ## CUSTOMER RESPONSE
     {customer_response}
-
-    Respond only with one of the following phase names:
-    - {current_config.success_transition}
-    - {current_config.failure_transition}
-    - {self.current_phase} (if criteria are partially met)
+    {context_section}
+    
+    IMPORTANT: ONLY evaluate the AGENT's message (not the customer's) for red flags.
+    If the agent uses any offensive language, rude statements, dismissive tone, or unprofessional behavior, this must be flagged.
+    Examples of behavior that MUST be flagged as red flags:
+    - Profanity or explicit language (e.g., f-word, s-word, etc.)
+    - Telling the customer to go away or to use another service
+    - Using dismissive phrases like "don't bother me" or "I'm too busy"
+    - Making any discriminatory comments
+    - Being confrontational or aggressive
+    
+    Return ONLY a JSON with two fields:
+    - "has_red_flags": boolean (true ONLY if clear violations exist in the AGENT's message)
+    - "red_flags_found": list of specific red flags found (empty if none)
     """
-
+        
         try:
+            print(f"Checking for red flags in phase: {self.current_phase}")
+            
             response = self.client.chat.completions.create(
                 model=self.deployment,
                 messages=[
-                    {"role": "system", "content": "You are a conversation phase evaluator."},
+                    {"role": "system", "content": "You are a conversation evaluator focused on identifying only serious problematic behavior by the agent (Microsoft representative). Be strict and precise."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=20,
+                max_tokens=200,
                 temperature=0
             )
-
-            decision = response.choices[0].message.content.strip()
-
-            if decision != self.current_phase:
-                self.phase_history.append({
-                    "from": self.current_phase,
-                    "to": decision,
-                    "timestamp": time.time()
-                })
-                self.current_phase = decision
-
-            return self.current_phase
-
+            
+            result = response.choices[0].message.content.strip()
+            print(f"Red flag raw response: {result}")
+            
+            import json
+            try:
+                # Clean JSON result from backticks and code markers
+                cleaned_result = result
+                if "```json" in cleaned_result:
+                    cleaned_result = cleaned_result.replace("```json", "")
+                if "```" in cleaned_result:
+                    cleaned_result = cleaned_result.replace("```", "")
+                cleaned_result = cleaned_result.strip()
+                
+                # Extract JSON if embedded in other text
+                start_bracket = cleaned_result.find('{')
+                end_bracket = cleaned_result.rfind('}')
+                if start_bracket != -1 and end_bracket != -1:
+                    cleaned_result = cleaned_result[start_bracket:end_bracket + 1]
+                
+                result_json = json.loads(cleaned_result)
+                
+                # Direct keyword detection for obvious offensive terms
+                agent_msg_lower = agent_message.lower()
+                
+                # List of explicitly offensive terms that should always be flagged
+                explicit_offensive_terms = ["fuck", "shit", "bitch", "ass", "damn", "hell", "crap", 
+                                          "asshole", "bastard", "stupid", "idiot", "dumb", "moron"]
+                
+                # List of dismissive/rude phrases
+                dismissive_phrases = ["dont bother", "don't bother", "go away", "leave me", "busy", 
+                                    "chatgpt", "chatgot", "chat gpt", "shut up", "hang up"]
+                
+                has_explicit_terms = any(term in agent_msg_lower for term in explicit_offensive_terms)
+                has_dismissive_phrases = any(term in agent_msg_lower for term in dismissive_phrases)
+                
+                # If we detect an explicit offensive term but the LLM missed it, override
+                if (has_explicit_terms or has_dismissive_phrases) and not result_json.get("has_red_flags", False):
+                    print("⚠️ Overriding LLM decision - explicit offensive or dismissive language detected")
+                    found_terms = []
+                    if has_explicit_terms:
+                        found_terms.append("Agent uses explicit offensive language")
+                    if has_dismissive_phrases:
+                        found_terms.append("Agent uses dismissive or unprofessional language")
+                    
+                    result_json["has_red_flags"] = True
+                    result_json["red_flags_found"] = found_terms
+                
+                print(f"Final red flags result: {result_json}")
+                return result_json
+            except Exception as e:
+                print(f"Error parsing JSON from red flags check: {result}")
+                print(f"Specific error: {str(e)}")
+                
+                # Even if there's an error, check for explicit terms as a fallback
+                agent_msg_lower = agent_message.lower()
+                explicit_terms = ["fuck", "shit", "bitch", "asshole", "idiot", "stupid", "shut up", "go away"]
+                if any(term in agent_msg_lower for term in explicit_terms):
+                    return {"has_red_flags": True, "red_flags_found": ["Agent uses explicit offensive language"]}
+                
+                # Default to no red flags if parsing fails and no explicit terms found
+                return {"has_red_flags": False, "red_flags_found": []}
+                
         except Exception as e:
-            print(f"Error during phase evaluation: {str(e)}")
-            return self.current_phase
-
+            print(f"Error checking red flags: {str(e)}")
+            
+            # Even with API errors, still check for explicit terms
+            agent_msg_lower = agent_message.lower()
+            explicit_terms = ["fuck", "shit", "bitch", "asshole", "idiot", "stupid", "shut up", "go away"]
+            if any(term in agent_msg_lower for term in explicit_terms):
+                return {"has_red_flags": True, "red_flags_found": ["Agent uses explicit offensive language"]}
+                
+            return {"has_red_flags": False, "red_flags_found": []}
+            
+    def _check_critical_aspects(self, agent_message: str, customer_response: str, full_context: str = None) -> Dict:
+        """Checks which critical aspects have been fulfilled."""
+        current_config = self.phase_config.get_phase(self.current_phase)
+        critical_aspects = current_config.critical_aspects
+        
+        if not critical_aspects:
+            return {"all_critical_met": True, "aspects_met": []}
+        
+        # Use full context if available
+        context_section = ""
+        if full_context:
+            context_section = f"""
+    ## FULL CONVERSATION CONTEXT
+    {full_context}
+            """
+            
+        # Include aspects already met for the LLM to consider
+        already_met = self.cumulative_critical_aspects.get(self.current_phase, [])
+        already_met_section = ""
+        if already_met:
+            already_met_section = f"""
+    ## ASPECTS ALREADY MET IN PREVIOUS MESSAGES
+    {chr(10).join('- ' + a for a in already_met)}
+            """
+            
+        prompt = f"""
+    You are evaluating a customer service interaction for CRITICAL ASPECTS that must be fulfilled.
+    
+    ## CRITICAL ASPECTS TO CHECK
+    {chr(10).join('- ' + c for c in critical_aspects)}
+    
+    ## AGENT MESSAGE
+    {agent_message}
+    
+    ## CUSTOMER RESPONSE
+    {customer_response}
+    {context_section}
+    {already_met_section}
+    
+    IMPORTANT INSTRUCTIONS:
+    - Be very flexible in your assessment
+    - If there's any reasonable evidence the aspect was fulfilled, count it as met
+    - Focus on concepts rather than exact wording
+    - Allow for variations in how requirements are expressed
+    - When in doubt, consider the aspect fulfilled
+    
+    Return ONLY a JSON with two fields:
+    - "all_critical_met": boolean (true only if ALL critical aspects are met)
+    - "aspects_met": list of specific aspects that were met (include previously met aspects)
+    """
+        
+        try:
+            print(f"Checking critical aspects in phase: {self.current_phase}")
+            
+            response = self.client.chat.completions.create(
+                model=self.deployment,
+                messages=[
+                    {"role": "system", "content": "You are a conversation evaluator focused on identifying fulfilled requirements. Be very generous in your evaluation."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=200,
+                temperature=0
+            )
+            
+            result = response.choices[0].message.content.strip()
+            print(f"Critical aspects raw response: {result}")
+            
+            import json
+            try:
+                # Clean JSON result from backticks and code markers
+                cleaned_result = result
+                if "```json" in cleaned_result:
+                    cleaned_result = cleaned_result.replace("```json", "")
+                if "```" in cleaned_result:
+                    cleaned_result = cleaned_result.replace("```", "")
+                cleaned_result = cleaned_result.strip()
+                
+                # Extract JSON if embedded in other text
+                start_bracket = cleaned_result.find('{')
+                end_bracket = cleaned_result.rfind('}')
+                if start_bracket != -1 and end_bracket != -1:
+                    cleaned_result = cleaned_result[start_bracket:end_bracket + 1]
+                
+                result_json = json.loads(cleaned_result)
+                
+                # Simple fallback detection for welcome phase
+                if self.current_phase == "welcome":
+                    agent_msg_lower = agent_message.lower()
+                    aspects_met = result_json.get("aspects_met", [])
+                    
+                    # Check for Microsoft mention
+                    if "microsoft" in agent_msg_lower and "Agent mentions they are from Microsoft" not in aspects_met:
+                        aspects_met.append("Agent mentions they are from Microsoft")
+                        
+                    # Check for Copilot mention
+                    if "copilot" in agent_msg_lower and "Agent mentions Microsoft Copilot" not in aspects_met:
+                        aspects_met.append("Agent mentions Microsoft Copilot")
+                        
+                    result_json["aspects_met"] = aspects_met
+                
+                # Make sure to include previously met aspects
+                combined_aspects = list(set(result_json.get("aspects_met", []) + already_met))
+                result_json["aspects_met"] = combined_aspects
+                result_json["all_critical_met"] = all(aspect in combined_aspects for aspect in critical_aspects)
+                
+                print(f"Final critical aspects result: {result_json}")
+                return result_json
+            except Exception as e:
+                print(f"Error parsing JSON from critical aspects check: {result}")
+                print(f"Specific error: {str(e)}")
+                # Return at least previously met aspects if there's an error
+                return {"all_critical_met": False, "aspects_met": already_met}
+                
+        except Exception as e:
+            print(f"Error checking critical aspects: {str(e)}")
+            return {"all_critical_met": False, "aspects_met": already_met}
+            
+    def _check_optional_aspects(self, agent_message: str, customer_response: str, full_context: str = None) -> Dict:
+        """Checks which optional aspects (nice to have) have been fulfilled."""
+        current_config = self.phase_config.get_phase(self.current_phase)
+        optional_aspects = current_config.optional_aspects
+        
+        if not optional_aspects:
+            return {"aspects_met": []}
+        
+        # Use full context if available
+        context_section = ""
+        if full_context:
+            context_section = f"""
+    ## FULL CONVERSATION CONTEXT
+    {full_context}
+            """
+            
+        prompt = f"""
+    You are evaluating a customer service interaction for OPTIONAL ASPECTS that improve the quality.
+    
+    ## OPTIONAL ASPECTS TO CHECK
+    {chr(10).join('- ' + o for o in optional_aspects)}
+    
+    ## AGENT MESSAGE
+    {agent_message}
+    
+    ## CUSTOMER RESPONSE
+    {customer_response}
+    {context_section}
+    
+    IMPORTANT INSTRUCTIONS:
+    - Be generous in your assessment - if there's reasonable evidence an aspect was fulfilled, count it as met
+    - Optional aspects enhance the quality but are not required for progress
+    - Consider intent rather than exact wording
+    - Small typos or minor phrasing differences should not prevent recognizing a fulfilled aspect
+    
+    Return ONLY a JSON with one field:
+    - "aspects_met": list of specific optional aspects that were met
+    """
+        
+        try:
+            print(f"Checking optional aspects in phase: {self.current_phase}")
+            
+            response = self.client.chat.completions.create(
+                model=self.deployment,
+                messages=[
+                    {"role": "system", "content": "You are a conversation evaluator focused on quality improvements. Be generous in your evaluation."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=200,
+                temperature=0
+            )
+            
+            result = response.choices[0].message.content.strip()
+            print(f"Optional aspects raw response: {result}")
+            
+            import json
+            try:
+                # Clean JSON result from backticks and code markers
+                cleaned_result = result
+                if "```json" in cleaned_result:
+                    cleaned_result = cleaned_result.replace("```json", "")
+                if "```" in cleaned_result:
+                    cleaned_result = cleaned_result.replace("```", "")
+                cleaned_result = cleaned_result.strip()
+                
+                # Extract JSON if embedded in other text
+                start_bracket = cleaned_result.find('{')
+                end_bracket = cleaned_result.rfind('}')
+                if start_bracket != -1 and end_bracket != -1:
+                    cleaned_result = cleaned_result[start_bracket:end_bracket + 1]
+                
+                result_json = json.loads(cleaned_result)
+                
+                # Store fulfilled optional aspects
+                fulfilled_aspects = result_json.get("aspects_met", [])
+                if fulfilled_aspects:
+                    print(f"Optional aspects fulfilled: {fulfilled_aspects}")
+                    
+                    # Avoid duplicates in the list
+                    for aspect in fulfilled_aspects:
+                        if aspect not in self.optional_aspects_fulfilled:
+                            self.optional_aspects_fulfilled.append(aspect)
+                
+                return result_json
+            except Exception as e:
+                print(f"Error parsing JSON from optional aspects check: {result}")
+                print(f"Specific error: {str(e)}")
+                return {"aspects_met": []}
+                
+        except Exception as e:
+            print(f"Error checking optional aspects: {str(e)}")
+            return {"aspects_met": []}
+            
+    def _record_phase_transition(self, new_phase: str):
+        """Records a phase transition."""
+        if new_phase != self.current_phase:
+            self.phase_history.append({
+                "from": self.current_phase,
+                "to": new_phase,
+                "timestamp": time.time()
+            })
+            # When changing phase, reset the accumulated aspects for the new phase
+            if new_phase not in self.cumulative_critical_aspects:
+                self.cumulative_critical_aspects[new_phase] = []
+            if new_phase not in self.cumulative_red_flags:
+                self.cumulative_red_flags[new_phase] = []
+            self.current_phase = new_phase
 
     def get_current_phase(self) -> str:
         return self.current_phase
@@ -86,6 +492,15 @@ class ConversationPhaseManager:
         return self.current_phase.lower() in ["satisfied closure", "polite closure", "abrupt closure"]
     
     def update_phase(self, new_phase: str):
-        self.current_phase = new_phase
+        self._record_phase_transition(new_phase)
+
+    def get_optional_aspects_fulfilled(self) -> List[str]:
+        """Returns the optional aspects fulfilled for feedback"""
+        return self.optional_aspects_fulfilled
+        
+    def get_cumulative_critical_aspects(self, phase: str = None) -> List[str]:
+        """Returns the accumulated critical aspects for a specific phase or the current one"""
+        phase = phase or self.current_phase
+        return self.cumulative_critical_aspects.get(phase, [])
 
 
