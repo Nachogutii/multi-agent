@@ -23,17 +23,24 @@ class ConversationPhaseManager:
         })
 
     def analyze_message(self, agent_message: str, customer_response: str) -> str:
+        print(f"📊 INPUT: analyze_message - Current phase: {self.current_phase}")
         current_config = self.phase_config.get_phase(self.current_phase)
 
         # Special handling for terminal phases - don't allow transitions out of these
         if self.current_phase == "Conversation End":
+            print("🛑🛑🛑 TERMINAL PHASE 'Conversation End' ACTIVE - NO TRANSITIONS ALLOWED")
+            print("🛑🛑🛑 ALL SUBSEQUENT INTERACTIONS WILL BE CLOSING RESPONSES")
             return self.current_phase
 
         # Special handling for "Abrupt closure" phase - only allow transition to "Conversation End"
         if self.current_phase == "Abrupt closure":
             print("⚠️ In Abrupt closure phase - customer is ending the conversation")
             # Don't check for critical aspects or red flags, just move to Conversation End
+            prev_phase = self.current_phase
             self._record_phase_transition("Conversation End")
+            print(f"🛑🛑🛑 TRANSITION FROM '{prev_phase}' TO TERMINAL PHASE 'Conversation End' - CLOSING CONVERSATION")
+            print(f"🛑🛑🛑 FINAL STATE: current_phase = {self.current_phase}")
+            print(f"📊 OUTPUT: analyze_message - New phase: {self.current_phase}")
             return "Conversation End"
 
         # Create context of all previous conversation plus current message
@@ -73,9 +80,21 @@ class ConversationPhaseManager:
             print(f"⚠️ IMMEDIATE TRANSITION TO: {current_config.failure_transition}")
             # Always transition to failure state immediately if red flags detected
             new_phase = current_config.failure_transition
+            prev_phase = self.current_phase
             self._record_phase_transition(new_phase)
-            return new_phase
-
+            print(f"📊 RED FLAG TRANSITION: {prev_phase} -> {self.current_phase}")
+            
+            # If the new state is Abrupt Closure, check if we should go directly to Conversation End
+            if self.current_phase == "Abrupt closure":
+                print("⚠️⚠️⚠️ Automatic transition from Abrupt closure to Conversation End")
+                prev_phase = self.current_phase
+                self._record_phase_transition("Conversation End")
+                print(f"🛑🛑🛑 TRANSITION FROM '{prev_phase}' TO TERMINAL PHASE 'Conversation End' - CLOSING CONVERSATION")
+                print(f"🛑🛑🛑 FINAL STATE: current_phase = {self.current_phase}")
+            
+            print(f"📊 OUTPUT: analyze_message - New phase (after red flags): {self.current_phase}")
+            return self.current_phase
+        
         # 2. Evaluate critical aspects for advancement, considering complete context
         critical_aspects_result = self._check_critical_aspects(agent_message, customer_response, full_context)
         
@@ -105,12 +124,22 @@ class ConversationPhaseManager:
         if all_critical_met:
             new_phase = current_config.success_transition
             print(f"✨ All critical aspects fulfilled! Advancing to phase: {new_phase}")
+            prev_phase = self.current_phase
             self._record_phase_transition(new_phase)
-            return new_phase
+            print(f"📊 SUCCESS TRANSITION: {prev_phase} -> {self.current_phase}")
+            
+            # If the new state is Conversation End, we should mark it as terminal
+            if self.current_phase == "Conversation End":
+                print("🛑🛑🛑 REACHED TERMINAL PHASE 'Conversation End' - NO MORE TRANSITIONS ALLOWED")
+                print(f"🛑🛑🛑 FINAL STATE: current_phase = {self.current_phase}")
+            
+            print(f"📊 OUTPUT: analyze_message - New phase (after success): {self.current_phase}")
+            return self.current_phase
         else:
             # Stay in current phase
             missing_aspects = [aspect for aspect in all_critical_aspects if aspect not in accumulated_aspects]
             print(f"⏳ Pending critical aspects: {missing_aspects}")
+            print(f"📊 OUTPUT: analyze_message - Phase unchanged: {self.current_phase}")
             return self.current_phase
 
     def _check_red_flags(self, agent_message: str, customer_response: str, full_context: str = None) -> Dict:

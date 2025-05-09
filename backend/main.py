@@ -140,28 +140,34 @@ orchestrator = Orchestrator(
 
 @app.post("/api/chat")
 def chat(msg: Message):
-    response = roleplay_system.process_user_message(msg.text)
-    phase = roleplay_system.observer.phase_manager.get_current_phase()
+    response = orchestrator.process_user_input(msg.text)
+    # Get the phase directly from the orchestrator for consistency
+    # Note: observer and phase_manager may be out of sync
+    current_phase = orchestrator.phase_manager.get_current_phase()
+    print(f"🚨 PHASE RETURNED TO FRONTEND: {current_phase}")
     return {
         "response": response,
-        "phase": phase,
+        "phase": current_phase,
         "feedback": roleplay_system.observer.summarize_conversation()
     }
 
 @app.get("/api/feedback/structured")
 def get_structured_feedback():
-    all_phases_in_history = list({m.get("phase") for m in roleplay_system.observer.conversation_history})
+    # Asegurarse de que usamos el observer del Orchestrator para consistencia
+    observer = roleplay_system.observer
+    
+    all_phases_in_history = list({m.get("phase") for m in observer.conversation_history})
     for phase in all_phases_in_history:
-        if phase and phase not in roleplay_system.observer.phase_scores:
+        if phase and phase not in observer.phase_scores:
             context = "\n".join([
                 f"User: {m['user']}\nCustomer: {m['customer']}"
-                for m in roleplay_system.observer.conversation_history
+                for m in observer.conversation_history
                 if m.get("phase") == phase
             ])
             if context.strip():
-                roleplay_system.observer.evaluate_phase(phase, context)
+                observer.evaluate_phase(phase, context)
 
-    result = roleplay_system.observer.summarize_conversation()
+    result = observer.summarize_conversation()
     phase_scores = result.get("phase_scores", {})
     feedback_data = result.get("feedback", {})
 
@@ -193,16 +199,23 @@ def get_structured_feedback():
 
 @app.post("/api/reset")
 def reset():
-    # Reinicia todo el RoleplaySystem (agente + observador + escenario)
+    # Reset the entire RoleplaySystem (agent + observer + scenario)
     new_scenario = roleplay_system.setup_scenario()
 
-    # Reinicia también el Orchestrator
+    # Reset the Orchestrator using the observer instance
     global orchestrator
     orchestrator = Orchestrator(
         azure_client=roleplay_system.azure.get_client(),
         deployment=roleplay_system.azure.deployment,
         shared_observer=roleplay_system.observer
     )
+    
+    # Verify they share the same phase_manager
+    observer_phase = roleplay_system.observer.phase_manager.get_current_phase()
+    orchestrator_phase = orchestrator.phase_manager.get_current_phase()
+    print(f"🔄 RESET - Observer phase: {observer_phase}")
+    print(f"🔄 RESET - Orchestrator phase: {orchestrator_phase}")
+    print(f"🔄 RESET - Same instance: {roleplay_system.observer.phase_manager is orchestrator.phase_manager}")
 
     return {
         "scenario": new_scenario["scenario"],

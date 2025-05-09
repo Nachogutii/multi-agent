@@ -125,13 +125,23 @@ class ObserverCoach:
         new_aspects = set(evaluation_result.get("fulfilled_aspects", []))
         self.cumulative_fulfilled_aspects.update(new_aspects)
 
+        # Get the CURRENT phase before analyzing the message
         current_phase = self.phase_manager.get_current_phase()
-        current_config = self.phase_manager.phase_config.get_phase(current_phase)
+        print(f"🔍 Current phase before analysis: {current_phase}")
         
-        # Usar los aspectos críticos acumulados del phase_manager
-        cumulative_aspects = self.phase_manager.get_cumulative_critical_aspects(current_phase)
+        # Now, analyze the message for phase transition
+        # This is the ONLY place where we should call analyze_message
+        new_phase = self.phase_manager.analyze_message(user_message, customer_response)
+        print(f"📍 Phase transition evaluated: {current_phase} -> {new_phase}")
         
-        # Combinar con los aspectos detectados por el evaluador
+        # Get configuration for the UPDATED phase
+        updated_phase = self.phase_manager.get_current_phase()
+        current_config = self.phase_manager.phase_config.get_phase(updated_phase)
+        
+        # Use the accumulated critical aspects from phase_manager
+        cumulative_aspects = self.phase_manager.get_cumulative_critical_aspects(updated_phase)
+        
+        # Combine with aspects detected by the evaluator
         all_fulfilled_aspects = list(set(cumulative_aspects + list(self.cumulative_fulfilled_aspects)))
         
         # Fix: Ensure total_aspects is never zero to avoid division by zero error
@@ -146,84 +156,69 @@ class ObserverCoach:
 
         updated_state = {
             "fulfilled_aspects": all_fulfilled_aspects,
-            "progress": min(100, progress),  # Asegurarnos de que no supere el 100%
+            "progress": min(100, progress),  # Ensure it doesn't exceed 100%
             "CustomerBelievesAgentIsEmpathetic": evaluation_result.get("CustomerBelievesAgentIsEmpathetic", False),
             "CustomerBelievesAgentIsLegit": evaluation_result.get("CustomerBelievesAgentIsLegit", False)
         }
 
-        # Registro los aspectos opcionales cumplidos
-        if current_phase not in self.phase_optional_aspects:
-            self.phase_optional_aspects[current_phase] = []
+        # Record fulfilled optional aspects
+        if updated_phase not in self.phase_optional_aspects:
+            self.phase_optional_aspects[updated_phase] = []
         
-        # Añadir aspectos opcionales si están en optional_aspects_fulfilled del phase_manager
+        # Add optional aspects if they are in optional_aspects_fulfilled from phase_manager
         optional_aspects = self.phase_manager.get_optional_aspects_fulfilled()
         if optional_aspects:
             for aspect in optional_aspects:
-                if aspect not in self.phase_optional_aspects[current_phase]:
-                    self.phase_optional_aspects[current_phase].append(aspect)
+                if aspect not in self.phase_optional_aspects[updated_phase]:
+                    self.phase_optional_aspects[updated_phase].append(aspect)
 
-        # Obtener nueva fase
-        new_phase = self.phase_manager.analyze_message(user_message, customer_response)
-        print(f"📍 Transitioned to phase: {new_phase}")
+        # Show the updated phase after analysis
+        print(f"🔍 Current phase after analysis: {self.phase_manager.get_current_phase()}")
 
         return updated_state
 
 
 
     def add_interaction(self, user_message: str, customer_response: str):
-        # Evalúa el mensaje con LLM
+        # Evaluate the message with LLM
         evaluation_result = self.evaluate_interaction_with_llm(user_message, customer_response)
         
-        # Obtener el estado actualizado que incluye los aspectos acumulados
+        # Get the updated state that includes accumulated aspects
         updated_state = self.update_customer_state(user_message, customer_response)
         
         print(f"✅ Evaluation Result: {evaluation_result}")
         print(f"👑 Accumulated Aspects: {updated_state['fulfilled_aspects']}")
         print(f"📊 Progress: {updated_state['progress']}%")
 
-        # Determinar nueva fase
-        new_phase = self.phase_manager.analyze_message(user_message, customer_response)
+        # Important: we must use the current phase from phase_manager after update_customer_state
         current_phase = self.phase_manager.get_current_phase()
-        print(f"📊 Phase decided: {new_phase}")
-
-        # Si cambia la fase, evaluar la anterior
-        if new_phase != current_phase:
-            previous_context = "\n".join([
-                f"User: {m['user']}\nCustomer: {m['customer']}"
-                for m in self.conversation_history
-                if m.get("phase") == current_phase
-            ])
-            if previous_context.strip() and current_phase not in self.phase_scores:
-                print(f"🧠 Evaluating previous phase: {current_phase}")
-                self.evaluate_phase(current_phase, previous_context)
-
-            # Actualiza fase interna
-            self.phase_manager.update_phase(new_phase)
-
-        # Guardar la interacción con fase y timestamp
+        print(f"📊 Current updated phase: {current_phase}")
+        
+        # Save the interaction with phase and timestamp
         self.conversation_history.append({
             "user": user_message,
             "customer": customer_response,
             "timestamp": time.time(),
-            "phase": new_phase,
-            "fulfilled_aspects": updated_state['fulfilled_aspects'],  # Guardar aspectos cumplidos
-            "progress": updated_state['progress']  # Guardar progreso
+            "phase": current_phase,
+            "fulfilled_aspects": updated_state['fulfilled_aspects'],  # Save fulfilled aspects
+            "progress": updated_state['progress']  # Save progress
         })
 
-        # Evaluar la fase actual si no se ha hecho aún
+        # Evaluate the current phase if not done yet
         current_context = "\n".join([
             f"User: {m['user']}\nCustomer: {m['customer']}"
             for m in self.conversation_history
-            if m.get("phase") == new_phase
+            if m.get("phase") == current_phase
         ])
-        if current_context.strip() and new_phase not in self.phase_scores:
-            print(f"🧠 Evaluating current phase: {new_phase}")
-            self.evaluate_phase(new_phase, current_context)
+        if current_context.strip() and current_phase not in self.phase_scores:
+            print(f"🧠 Evaluating current phase: {current_phase}")
+            self.evaluate_phase(current_phase, current_context)
 
-        # Analizar preocupaciones del cliente
+        # Analyze customer concerns
         self._analyze_customer_concerns(customer_response)
 
         print(f"📝 Updated Customer State: {updated_state}")
+        print(f"📝 Final phase after interaction: {self.phase_manager.get_current_phase()}")
 
     
     

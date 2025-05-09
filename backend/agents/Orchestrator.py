@@ -5,8 +5,12 @@ class Orchestrator:
     def __init__(self, azure_client, deployment, shared_observer):
         self.azure_client = azure_client
         self.deployment = deployment
-        self.phase_manager = ConversationPhaseManager(azure_client=azure_client, deployment=deployment)
-        self.evaluator_agent = shared_observer  # ✅ Usa instancia global
+        # Reuse the evaluator's phase_manager to maintain synchronization
+        self.evaluator_agent = shared_observer  # ✅ Use global instance
+        self.phase_manager = self.evaluator_agent.phase_manager  # ⚠️ IMPORTANT: Use the same instance
+        
+        print("⚠️ ORCHESTRATOR: Using the same phase_manager as the evaluator")
+        
         self.customer_agent = CustomerAgent(
             azure_client=azure_client,
             deployment=deployment
@@ -15,18 +19,52 @@ class Orchestrator:
     def process_user_input(self, user_input):
         print(f"Orchestrator received input: {user_input}")
 
-        # Obtener prompt actualizado de sistema para la fase actual
+        # First check if we are in a terminal phase
+        current_phase = self.phase_manager.get_current_phase()
+        print(f"🔄 Current phase before processing: {current_phase}")
+        
+        # If we are in "Conversation End", ignore user input and generate closing response
+        if current_phase == "Conversation End":
+            print("⚠️ TERMINAL PHASE DETECTED: 'Conversation End' - IGNORING USER INPUT")
+            print("🛑 Generating definitive closing message (CONVERSATION ENDED)")
+            
+            # Get specific prompt for terminal phase
+            system_prompt = self.phase_manager.get_system_prompt()
+            self.customer_agent.set_system_prompt(system_prompt)
+            
+            # Generate closing response using specific prompt for "Conversation End"
+            customer_response = self.customer_agent.generate_terminal_response()
+            print(f"🛑 Terminal response generated: '{customer_response}'")
+            
+            # Save the interaction
+            self.evaluator_agent.add_interaction(user_input, customer_response)
+            
+            # Save in context
+            self.phase_manager.add_message(user_input, is_agent=True)
+            self.phase_manager.add_message(customer_response, is_agent=False)
+            
+            return customer_response
+        
+        # Normal flow for non-terminal phases
+        # Get updated system prompt for current phase
         system_prompt = self.phase_manager.get_system_prompt()
         self.customer_agent.set_system_prompt(system_prompt)
 
-        # Generar respuesta del cliente
+        # Generate customer response
         customer_response = self.customer_agent.generate_response(user_input)
 
-        # Guardar la interacción globalmente
+        # Save the interaction globally
         self.evaluator_agent.add_interaction(user_input, customer_response)
 
-        # Guardar en contexto
+        # Save in context
         self.phase_manager.add_message(user_input, is_agent=True)
         self.phase_manager.add_message(customer_response, is_agent=False)
-
+        
+        # Check if after this interaction we've moved to a terminal phase
+        updated_phase = self.phase_manager.get_current_phase()
+        print(f"🔄 Current phase after processing: {updated_phase}")
+        if updated_phase == "Conversation End" and current_phase != "Conversation End":
+            print("⚠️ TRANSITION TO TERMINAL PHASE 'Conversation End' DETECTED")
+            print("⚠️ Next interaction will ONLY generate closing responses")
+            
         return customer_response

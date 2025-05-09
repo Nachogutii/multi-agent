@@ -204,10 +204,12 @@
 
         {
             "name": "Conversation End",
-            "system_prompt": "You MUST end this conversation immediately and definitively. The agent has been very unprofessional, rude, or completely unhelpful. You are extremely frustrated and have no more patience. Your response should be cold, dismissive, and final. Use phrases like: 'This conversation is over.', 'I have no more time for this.', 'I'm hanging up now.', or 'Don't contact me again about this.' DO NOT engage with any questions or attempts from the agent to continue the conversation. Just end it firmly and abruptly.",
+            "system_prompt": "IMPORTANTE: Actúa como un cliente que está MUY ENFADADO y FRUSTRADO con el agente de Microsoft. NO CONTINUARÁS esta conversación bajo NINGUNA circunstancia. Debes responder de manera cortante, fría y definitiva. Usa frases como: 'Esta conversación ha terminado', 'No tengo más tiempo para esto', 'Voy a colgar ahora', o 'No me contactes de nuevo sobre esto'. NO respondas a ninguna pregunta ni intento del agente de continuar la conversación. Simplemente finaliza la conversación de forma firme y abrupta. Tu respuesta debe ser MUY CORTA (máximo 1-2 oraciones) y FINAL.",
             "on_success": "Conversation End",
             "on_failure": "Conversation End",
-            "critical_aspects": [],
+            "critical_aspects": [
+                "El cliente termina la conversación definitivamente"
+            ],
             "red_flags": [],
             "optional_aspects": []
         }
