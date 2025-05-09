@@ -1,41 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bar, Radar } from "react-chartjs-2";
 import { submitFeedbackToSupabase } from "../services/feedbackService.js"
 import { submitConversationToSupabase } from "../services/submitConversationToSupabase.js"
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  RadialLinearScale,
-  ArcElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  PointElement,
-  LineElement,
-} from "chart.js";
 import "./FeedbackPage.css";
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  RadialLinearScale,
-  ArcElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  PointElement,
-  LineElement
-);
 
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
-  const routeLocation = useLocation(); // ✅ Evita conflicto con "location" global
-  
-
+  const routeLocation = useLocation();
   const effectRan = useRef(false);
 
   useEffect(() => {
@@ -91,100 +63,19 @@ export default function FeedbackPage() {
       });
   }, [routeLocation.pathname]);
   
-// Se ejecuta cuando cambia la ruta
-  const renderList = (title, items) => {
+  const renderSection = (title, items, icon, colorClass) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
-      <div className="feedback-section">
-        <h3>{title}</h3>
-        <ul>
+      <div className={`feedback-card ${colorClass}`}>
+        <div className="card-header">
+          <span className="card-icon">{icon}</span>
+          <h3>{title}</h3>
+        </div>
+        <ul className="feedback-list">
           {items.map((item, idx) => (
             <li key={idx}>{item}</li>
           ))}
         </ul>
-      </div>
-    );
-  };
-
-  const renderCharts = (metrics) => {
-    if (!metrics || typeof metrics !== "object") return null;
-    const labels = Object.keys(metrics);
-    const dataValues = Object.values(metrics);
-    const barData = {
-      labels,
-      datasets: [
-        {
-          label: "Score by Phase",
-          data: dataValues,
-          backgroundColor: "rgba(54, 162, 235, 0.6)",
-          borderColor: "rgba(54, 162, 235, 1)",
-          borderWidth: 1,
-        },
-      ],
-    };
-    const radarData = {
-      labels,
-      datasets: [
-        {
-          label: "Talk evaluation",
-          data: dataValues,
-          backgroundColor: "rgba(255, 99, 132, 0.2)",
-          borderColor: "rgba(255, 99, 132, 1)",
-          borderWidth: 2,
-        },
-      ],
-    };
-    const options = {
-      responsive: true,
-      plugins: {
-        legend: { position: "top" },
-        title: { display: true, text: "Evaluation of the talk by section" },
-      },
-      scales: {
-        y: {
-          min: 0,
-          max: 5,
-          ticks: {
-            stepSize: 1
-          },
-          title: {
-            display: true,
-            text: "Score (max. 5)"
-          }
-        }
-      }
-    };
-    return (
-      <div className="feedback-charts">
-        <div className="chart-container">
-          <Bar data={barData} options={options} />
-        </div>
-        <div className="chart-container">
-          <Radar
-            data={radarData}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: { position: "top" },
-                title: { display: true, text: "Evaluation of the conversation (Radar)" },
-              },
-              scales: {
-                r: {
-                  min: 0,
-                  max: 5,
-                  ticks: {
-                    stepSize: 1,
-                  },
-                  pointLabels: {
-                    font: {
-                      size: 12,
-                    },
-                  },
-                },
-              },
-            }}
-          />
-        </div>
       </div>
     );
   };
@@ -196,11 +87,41 @@ export default function FeedbackPage() {
     const average = (
       values.reduce((acc, v) => acc + v, 0) / values.length
     ).toFixed(1);
+    
+    // Calculate score-based message
+    let scoreMessage = "";
+    let emoji = "";
+    
+    if (average >= 4.5) {
+      scoreMessage = "Excellent job! Your conversation was outstanding.";
+      emoji = "🏆";
+    } else if (average >= 4.0) {
+      scoreMessage = "Great work! Your conversation skills are impressive.";
+      emoji = "🌟";
+    } else if (average >= 3.5) {
+      scoreMessage = "Good job! You're on the right track.";
+      emoji = "👍";
+    } else if (average >= 3.0) {
+      scoreMessage = "Not bad! With a few improvements, you'll do even better.";
+      emoji = "🔍";
+    } else {
+      scoreMessage = "There's room for improvement. Review the suggestions below.";
+      emoji = "📝";
+    }
+    
     return (
-      <div className="feedback-score">
-        <h3>
-            Session  overall score: <span>{average} / 5</span>
-        </h3>
+      <div className="feedback-score-card">
+        <div className="score-header">
+          <h2>Conversation Performance</h2>
+          <div className="score-emoji">{emoji}</div>
+        </div>
+        <div className="score-content">
+          <div className="score-value">
+            <span className="score-number">{average}</span>
+            <span className="score-max">/5</span>
+          </div>
+          <p className="score-message">{scoreMessage}</p>
+        </div>
       </div>
     );
   };
@@ -209,7 +130,11 @@ export default function FeedbackPage() {
     return (
       <div className="feedback-loading">
         <div className="spinner" />
-        <p>Hang tight, we’re analyzing your conversation to generate feedback.</p>
+        <p>Hang tight, we're analyzing your conversation to generate feedback.</p>
+        <div className="loading-facts">
+          <h4>Did you know?</h4>
+          <p>AI-powered feedback analysis can help improve your customer service skills by up to 30%!</p>
+        </div>
       </div>
     );
   }
@@ -218,21 +143,30 @@ export default function FeedbackPage() {
 
   return (
     <div className="feedback-page">
-      <h2>Feedback Summary</h2>
-      {renderOverallScore(feedback.metrics)}
-      {renderCharts(feedback.metrics)}
-      <div className="feedback-lists">
-        {renderList("Suggestions", feedback.suggestions)}
-        {renderList("Issues", feedback.issues)}
-        {renderList("Strengths", feedback.strength)}
-        {renderList("Training recommendations", feedback.training)}
+      <div className="feedback-header">
+        <h1>Your Conversation Feedback</h1>
+        <p className="feedback-intro">
+          Here's a detailed analysis of your conversation. Use these insights to improve your future interactions.
+        </p>
       </div>
-      <button onClick={() => navigate("/chat")} className="back-button">
-        ← Back to Chat
-      </button>
-      <button onClick={() => navigate("/")} className="back-button">
-        ← Back to Lobby
-      </button>
+      
+      {renderOverallScore(feedback.metrics)}
+      
+      <div className="feedback-sections">
+        {renderSection("Key Strengths", feedback.strength, "💪", "strength-card")}
+        {renderSection("Improvement Suggestions", feedback.suggestions, "💡", "suggestion-card")}
+        {renderSection("Issues to Address", feedback.issues, "⚠️", "issue-card")}
+        {renderSection("Training Recommendations", feedback.training, "🎓", "training-card")}
+      </div>
+      
+      <div className="feedback-actions">
+        <button onClick={() => navigate("/chat")} className="action-button chat-button">
+          <span className="button-icon">💬</span> New Conversation
+        </button>
+        <button onClick={() => navigate("/")} className="action-button home-button">
+          <span className="button-icon">🏠</span> Back to Lobby
+        </button>
+      </div>
     </div>
   );
 }
