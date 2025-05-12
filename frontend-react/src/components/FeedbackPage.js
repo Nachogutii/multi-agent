@@ -80,50 +80,96 @@ export default function FeedbackPage() {
     );
   };
 
-  const renderOverallScore = (metrics) => {
-    if (!metrics || typeof metrics !== "object") return null;
-    const values = Object.values(metrics);
-    if (!values.length) return null;
-    const average = (
-      values.reduce((acc, v) => acc + v, 0) / values.length
-    ).toFixed(1);
-    
-    // Calculate score-based message
-    let scoreMessage = "";
-    let emoji = "";
-    
-    if (average >= 4.5) {
-      scoreMessage = "Excellent job! Your conversation was outstanding.";
-      emoji = "🏆";
-    } else if (average >= 4.0) {
-      scoreMessage = "Great work! Your conversation skills are impressive.";
-      emoji = "🌟";
-    } else if (average >= 3.5) {
-      scoreMessage = "Good job! You're on the right track.";
-      emoji = "👍";
-    } else if (average >= 3.0) {
-      scoreMessage = "Not bad! With a few improvements, you'll do even better.";
-      emoji = "🔍";
-    } else {
-      scoreMessage = "There's room for improvement. Review the suggestions below.";
-      emoji = "📝";
-    }
-    
-    return (
-      <div className="feedback-score-card">
-        <div className="score-header">
-          <h2>Conversation Performance</h2>
-          <div className="score-emoji">{emoji}</div>
-        </div>
-        <div className="score-content">
-          <div className="score-value">
-            <span className="score-number">{average}</span>
-            <span className="score-max">/5</span>
+  const renderOverallScore = (metrics, customScore) => {
+    // Si existe customScore, usamos ese valor, de lo contrario usamos el cálculo original
+    if (customScore !== undefined && customScore !== null) {
+      // Determinar mensaje basado en la puntuación
+      let scoreMessage = "";
+      let emoji = "";
+      
+      if (customScore >= 90) {
+        scoreMessage = "Excellent job! Your conversation was outstanding.";
+        emoji = "🏆";
+      } else if (customScore >= 80) {
+        scoreMessage = "Great work! Your conversation skills are impressive.";
+        emoji = "🌟";
+      } else if (customScore >= 70) {
+        scoreMessage = "Good job! You're on the right track.";
+        emoji = "👍";
+      } else if (customScore >= 60) {
+        scoreMessage = "Not bad! With a few improvements, you'll do even better.";
+        emoji = "🔍";
+      } else {
+        scoreMessage = "There's room for improvement. Review the suggestions below.";
+        emoji = "📝";
+      }
+      
+      // Renderizar con la puntuación personalizada
+      return (
+        <div className="feedback-score-card">
+          <div className="score-header">
+            <h2>
+              Conversation Performance
+              <span className="custom-score-indicator">*</span>
+            </h2>
+            <div className="score-emoji">{emoji}</div>
           </div>
-          <p className="score-message">{scoreMessage}</p>
+          <div className="score-content">
+            <div className="score-value">
+              <span className="score-number">{customScore}</span>
+              <span className="score-max">/100</span>
+            </div>
+            <p className="score-message">
+              {scoreMessage}
+            </p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    } else {
+      // Comportamiento original como fallback
+      if (!metrics || typeof metrics !== "object") return null;
+      const values = Object.values(metrics);
+      if (!values.length) return null;
+      const average = (values.reduce((acc, v) => acc + v, 0) / values.length).toFixed(1);
+      
+      // Determinar mensaje usando la escala original
+      let scoreMessage = "";
+      let emoji = "";
+      
+      if (average >= 4.5) {
+        scoreMessage = "Excellent job! Your conversation was outstanding.";
+        emoji = "🏆";
+      } else if (average >= 4.0) {
+        scoreMessage = "Great work! Your conversation skills are impressive.";
+        emoji = "🌟";
+      } else if (average >= 3.5) {
+        scoreMessage = "Good job! You're on the right track.";
+        emoji = "👍";
+      } else if (average >= 3.0) {
+        scoreMessage = "Not bad! With a few improvements, you'll do even better.";
+        emoji = "🔍";
+      } else {
+        scoreMessage = "There's room for improvement. Review the suggestions below.";
+        emoji = "📝";
+      }
+      
+      // Renderizar con la puntuación original
+      return (
+        <div className="feedback-score-card">
+          <div className="score-header">
+            <h2>Conversation Performance</h2>
+            <div className="score-emoji">{emoji}</div>
+          </div>
+          <div className="score-content">
+            <div className="score-value">
+              <span className="score-number">{average}</span>
+              <span className="score-max">/5</span>
+            </div>
+            <p className="score-message">{scoreMessage}</p>
+          </div>
+        </div>
+      );
+    }
   };
 
   if (!feedback) {
@@ -150,7 +196,7 @@ export default function FeedbackPage() {
         </p>
       </div>
       
-      {renderOverallScore(feedback.metrics)}
+      {renderOverallScore(feedback.metrics, feedback.custom_score)}
       
       <div className="feedback-sections">
         {renderSection("Key Strengths", feedback.strength, "💪", "strength-card")}
@@ -161,7 +207,7 @@ export default function FeedbackPage() {
       
       <div className="feedback-actions">
         <button onClick={() => navigate("/chat")} className="action-button chat-button">
-          <span className="button-icon">💬</span> New Conversation
+          <span className="button-icon">💬</span> Back to Chat
         </button>
         <button onClick={() => navigate("/")} className="action-button home-button">
           <span className="button-icon">🏠</span> Back to Lobby

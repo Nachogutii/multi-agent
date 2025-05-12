@@ -14,6 +14,16 @@ class ConversationPhaseManager:
         self.optional_aspects_fulfilled = []  # Para almacenar aspectos opcionales cumplidos para feedback
         self.cumulative_critical_aspects = {}  # Para mantener aspectos críticos cumplidos por fase
         self.cumulative_red_flags = {}  # Para mantener red flags detectadas por fase
+        
+        # Contadores globales para aspectos cumplidos en toda la conversación
+        self.total_critical_aspects_count = 0
+        self.total_optional_aspects_count = 0
+        self.total_red_flags_count = 0
+        
+        # Sets para mantener registro único de aspectos/flags detectados
+        self.unique_critical_aspects = set()
+        self.unique_optional_aspects = set()
+        self.unique_red_flags = set()
 
     def add_message(self, message: str, is_agent: bool = True):
         self.conversation_history.append({
@@ -258,6 +268,16 @@ class ConversationPhaseManager:
                     result_json["red_flags_found"] = found_terms
                 
                 print(f"Final red flags result: {result_json}")
+                
+                # Actualizar contadores globales de red flags
+                red_flags_found = result_json.get("red_flags_found", [])
+                if red_flags_found:
+                    # Incrementar contador por cada nueva bandera roja encontrada
+                    for flag in red_flags_found:
+                        if flag not in self.unique_red_flags:
+                            self.unique_red_flags.add(flag)
+                            self.total_red_flags_count += 1
+                
                 return result_json
             except Exception as e:
                 print(f"Error parsing JSON from red flags check: {result}")
@@ -267,7 +287,12 @@ class ConversationPhaseManager:
                 agent_msg_lower = agent_message.lower()
                 explicit_terms = ["fuck", "shit", "bitch", "asshole", "idiot", "stupid", "shut up", "go away"]
                 if any(term in agent_msg_lower for term in explicit_terms):
-                    return {"has_red_flags": True, "red_flags_found": ["Agent uses explicit offensive language"]}
+                    # Actualizar contador global si se detecta bandera roja
+                    flag_message = "Agent uses explicit offensive language"
+                    if flag_message not in self.unique_red_flags:
+                        self.unique_red_flags.add(flag_message)
+                        self.total_red_flags_count += 1
+                    return {"has_red_flags": True, "red_flags_found": [flag_message]}
                 
                 # Default to no red flags if parsing fails and no explicit terms found
                 return {"has_red_flags": False, "red_flags_found": []}
@@ -279,7 +304,12 @@ class ConversationPhaseManager:
             agent_msg_lower = agent_message.lower()
             explicit_terms = ["fuck", "shit", "bitch", "asshole", "idiot", "stupid", "shut up", "go away"]
             if any(term in agent_msg_lower for term in explicit_terms):
-                return {"has_red_flags": True, "red_flags_found": ["Agent uses explicit offensive language"]}
+                # Actualizar contador global si se detecta bandera roja
+                flag_message = "Agent uses explicit offensive language"
+                if flag_message not in self.unique_red_flags:
+                    self.unique_red_flags.add(flag_message)
+                    self.total_red_flags_count += 1
+                return {"has_red_flags": True, "red_flags_found": [flag_message]}
                 
             return {"has_red_flags": False, "red_flags_found": []}
             
@@ -388,6 +418,13 @@ class ConversationPhaseManager:
                 result_json["aspects_met"] = combined_aspects
                 result_json["all_critical_met"] = all(aspect in combined_aspects for aspect in critical_aspects)
                 
+                # Actualizar contadores globales de aspectos críticos
+                new_aspects = [aspect for aspect in result_json.get("aspects_met", []) if aspect not in already_met]
+                for aspect in new_aspects:
+                    if aspect not in self.unique_critical_aspects:
+                        self.unique_critical_aspects.add(aspect)
+                        self.total_critical_aspects_count += 1
+                
                 print(f"Final critical aspects result: {result_json}")
                 return result_json
             except Exception as e:
@@ -482,6 +519,11 @@ class ConversationPhaseManager:
                     for aspect in fulfilled_aspects:
                         if aspect not in self.optional_aspects_fulfilled:
                             self.optional_aspects_fulfilled.append(aspect)
+                            
+                            # Actualizar contadores globales de aspectos opcionales
+                            if aspect not in self.unique_optional_aspects:
+                                self.unique_optional_aspects.add(aspect)
+                                self.total_optional_aspects_count += 1
                 
                 return result_json
             except Exception as e:
@@ -531,5 +573,26 @@ class ConversationPhaseManager:
         """Returns the accumulated critical aspects for a specific phase or the current one"""
         phase = phase or self.current_phase
         return self.cumulative_critical_aspects.get(phase, [])
+
+    # Agregar métodos para obtener los contadores globales
+    def get_total_critical_aspects_count(self) -> int:
+        """Retorna el número total de aspectos críticos únicos detectados durante la conversación."""
+        return self.total_critical_aspects_count
+
+    def get_total_optional_aspects_count(self) -> int:
+        """Retorna el número total de aspectos opcionales únicos detectados durante la conversación."""
+        return self.total_optional_aspects_count
+
+    def get_total_red_flags_count(self) -> int:
+        """Retorna el número total de banderas rojas únicas detectadas durante la conversación."""
+        return self.total_red_flags_count
+
+    def get_aspect_counts(self) -> Dict:
+        """Retorna un diccionario con todos los contadores de aspectos y banderas."""
+        return {
+            "critical_aspects": self.total_critical_aspects_count,
+            "optional_aspects": self.total_optional_aspects_count,
+            "red_flags": self.total_red_flags_count
+        }
 
 

@@ -360,3 +360,18 @@
     width: 100%;
   }
 }
+
+.custom-score-indicator {
+  color: #0078D4;
+  margin-left: 5px;
+  font-size: 1.2rem;
+  vertical-align: super;
+}
+
+.custom-score-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}

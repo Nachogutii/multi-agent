@@ -170,6 +170,18 @@ def get_structured_feedback():
     result = observer.summarize_conversation()
     phase_scores = result.get("phase_scores", {})
     feedback_data = result.get("feedback", {})
+    
+    # Obtener la puntuación personalizada basada en aspectos cumplidos
+    custom_score_data = result.get("custom_score", {})
+    custom_score = custom_score_data.get("score", 0)
+    custom_score_explanation = custom_score_data.get("explanation", "")
+    score_details = custom_score_data.get("details", {})
+    
+    # Obtener los contadores de aspectos
+    aspect_counts = result.get("aspect_counts", {})
+    total_critical_aspects = aspect_counts.get("critical_aspects", 0)
+    total_optional_aspects = aspect_counts.get("optional_aspects", 0)
+    total_red_flags = aspect_counts.get("red_flags", 0)
 
     suggestions = []
     strengths = []
@@ -190,6 +202,14 @@ def get_structured_feedback():
 
     return {
         "metrics": phase_scores,
+        "custom_score": custom_score,
+        "custom_score_explanation": custom_score_explanation,
+        "score_details": score_details,
+        "aspect_counts": {
+            "critical": total_critical_aspects,
+            "optional": total_optional_aspects,
+            "red_flags": total_red_flags
+        },
         "suggestions": suggestions,
         "strength": strengths,
         "opportunity": opportunities,
