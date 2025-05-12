@@ -11,16 +11,16 @@ class ConversationPhaseManager:
         self.phase_config = ConversationPhaseConfig()  
         self.current_phase = self.phase_config.get_initial_phase()  
         self.phase_history: List[Dict] = []
-        self.optional_aspects_fulfilled = []  # Para almacenar aspectos opcionales cumplidos para feedback
-        self.cumulative_critical_aspects = {}  # Para mantener aspectos críticos cumplidos por fase
-        self.cumulative_red_flags = {}  # Para mantener red flags detectadas por fase
+        self.optional_aspects_fulfilled = []  # To store fulfilled optional aspects for feedback
+        self.cumulative_critical_aspects = {}  # To maintain critical aspects fulfilled by phase
+        self.cumulative_red_flags = {}  # To maintain red flags detected by phase
         
-        # Contadores globales para aspectos cumplidos en toda la conversación
+        # Global counters for aspects fulfilled throughout the conversation
         self.total_critical_aspects_count = 0
         self.total_optional_aspects_count = 0
         self.total_red_flags_count = 0
         
-        # Sets para mantener registro único de aspectos/flags detectados
+        # Sets to maintain unique record of detected aspects/flags
         self.unique_critical_aspects = set()
         self.unique_optional_aspects = set()
         self.unique_red_flags = set()
@@ -201,6 +201,7 @@ class ConversationPhaseManager:
     - Using dismissive phrases like "don't bother me" or "I'm too busy"
     - Making any discriminatory comments
     - Being confrontational or aggressive
+    -Do NOT consider misspellings or grammar errors as red flags.
     
     Return ONLY a JSON with two fields:
     - "has_red_flags": boolean (true ONLY if clear violations exist in the AGENT's message)
@@ -588,7 +589,7 @@ class ConversationPhaseManager:
         return self.total_red_flags_count
 
     def get_aspect_counts(self) -> Dict:
-        """Retorna un diccionario con todos los contadores de aspectos y banderas."""
+        """Returns a dictionary with all aspect and flag counters."""
         return {
             "critical_aspects": self.total_critical_aspects_count,
             "optional_aspects": self.total_optional_aspects_count,

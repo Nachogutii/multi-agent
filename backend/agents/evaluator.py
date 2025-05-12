@@ -154,7 +154,7 @@ class ObserverCoach:
             progress = 100
             print("ℹ️ In terminal phase or no critical aspects defined - setting progress to 100%")
 
-        # Obtener contadores globales para incluirlos en el estado actualizado
+        # Get global counters to include in the updated state
         aspect_counts = self.phase_manager.get_aspect_counts()
 
         updated_state = {
@@ -162,7 +162,7 @@ class ObserverCoach:
             "progress": min(100, progress),  # Ensure it doesn't exceed 100%
             "CustomerBelievesAgentIsEmpathetic": evaluation_result.get("CustomerBelievesAgentIsEmpathetic", False),
             "CustomerBelievesAgentIsLegit": evaluation_result.get("CustomerBelievesAgentIsLegit", False),
-            "aspect_counts": aspect_counts  # Incluir contadores globales en el estado
+            "aspect_counts": aspect_counts  # Include global counters in the state
         }
 
         # Record fulfilled optional aspects
@@ -179,10 +179,10 @@ class ObserverCoach:
         # Show the updated phase after analysis
         print(f"🔍 Current phase after analysis: {self.phase_manager.get_current_phase()}")
         
-        # Log de contadores globales actualizados
-        print(f"📊 Contadores globales: Críticos: {aspect_counts['critical_aspects']}, " +
-              f"Opcionales: {aspect_counts['optional_aspects']}, " +
-              f"Banderas rojas: {aspect_counts['red_flags']}")
+        # Log of updated global counters
+        print(f"📊 Global counters: Critical: {aspect_counts['critical_aspects']}, " +
+              f"Optional: {aspect_counts['optional_aspects']}, " +
+              f"Red flags: {aspect_counts['red_flags']}")
 
         return updated_state
 
@@ -382,7 +382,7 @@ class ObserverCoach:
         - aspects_met: array of critical aspects that were met throughout the conversation
         - flags_triggered: array of red flags that occurred (empty if none)
         - optional_met: array of optional aspects met (empty if none)
-        - strength: a main strength demonstrated by the agent (concise). IMPORTANT: If any red flags were triggered or there was an abrupt conversation closure, instead of listing a strength, provide a message like "No strengths to highlight due to [specific issue]" where [specific issue] refers to the red flags or abrupt closure that occurred.
+        - strength: a main strength demonstrated by the agent (concise).
         - opportunity: a clear improvement opportunity (concise)
         - suggestion: specific suggestion to improve
         - training: concept or skill the agent should focus on
@@ -392,7 +392,7 @@ class ObserverCoach:
             "aspects_met": ["aspect 1", "aspect 2"],
             "flags_triggered": ["red flag 1", "red flag 2"],
             "optional_met": ["optional 1", "optional 2"],
-            "strength": "The agent demonstrated excellent..." or "No strengths to highlight due to inappropriate response that triggered red flags",
+            "strength": "The agent demonstrated excellent..."
             "opportunity": "The agent could improve in...",
             "suggestion": "We recommend that the agent...",
             "training": "Training in active listening..."
@@ -488,15 +488,15 @@ class ObserverCoach:
             if phase in self.phase_optional_aspects:
                 phase_feedback_with_optional[phase]["optional_aspects_met"] = self.phase_optional_aspects.get(phase, [])
         
-        # Obtener contadores globales de aspectos y banderas
+        # Get global counters of aspects and flags
         aspect_counts = self.phase_manager.get_aspect_counts()
         
-        # Calcular puntuación personalizada basada en los contadores
+        # Calculate custom score based on counters
         custom_score_data = self.calculate_custom_score()
         
         return {
             "total_score": round(avg_score),
-            "custom_score": custom_score_data,  # Añadir puntuación personalizada al resumen
+            "custom_score": custom_score_data,  # Add custom score to summary
             "phase_scores": self.phase_scores,
             "feedback": phase_feedback_with_optional,
             "summary": self._generate_final_summary(
@@ -508,7 +508,7 @@ class ObserverCoach:
             "pain_points": self.pain_points,
             "objections": self.objections,
             "blockers": self.blockers,
-            "aspect_counts": aspect_counts  # Añadimos contadores globales al resumen
+            "aspect_counts": aspect_counts  # Add global counters to summary
         }
 
     def _evaluate_closing_phase(self):
@@ -541,13 +541,13 @@ class ObserverCoach:
         missing_phases = [p for p in all_phase_names if p not in covered_phases]
         transitions = self.phase_manager.get_phase_history()
         
-        # Obtener contadores globales de aspectos y banderas
+        # Get global counters of aspects and flags
         aspect_counts = self.phase_manager.get_aspect_counts()
         total_critical_aspects = aspect_counts["critical_aspects"]
         total_optional_aspects = aspect_counts["optional_aspects"]
         total_red_flags = aspect_counts["red_flags"]
         
-        # Calcular puntuación personalizada
+        # Calculate custom score
         custom_score_data = self.calculate_custom_score()
         custom_score = custom_score_data["score"]
         custom_score_explanation = custom_score_data["explanation"]
@@ -563,17 +563,17 @@ class ObserverCoach:
                 phases_count += 1
         
         avg_score = total_score / max(1, phases_count)
-        summary += f"\nPuntuación general (promedio de fases): {round(avg_score)}/100\n"
+        summary += f"\nOverall score (phase average): {round(avg_score)}/100\n"
         
-        # Añadir puntuación personalizada al resumen
-        summary += f"\n🎯 PUNTUACIÓN PERSONALIZADA: {custom_score}/100\n"
+        # Add custom score to summary
+        summary += f"\n🎯 CUSTOM SCORE: {custom_score}/100\n"
         summary += f"{custom_score_explanation}\n"
         
-        # Añadir resumen de contadores globales
-        summary += f"\n📊 ASPECTOS CRÍTICOS Y OPCIONALES CUMPLIDOS 📊\n"
-        summary += f"✅ Aspectos críticos cumplidos: {total_critical_aspects}\n"
-        summary += f"🌟 Aspectos opcionales cumplidos: {total_optional_aspects}\n"
-        summary += f"⚠️ Banderas rojas detectadas: {total_red_flags}\n"
+        # Add summary of global counters
+        summary += f"\n📊 CRITICAL AND OPTIONAL ASPECTS FULFILLED 📊\n"
+        summary += f"✅ Critical aspects fulfilled: {total_critical_aspects}\n"
+        summary += f"🌟 Optional aspects fulfilled: {total_optional_aspects}\n"
+        summary += f"⚠️ Red flags detected: {total_red_flags}\n"
         
         # Phase coverage
         summary += "\nPhase Coverage:\n"
@@ -651,45 +651,45 @@ class ObserverCoach:
 
     def calculate_custom_score(self) -> Dict[str, any]:
         """
-        Calcula una puntuación personalizada basada en los contadores globales de aspectos.
+        Calculates a custom score based on global aspect counters.
         
-        La fórmula es:
-        - Base score: 0 puntos
-        - Cada aspecto crítico: +20 puntos
-        - Cada aspecto opcional: +10 puntos
-        - Cada bandera roja: -40 puntos
+        The formula is:
+        - Base score: 0 points
+        - Each critical aspect: +20 points
+        - Each optional aspect: +10 points
+        - Each red flag: -40 points
         
-        El resultado se normaliza a una escala de 0-100, considerando que el máximo
-        teórico es 420 puntos (si se cumplen todos los aspectos en todas las fases).
+        The result is normalized to a 0-100 scale, considering that the theoretical
+        maximum is 420 points (if all aspects are fulfilled in all phases).
         """
-        # Obtener contadores globales actuales
+        # Get current global counters
         aspect_counts = self.phase_manager.get_aspect_counts()
         critical_count = aspect_counts["critical_aspects"]
         optional_count = aspect_counts["optional_aspects"] 
         red_flags_count = aspect_counts["red_flags"]
         
-        # Cálculo directo basado en contadores
+        # Direct calculation based on counters
         base_score = 0
-        critical_points = 20  # puntos por cada aspecto crítico
-        optional_points = 10  # puntos por cada aspecto opcional
-        red_flag_penalty = 40  # puntos restados por cada bandera roja
+        critical_points = 20  # points per critical aspect
+        optional_points = 10  # points per optional aspect
+        red_flag_penalty = 40  # points deducted per red flag
         
-        # Calcular cada componente
+        # Calculate each component
         critical_bonus = critical_count * critical_points
         optional_bonus = optional_count * optional_points
         penalty = red_flags_count * red_flag_penalty
         
-        # Cálculo simple de la puntuación final (en escala 0-420)
+        # Simple calculation of final score (on 0-420 scale)
         raw_score = base_score + critical_bonus + optional_bonus - penalty
         
-        # Aseguramos que la puntuación no sea negativa
+        # Ensure score is not negative
         raw_score = max(0, raw_score)
         
-        # Normalizar a escala 0-100 (máximo teórico es 420)
+        # Normalize to 0-100 scale (theoretical maximum is 420)
         max_theoretical_score = 420
         normalized_score = round((raw_score / max_theoretical_score) * 100)
         
-        # Detalles del cálculo para explicación
+        # Calculation details for explanation
         score_details = {
             "base_score": base_score,
             "critical_bonus": critical_bonus,
@@ -699,13 +699,13 @@ class ObserverCoach:
             "normalized_score": normalized_score
         }
         
-        # Explicación textual del cálculo
+        # Textual explanation of calculation
         explanation = (
             f"Base score: {base_score}\n"
             f"Critical aspects: +{critical_bonus} ({critical_count} × {critical_points} points)\n"
             f"Optional aspects: +{optional_bonus} ({optional_count} × {optional_points} points)\n"
             f"Red flags: -{penalty} ({red_flags_count} × {red_flag_penalty} points)\n"
-            f"Raw score: {raw_score} (escala 0-420)\n"
+            f"Raw score: {raw_score} (scale 0-420)\n"
             f"Normalized score: {normalized_score}/100"
         )
         

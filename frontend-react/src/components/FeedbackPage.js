@@ -108,9 +108,9 @@ export default function FeedbackPage() {
   };
 
   const renderOverallScore = (metrics, customScore) => {
-    // Si existe customScore, usamos ese valor, de lo contrario usamos el cálculo original
+    // If customScore exists, use that value, otherwise use the original calculation
     if (customScore !== undefined && customScore !== null) {
-      // Determinar mensaje basado en la puntuación
+      // Determine message based on score
       let scoreMessage = "";
       let emoji = "";
       
@@ -131,7 +131,7 @@ export default function FeedbackPage() {
         emoji = "📝";
       }
       
-      // Renderizar con la puntuación personalizada
+      // Render with custom score
       return (
         <div className="feedback-score-card">
           <div className="score-header">
@@ -153,13 +153,13 @@ export default function FeedbackPage() {
         </div>
       );
     } else {
-      // Comportamiento original como fallback
+      // Original behavior as fallback
       if (!metrics || typeof metrics !== "object") return null;
       const values = Object.values(metrics);
       if (!values.length) return null;
       const average = (values.reduce((acc, v) => acc + v, 0) / values.length).toFixed(1);
       
-      // Determinar mensaje usando la escala original
+      // Determine message using the original scale
       let scoreMessage = "";
       let emoji = "";
       
@@ -180,7 +180,7 @@ export default function FeedbackPage() {
         emoji = "📝";
       }
       
-      // Renderizar con la puntuación original
+      // Render with original score
       return (
         <div className="feedback-score-card">
           <div className="score-header">

@@ -5,7 +5,6 @@ from typing import Dict
 from openai import AzureOpenAI
 from dotenv import load_dotenv
 
-from frontend.display import print_colored, print_scenario_info
 from agents.customer import CustomerAgent
 from agents.evaluator import ObserverCoach
 from agents.conversation_phase import ConversationPhaseManager
@@ -153,7 +152,7 @@ def chat(msg: Message):
 
 @app.get("/api/feedback/structured")
 def get_structured_feedback():
-    # Asegurarse de que usamos el observer del Orchestrator para consistencia
+    # Ensure we use the observer from the Orchestrator for consistency
     observer = roleplay_system.observer
     
     all_phases_in_history = list({m.get("phase") for m in observer.conversation_history})
@@ -171,13 +170,13 @@ def get_structured_feedback():
     phase_scores = result.get("phase_scores", {})
     feedback_data = result.get("feedback", {})
     
-    # Obtener la puntuación personalizada basada en aspectos cumplidos
+    # Get the custom score based on fulfilled aspects
     custom_score_data = result.get("custom_score", {})
     custom_score = custom_score_data.get("score", 0)
     custom_score_explanation = custom_score_data.get("explanation", "")
     score_details = custom_score_data.get("details", {})
     
-    # Obtener los contadores de aspectos
+    # Get aspect counters
     aspect_counts = result.get("aspect_counts", {})
     total_critical_aspects = aspect_counts.get("critical_aspects", 0)
     total_optional_aspects = aspect_counts.get("optional_aspects", 0)
