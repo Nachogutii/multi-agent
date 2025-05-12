@@ -382,7 +382,7 @@ class ObserverCoach:
         - aspects_met: array of critical aspects that were met throughout the conversation
         - flags_triggered: array of red flags that occurred (empty if none)
         - optional_met: array of optional aspects met (empty if none)
-        - strength: a main strength demonstrated by the agent (concise)
+        - strength: a main strength demonstrated by the agent (concise). IMPORTANT: If any red flags were triggered or there was an abrupt conversation closure, instead of listing a strength, provide a message like "No strengths to highlight due to [specific issue]" where [specific issue] refers to the red flags or abrupt closure that occurred.
         - opportunity: a clear improvement opportunity (concise)
         - suggestion: specific suggestion to improve
         - training: concept or skill the agent should focus on
@@ -392,7 +392,7 @@ class ObserverCoach:
             "aspects_met": ["aspect 1", "aspect 2"],
             "flags_triggered": ["red flag 1", "red flag 2"],
             "optional_met": ["optional 1", "optional 2"],
-            "strength": "The agent demonstrated excellent...",
+            "strength": "The agent demonstrated excellent..." or "No strengths to highlight due to inappropriate response that triggered red flags",
             "opportunity": "The agent could improve in...",
             "suggestion": "We recommend that the agent...",
             "training": "Training in active listening..."
