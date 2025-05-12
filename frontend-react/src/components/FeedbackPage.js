@@ -80,6 +80,33 @@ export default function FeedbackPage() {
     );
   };
 
+  const renderTrainingSection = () => {
+    return (
+      <div className="feedback-card training-card">
+        <div className="card-header">
+          <span className="card-icon">🎓</span>
+          <h3>Training Recommendations</h3>
+        </div>
+        <ul className="feedback-list">
+          <li>
+            <a href="https://learn.microsoft.com/en-us/training/paths/get-started-with-microsoft-365-copilot/" 
+               target="_blank" 
+               rel="noopener noreferrer">
+              Get started with Microsoft 365 Copilot
+            </a>
+          </li>
+          <li>
+            <a href="https://learn.microsoft.com/en-us/training/modules/get-started-microsoft-365-copilot-business-chat/" 
+               target="_blank" 
+               rel="noopener noreferrer">
+              Get started with Microsoft 365 Copilot Chat
+            </a>
+          </li>
+        </ul>
+      </div>
+    );
+  };
+
   const renderOverallScore = (metrics, customScore) => {
     // Si existe customScore, usamos ese valor, de lo contrario usamos el cálculo original
     if (customScore !== undefined && customScore !== null) {
@@ -202,7 +229,7 @@ export default function FeedbackPage() {
         {renderSection("Key Strengths", feedback.strength, "💪", "strength-card")}
         {renderSection("Improvement Suggestions", feedback.suggestions, "💡", "suggestion-card")}
         {renderSection("Issues to Address", feedback.issues, "⚠️", "issue-card")}
-        {renderSection("Training Recommendations", feedback.training, "🎓", "training-card")}
+        {renderTrainingSection()}
       </div>
       
       <div className="feedback-actions">
