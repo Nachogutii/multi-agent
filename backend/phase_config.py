@@ -1,8 +1,6 @@
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
-import os
-
 
 class Phase:
     def __init__(self, name: str, system_prompt: str,
@@ -20,19 +18,30 @@ class Phase:
         self.red_flags = red_flags or []
         self.optional_aspects = optional_aspects or []
 
-
 class ConversationPhaseConfig:
-    def __init__(self, config_path: str = "conversation_phases.json"):
-        self.config_path = Path(os.path.join(os.path.dirname(__file__), config_path))
+    def __init__(self, phases_data: List[dict] = None):
         self.phases: Dict[str, Phase] = {}
         self.phase_order: List[str] = []
-        self._load_config()
+        
+        if phases_data:
+            self._load_from_data(phases_data)
+        else:
+            # Por compatibilidad, usar una fase default si no hay datos
+            default_phase = Phase(
+                name="welcome",
+                system_prompt="You are a helpful assistant.",
+                success_transition="welcome",
+                failure_transition="welcome",
+                critical_aspects=[],
+                red_flags=[],
+                optional_aspects=[]
+            )
+            self.phases["welcome"] = default_phase
+            self.phase_order.append("welcome")
+            print("⚠️ ConversationPhaseConfig: No se proporcionaron datos de fases, usando fase default.")
 
-    def _load_config(self):
-        with open(self.config_path, encoding="utf-8") as f:
-            data = json.load(f)
-
-        for phase_data in data["Phases"]:
+    def _load_from_data(self, phases_data: List[dict]):
+        for phase_data in phases_data:
             phase = Phase(
                 name=phase_data["name"],
                 system_prompt=phase_data["system_prompt"],

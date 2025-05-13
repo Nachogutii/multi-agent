@@ -1,22 +1,48 @@
 import re
 from openai import AzureOpenAI
-from agents.conversation_phase import ConversationPhaseManager
+from .conversation_phase import ConversationPhaseManager
 from pathlib import Path
 import random
+import os
 
 class CustomerAgent:
-    def __init__(self, azure_client: AzureOpenAI, deployment: str):
+    def __init__(self, azure_client: AzureOpenAI, deployment: str, scenario_context=None, phase_config=None):
         self.client = azure_client
         self.deployment = deployment
-        self.general_context = Path("scenario_context.md").read_text(encoding="utf-8")
+        
+        # Usar el contexto de escenario si se proporciona, o cargar desde archivo
+        if scenario_context:
+            self.general_context = scenario_context
+        else:
+            # Verificar si el archivo existe antes de leerlo
+            context_path = Path("scenario_context.md")
+            if context_path.exists():
+                self.general_context = context_path.read_text(encoding="utf-8")
+            else:
+                self.general_context = """
+                **B. Customer Profile:**
+                - Customer is Rachel Sanchez, using Microsoft 365 and interested in Copilot.
+                - She's a marketing professional looking to improve workflow efficiency.
+                - Has some experience with Microsoft 365 but is curious about new Copilot features.
+                """
+                print("⚠️ No se encontró el archivo scenario_context.md, usando perfil por defecto.")
+        
         self.profile = self._load_customer_profile()
         self.conversation_history = []
-        self.phase_manager = ConversationPhaseManager(azure_client, deployment)
+        
+        # Usar phase_config si se proporciona
+        self.phase_manager = ConversationPhaseManager(azure_client, deployment, phase_config)
 
     def _load_customer_profile(self) -> str:
         # Extract the customer profile section from the scenario context
         profile_start = self.general_context.find("**B. Customer Profile:**")
+        if profile_start == -1:  # Si no se encuentra, usar todo el contexto
+            return self.general_context.strip()
+            
         profile_end = self.general_context.find("- **B. Channel of Communication:**")
+        if profile_end == -1:  # Si no se encuentra el final, usar hasta el final
+            return self.general_context[profile_start:].strip()
+            
         return self.general_context[profile_start:profile_end].strip()
 
     def _build_prompt(self, user_message: str) -> str:

@@ -4,12 +4,19 @@ from openai import AzureOpenAI
 from phase_config import ConversationPhaseConfig
 
 class ConversationPhaseManager:
-    def __init__(self, azure_client=None, deployment=None):
+    def __init__(self, azure_client=None, deployment=None, phase_config=None):
         self.client = azure_client
         self.deployment = deployment
         self.conversation_history: List[Dict] = []
-        self.phase_config = ConversationPhaseConfig()  
-        self.current_phase = self.phase_config.get_initial_phase()  
+        
+        # Inicializa la configuración de fases
+        if phase_config:
+            self.config = phase_config
+        else:
+            # Si no se proporciona, crea una configuración por defecto desde el archivo
+            self.config = ConversationPhaseConfig()  
+            
+        self.current_phase = self.config.get_initial_phase()  
         self.phase_history: List[Dict] = []
         self.optional_aspects_fulfilled = []  # To store fulfilled optional aspects for feedback
         self.cumulative_critical_aspects = {}  # To maintain critical aspects fulfilled by phase
@@ -34,7 +41,7 @@ class ConversationPhaseManager:
 
     def analyze_message(self, agent_message: str, customer_response: str) -> str:
         print(f"📊 INPUT: analyze_message - Current phase: {self.current_phase}")
-        current_config = self.phase_config.get_phase(self.current_phase)
+        current_config = self.config.get_phase(self.current_phase)
 
         # Special handling for terminal phases - don't allow transitions out of these
         if self.current_phase == "Conversation End":
@@ -154,7 +161,7 @@ class ConversationPhaseManager:
 
     def _check_red_flags(self, agent_message: str, customer_response: str, full_context: str = None) -> Dict:
         """Checks if there are red flags in the current interaction."""
-        current_config = self.phase_config.get_phase(self.current_phase)
+        current_config = self.config.get_phase(self.current_phase)
         red_flags = current_config.red_flags
         
         # Special handling for Abrupt closure phase - no red flags should be detected here
@@ -178,17 +185,17 @@ class ConversationPhaseManager:
     ## CURRENT CONVERSATION PHASE
     {self.current_phase}
         """
-            
+
         prompt = f"""
     You are evaluating a customer service interaction to check for RED FLAGS - serious issues that would cause the conversation to fail immediately.
     
     ## RED FLAGS TO CHECK
     {chr(10).join('- ' + f for f in red_flags)}
     {phase_context}
-    
+
     ## AGENT MESSAGE
     {agent_message}
-    
+
     ## CUSTOMER RESPONSE
     {customer_response}
     {context_section}
@@ -207,7 +214,7 @@ class ConversationPhaseManager:
     - "has_red_flags": boolean (true ONLY if clear violations exist in the AGENT's message)
     - "red_flags_found": list of specific red flags found (empty if none)
     """
-        
+
         try:
             print(f"Checking for red flags in phase: {self.current_phase}")
             
@@ -220,7 +227,7 @@ class ConversationPhaseManager:
                 max_tokens=200,
                 temperature=0
             )
-            
+
             result = response.choices[0].message.content.strip()
             print(f"Red flag raw response: {result}")
             
@@ -297,7 +304,7 @@ class ConversationPhaseManager:
                 
                 # Default to no red flags if parsing fails and no explicit terms found
                 return {"has_red_flags": False, "red_flags_found": []}
-                
+
         except Exception as e:
             print(f"Error checking red flags: {str(e)}")
             
@@ -316,7 +323,7 @@ class ConversationPhaseManager:
             
     def _check_critical_aspects(self, agent_message: str, customer_response: str, full_context: str = None) -> Dict:
         """Checks which critical aspects have been fulfilled."""
-        current_config = self.phase_config.get_phase(self.current_phase)
+        current_config = self.config.get_phase(self.current_phase)
         critical_aspects = current_config.critical_aspects
         
         if not critical_aspects:
@@ -338,16 +345,16 @@ class ConversationPhaseManager:
     ## ASPECTS ALREADY MET IN PREVIOUS MESSAGES
     {chr(10).join('- ' + a for a in already_met)}
             """
-            
+
         prompt = f"""
     You are evaluating a customer service interaction for CRITICAL ASPECTS that must be fulfilled.
     
     ## CRITICAL ASPECTS TO CHECK
     {chr(10).join('- ' + c for c in critical_aspects)}
-    
+
     ## AGENT MESSAGE
     {agent_message}
-    
+
     ## CUSTOMER RESPONSE
     {customer_response}
     {context_section}
@@ -364,7 +371,7 @@ class ConversationPhaseManager:
     - "all_critical_met": boolean (true only if ALL critical aspects are met)
     - "aspects_met": list of specific aspects that were met (include previously met aspects)
     """
-        
+
         try:
             print(f"Checking critical aspects in phase: {self.current_phase}")
             
@@ -377,7 +384,7 @@ class ConversationPhaseManager:
                 max_tokens=200,
                 temperature=0
             )
-            
+
             result = response.choices[0].message.content.strip()
             print(f"Critical aspects raw response: {result}")
             
@@ -433,14 +440,14 @@ class ConversationPhaseManager:
                 print(f"Specific error: {str(e)}")
                 # Return at least previously met aspects if there's an error
                 return {"all_critical_met": False, "aspects_met": already_met}
-                
+
         except Exception as e:
             print(f"Error checking critical aspects: {str(e)}")
             return {"all_critical_met": False, "aspects_met": already_met}
             
     def _check_optional_aspects(self, agent_message: str, customer_response: str, full_context: str = None) -> Dict:
         """Checks which optional aspects (nice to have) have been fulfilled."""
-        current_config = self.phase_config.get_phase(self.current_phase)
+        current_config = self.config.get_phase(self.current_phase)
         optional_aspects = current_config.optional_aspects
         
         if not optional_aspects:
@@ -459,10 +466,10 @@ class ConversationPhaseManager:
     
     ## OPTIONAL ASPECTS TO CHECK
     {chr(10).join('- ' + o for o in optional_aspects)}
-    
+
     ## AGENT MESSAGE
     {agent_message}
-    
+
     ## CUSTOMER RESPONSE
     {customer_response}
     {context_section}
@@ -476,7 +483,7 @@ class ConversationPhaseManager:
     Return ONLY a JSON with one field:
     - "aspects_met": list of specific optional aspects that were met
     """
-        
+
         try:
             print(f"Checking optional aspects in phase: {self.current_phase}")
             
@@ -489,7 +496,7 @@ class ConversationPhaseManager:
                 max_tokens=200,
                 temperature=0
             )
-            
+
             result = response.choices[0].message.content.strip()
             print(f"Optional aspects raw response: {result}")
             
@@ -531,7 +538,7 @@ class ConversationPhaseManager:
                 print(f"Error parsing JSON from optional aspects check: {result}")
                 print(f"Specific error: {str(e)}")
                 return {"aspects_met": []}
-                
+
         except Exception as e:
             print(f"Error checking optional aspects: {str(e)}")
             return {"aspects_met": []}
@@ -555,7 +562,7 @@ class ConversationPhaseManager:
         return self.current_phase
 
     def get_system_prompt(self) -> str:
-        return self.phase_config.get_phase(self.current_phase).system_prompt
+        return self.config.get_phase(self.current_phase).system_prompt
 
     def get_phase_history(self) -> List[Dict]:
         return self.phase_history

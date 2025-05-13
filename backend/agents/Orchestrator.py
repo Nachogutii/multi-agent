@@ -1,5 +1,5 @@
-from agents.conversation_phase import ConversationPhaseManager
-from agents.customer import CustomerAgent
+from .conversation_phase import ConversationPhaseManager
+from .customer import CustomerAgent
 
 class Orchestrator:
     def __init__(self, azure_client, deployment, shared_observer):
@@ -11,9 +11,11 @@ class Orchestrator:
         
         print("⚠️ ORCHESTRATOR: Using the same phase_manager as the evaluator")
         
+        # Usar el mismo phase_config que el evaluator
         self.customer_agent = CustomerAgent(
             azure_client=azure_client,
-            deployment=deployment
+            deployment=deployment,
+            phase_config=self.phase_manager.config  # Pasar la configuración compartida
         )
 
     def process_user_input(self, user_input):

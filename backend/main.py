@@ -9,6 +9,8 @@ from agents.customer import CustomerAgent
 from agents.evaluator import ObserverCoach
 from agents.conversation_phase import ConversationPhaseManager
 from agents.Orchestrator import Orchestrator
+from phase_config import ConversationPhaseConfig
+from utils.supabase_service import get_scenarios, get_scenario_by_id, get_phases_for_scenario, get_aspects_for_phase
 
 class AzureConnection:
     def __init__(self):
@@ -66,6 +68,100 @@ class AzureConnection:
             raise ValueError("Azure OpenAI client not initialized")
         return self.client
 
+def load_scenario_from_supabase(scenario_id=None):
+    """Carga un escenario completo (con fases y aspectos) desde Supabase"""
+    try:
+        print("\n📋 INICIANDO CARGA DE ESCENARIO DESDE SUPABASE...")
+        
+        # Si no se proporciona ID, obtén el primer escenario
+        if not scenario_id:
+            print("🔍 No se proporcionó ID de escenario, buscando el primero disponible...")
+            scenarios = get_scenarios()
+            if not scenarios:
+                print("⚠️ No hay escenarios en la base de datos. Usando escenario por defecto.")
+                return None
+            
+            print(f"✅ Encontrados {len(scenarios)} escenarios")
+            scenario_id = scenarios[0]["id"]
+            print(f"✅ Usando el primer escenario encontrado: ID={scenario_id}")
+        
+        # Carga el escenario
+        print(f"🔍 Cargando detalles del escenario ID={scenario_id}...")
+        scenario = get_scenario_by_id(scenario_id)
+        if not scenario:
+            print(f"⚠️ No se encontró el escenario con ID: {scenario_id}")
+            return None
+        
+        # Carga las fases
+        print(f"🔍 Cargando fases del escenario...")
+        phases = get_phases_for_scenario(scenario_id)
+        if not phases:
+            print(f"⚠️ El escenario no tiene fases configuradas.")
+            return None
+        
+        print(f"✅ Encontradas {len(phases)} fases para el escenario")
+        
+        # Para cada fase, añade los aspectos
+        print(f"🔍 Cargando aspectos para {len(phases)} fases...")
+        valid_phases = []
+        
+        for i, phase in enumerate(phases):
+            phase_id = phase.get("id")
+            if not phase_id:
+                print(f"⚠️ Fase #{i+1} no tiene ID, saltando...")
+                continue
+                
+            print(f"  - Cargando aspectos para fase '{phase.get('name', 'Sin nombre')}' (ID={phase_id})...")
+            aspects = get_aspects_for_phase(phase_id)
+            
+            # Verificar campos obligatorios en la fase
+            required_fields = ["name", "system_prompt", "on_success", "on_failure"]
+            missing = [k for k in required_fields if k not in phase]
+            
+            if missing:
+                print(f"⚠️ La fase {phase.get('name', 'Sin nombre')} no tiene todos los campos requeridos. Falta: {missing}")
+                # Intenta reparar los campos faltantes
+                for field in missing:
+                    if field == "name":
+                        phase["name"] = f"Phase_{i+1}"
+                    elif field == "system_prompt":
+                        phase["system_prompt"] = "You are a helpful assistant."
+                    elif field == "on_success":
+                        # Si es la última fase, transiciona a sí misma, sino a la siguiente
+                        phase["on_success"] = phase.get("name", f"Phase_{i+1}") if i == len(phases) - 1 else phases[i+1].get("name", f"Phase_{i+2}")
+                    elif field == "on_failure":
+                        # Por defecto, transiciona a sí misma
+                        phase["on_failure"] = phase.get("name", f"Phase_{i+1}")
+                
+                print(f"  🔧 Campos faltantes reparados para fase '{phase.get('name', 'Sin nombre')}'")
+            
+            # Agrupar aspectos por tipo
+            phase["critical_aspects"] = [a["name"] for a in aspects if a["type"] == "critical"]
+            phase["optional_aspects"] = [a["name"] for a in aspects if a["type"] == "optional"]
+            phase["red_flags"] = [a["name"] for a in aspects if a["type"] == "red_flag"]
+            
+            print(f"    ✅ Cargados aspectos: {len(phase['critical_aspects'])} críticos, " +
+                  f"{len(phase['optional_aspects'])} opcionales, {len(phase['red_flags'])} red flags")
+            
+            # Solo añadir fases válidas
+            valid_phases.append(phase)
+        
+        if not valid_phases:
+            print("⚠️ No se pudo cargar ninguna fase válida para el escenario.")
+            return None
+        
+        print("📋 CARGA DE ESCENARIO COMPLETA")
+        
+        return {
+            "scenario": scenario,
+            "phases": valid_phases
+        }
+    except Exception as e:
+        print(f"❌ Error cargando escenario desde Supabase: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 class RoleplaySystem:
     def __init__(self):
         self.scenario = None
@@ -77,21 +173,76 @@ class RoleplaySystem:
     def initialize(self) -> bool:
         return self.azure.initialize()
 
-    def setup_scenario(self):
-        self.scenario = {
-            "title": "Copilot Welcome",
-            "description": "Customer is already using Microsoft 365 and is exploring how Copilot can improve her workflow.",
-            "initial_query": "Hi, I'm Rachel. I just got Copilot and was curious how to get the most out of it."
-        }
-
-        self.customer_agent = CustomerAgent(
-            azure_client=self.azure.get_client(),
-            deployment=self.azure.deployment
-        )
-
+    def setup_scenario(self, scenario_id=None):
+        # Intentar cargar desde Supabase
+        scenario_data = load_scenario_from_supabase(scenario_id)
+        
+        # Variables para almacenar el contexto del escenario y la configuración de fases
+        scenario_context = None
+        phases_config = None
+        
+        # Si falla, usar escenario predeterminado
+        if not scenario_data:
+            print("⚠️ Usando escenario predeterminado.")
+            self.scenario = {
+                "title": "Copilot Welcome",
+                "description": "Customer is already using Microsoft 365 and is exploring how Copilot can improve her workflow.",
+                "initial_query": "Hi, I'm Rachel. I just got Copilot and was curious how to get the most out of it."
+            }
+        else:
+            # Usa el escenario de Supabase
+            scenario = scenario_data["scenario"]
+            self.scenario = {
+                "title": scenario["name"],
+                "description": scenario["description"],
+                "initial_query": scenario["initial_prompt"]
+            }
+            
+            # Guardar el contexto del escenario
+            scenario_context = scenario.get("context", "")
+            
+            # Crear la configuración de fases
+            print("🔧 Creando configuración de fases desde datos del escenario...")
+            phases_config = ConversationPhaseConfig(scenario_data["phases"])
+            print(f"✅ Configuración de fases creada con {len(phases_config.phases)} fases")
+        
+        # IMPORTANTE: Primero crear la configuración de fases y luego inicializar los agentes
+        if not phases_config and scenario_data and scenario_data["phases"]:
+            # Si tenemos datos de fases pero no se creó la configuración, intentarlo de nuevo
+            try:
+                phases_config = ConversationPhaseConfig(scenario_data["phases"])
+                print(f"✅ Configuración de fases re-creada con {len(phases_config.phases)} fases")
+            except Exception as e:
+                print(f"❌ Error al crear la configuración de fases: {str(e)}")
+                # Si falla, crear una configuración vacía
+                phases_config = ConversationPhaseConfig()
+                
+        # Inicializar el observer con la configuración de fases si la tenemos
         self.observer = ObserverCoach(
             azure_client=self.azure.get_client(),
             deployment=self.azure.deployment
+        )
+        
+        # Si tenemos la configuración de fases, establecerla en el phase_manager
+        if phases_config:
+            print(f"🔧 Estableciendo configuración de fases en phase_manager con {len(phases_config.phases)} fases...")
+            self.observer.phase_manager.config = phases_config
+            # Verificar que se estableció correctamente
+            print(f"✅ Configuración establecida. Fases disponibles: {self.observer.phase_manager.config.phase_order}")
+        
+        # Luego inicializa el customer agent, para que use el mismo phase_manager
+        self.customer_agent = CustomerAgent(
+            azure_client=self.azure.get_client(),
+            deployment=self.azure.deployment,
+            scenario_context=scenario_context,
+            phase_config=self.observer.phase_manager.config
+        )
+
+        # Crear el orchestrator después de los otros agentes
+        self.orchestrator = Orchestrator(
+            azure_client=self.azure.get_client(),
+            deployment=self.azure.deployment,
+            shared_observer=self.observer
         )
 
         self.conversation_history = []
@@ -131,18 +282,19 @@ roleplay_system = RoleplaySystem()
 roleplay_system.initialize()
 roleplay_system.setup_scenario()
 
-orchestrator = Orchestrator(
-    azure_client=roleplay_system.azure.get_client(),
-    deployment=roleplay_system.azure.deployment,
-    shared_observer=roleplay_system.observer
-)
+# Ya no es necesario crear un nuevo orchestrator aquí porque ya se crea en setup_scenario
+# orchestrator = Orchestrator(
+#    azure_client=roleplay_system.azure.get_client(),
+#    deployment=roleplay_system.azure.deployment,
+#    shared_observer=roleplay_system.observer
+# )
 
 @app.post("/api/chat")
 def chat(msg: Message):
-    response = orchestrator.process_user_input(msg.text)
+    response = roleplay_system.orchestrator.process_user_input(msg.text)
     # Get the phase directly from the orchestrator for consistency
     # Note: observer and phase_manager may be out of sync
-    current_phase = orchestrator.phase_manager.get_current_phase()
+    current_phase = roleplay_system.orchestrator.phase_manager.get_current_phase()
     print(f"🚨 PHASE RETURNED TO FRONTEND: {current_phase}")
     return {
         "response": response,
@@ -220,21 +372,14 @@ def get_structured_feedback():
 def reset():
     # Reset the entire RoleplaySystem (agent + observer + scenario)
     new_scenario = roleplay_system.setup_scenario()
-
-    # Reset the Orchestrator using the observer instance
-    global orchestrator
-    orchestrator = Orchestrator(
-        azure_client=roleplay_system.azure.get_client(),
-        deployment=roleplay_system.azure.deployment,
-        shared_observer=roleplay_system.observer
-    )
     
-    # Verify they share the same phase_manager
+    # Ya no es necesario crear un nuevo orchestrator aquí porque ya se crea en setup_scenario
+    # Verificamos que todo esté correctamente sincronizado
     observer_phase = roleplay_system.observer.phase_manager.get_current_phase()
-    orchestrator_phase = orchestrator.phase_manager.get_current_phase()
+    orchestrator_phase = roleplay_system.orchestrator.phase_manager.get_current_phase()
     print(f"🔄 RESET - Observer phase: {observer_phase}")
     print(f"🔄 RESET - Orchestrator phase: {orchestrator_phase}")
-    print(f"🔄 RESET - Same instance: {roleplay_system.observer.phase_manager is orchestrator.phase_manager}")
+    print(f"🔄 RESET - Same instance: {roleplay_system.observer.phase_manager is roleplay_system.orchestrator.phase_manager}")
 
     return {
         "scenario": new_scenario["scenario"],
@@ -242,17 +387,38 @@ def reset():
         "initial_query": new_scenario["initial_query"]
     }
 
-
 @app.get("/api/scenario")
 def get_scenario():
+    # Devuelve el escenario actualmente cargado
     return {
-        "title": "Copilot Welcome",
-        "description": "Customer is already using Microsoft 365 and is exploring how Copilot can improve her workflow.",
-        "initial_query": "Hi, I'm Rachel. I just got Copilot and was curious how to get the most out of it."
+        "title": roleplay_system.scenario["title"],
+        "description": roleplay_system.scenario["description"],
+        "initial_query": roleplay_system.scenario["initial_query"]
     }
+
+# Nuevo endpoint para listar todos los escenarios disponibles
+@app.get("/api/scenarios")
+def list_scenarios():
+    scenarios = get_scenarios()
+    return scenarios
+
+# Nuevo endpoint para cargar un escenario específico
+@app.post("/api/scenario/{scenario_id}")
+def load_specific_scenario(scenario_id: str):
+    result = roleplay_system.setup_scenario(scenario_id)
+    
+    # Ya no es necesario crear un nuevo orchestrator aquí porque ya se crea en setup_scenario
+    # Verificamos que todo esté correctamente sincronizado
+    observer_phase = roleplay_system.observer.phase_manager.get_current_phase()
+    orchestrator_phase = roleplay_system.orchestrator.phase_manager.get_current_phase()
+    print(f"🔄 SCENARIO LOAD - Observer phase: {observer_phase}")
+    print(f"🔄 SCENARIO LOAD - Orchestrator phase: {orchestrator_phase}")
+    print(f"🔄 SCENARIO LOAD - Same instance: {roleplay_system.observer.phase_manager is roleplay_system.orchestrator.phase_manager}")
+    
+    return result
 
 def run_api():
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 if __name__ == "__main__":
-    main()
+    run_api()

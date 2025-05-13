@@ -1,6 +1,6 @@
 import time
 from typing import Dict, List, Tuple
-from agents.conversation_phase import ConversationPhaseManager
+from .conversation_phase import ConversationPhaseManager
 import json
 import re
 
@@ -35,7 +35,7 @@ class ObserverCoach:
             raise ValueError("Azure OpenAI deployment not set")
         
         current_phase = self.phase_manager.get_current_phase()
-        current_phase_config = self.phase_manager.phase_config.get_phase(current_phase)
+        current_phase_config = self.phase_manager.config.get_phase(current_phase)
         current_critical_aspects = current_phase_config.critical_aspects if current_phase_config else []
 
 
@@ -136,7 +136,7 @@ class ObserverCoach:
         
         # Get configuration for the UPDATED phase
         updated_phase = self.phase_manager.get_current_phase()
-        current_config = self.phase_manager.phase_config.get_phase(updated_phase)
+        current_config = self.phase_manager.config.get_phase(updated_phase)
         
         # Use the accumulated critical aspects from phase_manager
         cumulative_aspects = self.phase_manager.get_cumulative_critical_aspects(updated_phase)
@@ -258,13 +258,13 @@ class ObserverCoach:
             if indicator in message_lower:
                 self.pain_points.append(message)
                 break
-                
+        
         # Check for objections
         for indicator in objection_indicators:
             if indicator in message_lower:
                 self.objections.append(message)
                 break
-                
+        
         # Check for blockers
         for indicator in blocker_indicators:
             if indicator in message_lower:
@@ -273,81 +273,56 @@ class ObserverCoach:
     
     def evaluate_phase(self, phase: str, context: str) -> Dict[str, any]:
         """Evaluates a specific phase and provides detailed feedback."""
-        if not context.strip():
+        
+        # Skip if there's not enough context
+        if not context or len(context.strip()) < 10:
+            print(f"⚠️ Not enough context to evaluate this phase: {phase}")
             return {
                 "score": 0,
                 "feedback": "Not enough context to evaluate this phase."
             }
-            
-        # Get phase configuration
-        phase_config = self.phase_manager.phase_config.get_phase(phase)
+        
+        # Verify phase exists in config
+        phase_config = self.phase_manager.config.get_phase(phase)
         if not phase_config:
+            print(f"⚠️ Phase '{phase}' not found in configuration.")
             return {
                 "score": 0,
                 "feedback": f"Phase '{phase}' not found in configuration."
             }
-            
-        # Get critical and optional aspects
+        
+        # Get aspects to evaluate from phase config
         critical_aspects = phase_config.critical_aspects
         red_flags = phase_config.red_flags
         optional_aspects = phase_config.optional_aspects
-            
-        # Get detailed feedback from AI
-        ai_feedback = self._generate_ai_feedback(phase, context, critical_aspects, red_flags, optional_aspects)
         
-        # Get accumulated critical aspects for this phase
-        accumulated_aspects = self.phase_manager.get_cumulative_critical_aspects(phase)
+        # Generate detailed AI feedback
+        feedback = self._generate_ai_feedback(phase, context, critical_aspects, red_flags, optional_aspects)
         
-        # Combine aspects detected by AI with accumulated ones
-        aspects_met = list(set(ai_feedback.get("aspects_met", []) + accumulated_aspects))
+        # Record score for this phase
+        self.phase_scores[phase] = feedback.get("score", 0)
+        self.phase_feedback[phase] = feedback
         
-        flags_triggered = ai_feedback.get("flags_triggered", [])
-        optional_met = ai_feedback.get("optional_met", [])
-        
-        # Store fulfilled optional aspects
-        self.phase_optional_aspects[phase] = optional_met
-            
-        # Calculate score
-        if flags_triggered:
-            score = 0  # If there are red flags, score is zero
-        else:
-            # Base: percentage of fulfilled critical aspects
-            critical_score = (len(aspects_met) / max(1, len(critical_aspects))) * 100
-            
-            # Bonus for optional aspects (maximum 20% additional)
-            optional_bonus = min(20, (len(optional_met) / max(1, len(optional_aspects))) * 20)
-            
-            score = min(100, round(critical_score + optional_bonus))
-        
-        # Save score and feedback
-        self.phase_scores[phase] = score
-        self.phase_feedback[phase] = {
-            "strength": ai_feedback.get("strength", ""),
-            "opportunity": ai_feedback.get("opportunity", ""),
-            "suggestion": ai_feedback.get("suggestion", ""),
-            "training": ai_feedback.get("training", ""),
-            "aspects_met": aspects_met,
-            "flags_triggered": flags_triggered,
-            "optional_met": optional_met
-        }
-            
-        return {
-            "score": score,
-            "feedback": self.phase_feedback[phase]
-        }
-    
+        return feedback
+
     def _generate_ai_feedback(self, phase: str, context: str, critical_aspects=None, red_flags=None, optional_aspects=None) -> Dict:
         """Generates detailed feedback using AI."""
-        if not critical_aspects:
-            # Use default values if not provided
-            phase_config = self.phase_manager.phase_config.get_phase(phase)
+        
+        if not critical_aspects or not context:
+            # Try to get aspects from phase config if not provided
+            phase_config = self.phase_manager.config.get_phase(phase)
             if phase_config:
                 critical_aspects = phase_config.critical_aspects
                 red_flags = phase_config.red_flags
                 optional_aspects = phase_config.optional_aspects
-            else:
-                return {}
-                
+        
+        # If still no aspects, return empty feedback
+        if not critical_aspects:
+            return {
+                "score": 0,
+                "feedback": f"No critical aspects found for phase '{phase}'."
+            }
+        
         # Get previously accumulated aspects
         accumulated_critical_aspects = self.phase_manager.get_cumulative_critical_aspects(phase)
         
@@ -359,7 +334,7 @@ class ObserverCoach:
                 f"User: {m['user']}\nCustomer: {m['customer']}"
                 for m in self.conversation_history
             ])
-                
+            
         prompt = f"""
         Analyze this Microsoft customer service conversation during the "{phase}" phase.
 
@@ -441,7 +416,7 @@ class ObserverCoach:
                 print(f"Cleaned feedback: {cleaned_feedback}")
                 print(f"Specific error: {str(e)}")
                 return {"aspects_met": accumulated_critical_aspects}
-            
+                
         except Exception as e:
             print(f"Error generating AI feedback: {e}")
             return {"aspects_met": accumulated_critical_aspects}
@@ -510,7 +485,7 @@ class ObserverCoach:
             "blockers": self.blockers,
             "aspect_counts": aspect_counts  # Add global counters to summary
         }
-
+    
     def _evaluate_closing_phase(self):
         """Performs a comprehensive evaluation of the conversation when entering the closing phase."""
         # If all phases haven't been evaluated, evaluate them
@@ -524,20 +499,20 @@ class ObserverCoach:
                 ])
                 if context.strip():
                     self.evaluate_phase(phase, context)
-                    
+        
         # Generate comprehensive feedback
         self._generate_comprehensive_feedback()
         
         # Mark as evaluated
         self.has_evaluated_closing = True
-        
+    
     def _generate_comprehensive_feedback(self):
         """Generates comprehensive feedback based on dynamic phases and phase transitions."""
         covered_phases = {entry["to"] for entry in self.phase_manager.get_phase_history()}
         covered_phases.add(self.phase_manager.get_current_phase())  # Include current phase
-        
+
         # Get all phase names from config
-        all_phase_names = self.phase_manager.phase_config.phase_order
+        all_phase_names = self.phase_manager.config.phase_order
         missing_phases = [p for p in all_phase_names if p not in covered_phases]
         transitions = self.phase_manager.get_phase_history()
         
@@ -551,9 +526,9 @@ class ObserverCoach:
         custom_score_data = self.calculate_custom_score()
         custom_score = custom_score_data["score"]
         custom_score_explanation = custom_score_data["explanation"]
-        
+
         summary = "\n=== COMPREHENSIVE CONVERSATION EVALUATION ===\n"
-        
+
         # Overall score
         total_score = 0
         phases_count = 0
@@ -583,7 +558,7 @@ class ObserverCoach:
                 summary += f"✅ {phase}: {score}/100\n"
             else:
                 summary += f"❌ {phase} - Not covered\n"
-        
+
         # Phase transitions
         summary += "\n🔁 Phase Transitions:\n"
         if transitions:
@@ -591,7 +566,7 @@ class ObserverCoach:
                 summary += f"• {t['from']} → {t['to']}\n"
         else:
             summary += "No phase transitions detected.\n"
-        
+
         # Strengths and opportunities
         summary += "\n💪 Key Strengths:\n"
         for phase, feedback in self.phase_feedback.items():
@@ -708,10 +683,10 @@ class ObserverCoach:
             f"Raw score: {raw_score} (scale 0-420)\n"
             f"Normalized score: {normalized_score}/100"
         )
-        
+
         return {
             "score": normalized_score,
             "details": score_details,
             "explanation": explanation,
             "aspect_counts": aspect_counts
-        } 
+        }
