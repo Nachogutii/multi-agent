@@ -15,6 +15,7 @@ export default function ChatPage() {
   const [showInfo, setShowInfo] = useState(false);
   const [scenario, setScenario] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(true);
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -33,6 +34,21 @@ export default function ChatPage() {
         .then((data) => setScenario(data))
         .catch((err) => console.error("Error fetching scenario:", err));
     }
+
+    // Add welcome message if no messages exist
+    if (messages.length === 0) {
+      setMessages([{
+        sender: "bot",
+        text: "👋 Welcome! Before you start, click the ℹ️ info button (top right) to get key instructions."
+      }]);
+    }
+
+    // Hide tooltip after 5 seconds
+    const timer = setTimeout(() => {
+      setShowTooltip(false);
+    }, 5000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const scrollToBottom = () => {
@@ -111,6 +127,11 @@ export default function ChatPage() {
     e.preventDefault();
     if (!userInput.trim()) return;
 
+    // Si es el primer mensaje del usuario, eliminar el mensaje de bienvenida
+    if (messages.length === 1 && messages[0].text.includes("Welcome! Before you start")) {
+      setMessages([]);
+    }
+
     const newMessage = { sender: "user", text: userInput };
     setMessages((prev) => [...prev, newMessage]);
     setLoading(true);
@@ -165,7 +186,14 @@ export default function ChatPage() {
           >
             {isMuted ? "🔇" : "🔊"}
           </button>
-          <button className="info-button" onClick={() => setShowInfo(true)}>i</button>
+          <div className="info-button-container">
+            {showTooltip && (
+              <div className="info-tooltip">
+                👈 Start here to understand the task!
+              </div>
+            )}
+            <button className="info-button" onClick={() => setShowInfo(true)}>i</button>
+          </div>
         </div>
       </div>
 
