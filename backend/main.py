@@ -92,6 +92,37 @@ def load_scenario_from_supabase(scenario_id=None):
             print(f"⚠️ No se encontró el escenario con ID: {scenario_id}")
             return None
         
+        # Verificar que el escenario tenga todos los campos necesarios
+        required_scenario_fields = ["name", "description", "initial_prompt"]
+        missing_fields = [field for field in required_scenario_fields if field not in scenario]
+        if missing_fields:
+            print(f"⚠️ El escenario no tiene todos los campos requeridos. Falta: {missing_fields}")
+            # Intentar reparar campos faltantes
+            for field in missing_fields:
+                if field == "name":
+                    scenario["name"] = "Default Scenario"
+                elif field == "description":
+                    scenario["description"] = "No description provided"
+                elif field == "initial_prompt":
+                    scenario["initial_prompt"] = "Hello, how can I help you?"
+            print("  🔧 Campos faltantes reparados en el escenario")
+            
+        # Verificar si el escenario tiene contexto
+        if "context" not in scenario or not scenario["context"]:
+            print("⚠️ El escenario no tiene contexto definido en Supabase")
+            # Añadir un contexto por defecto
+            scenario["context"] = """
+            **B. Customer Profile:**
+            - Customer is Rachel Sanchez, using Microsoft 365 and interested in Copilot.
+            - She's a marketing professional looking to improve workflow efficiency.
+            - Has some experience with Microsoft 365 but is curious about new Copilot features.
+            """
+            print("  🔧 Se ha añadido un contexto por defecto al escenario")
+        else:
+            print(f"✅ Contexto del escenario cargado: {len(scenario['context'])} caracteres")
+            preview = scenario['context'][:200] + "..." if len(scenario['context']) > 200 else scenario['context']
+            print(f"📄 PREVIEW DEL CONTEXTO DE SUPABASE:\n{preview}")
+        
         # Carga las fases
         print(f"🔍 Cargando fases del escenario...")
         phases = get_phases_for_scenario(scenario_id)
@@ -200,6 +231,10 @@ class RoleplaySystem:
             
             # Guardar el contexto del escenario
             scenario_context = scenario.get("context", "")
+            if scenario_context:
+                print(f"✅ Contexto del escenario cargado ({len(scenario_context)} caracteres)")
+            else:
+                print("⚠️ El escenario no tiene contexto definido en Supabase")
             
             # Crear la configuración de fases
             print("🔧 Creando configuración de fases desde datos del escenario...")
@@ -242,7 +277,8 @@ class RoleplaySystem:
         self.orchestrator = Orchestrator(
             azure_client=self.azure.get_client(),
             deployment=self.azure.deployment,
-            shared_observer=self.observer
+            shared_observer=self.observer,
+            scenario_context=scenario_context
         )
 
         self.conversation_history = []

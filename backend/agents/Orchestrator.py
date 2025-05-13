@@ -2,19 +2,21 @@ from .conversation_phase import ConversationPhaseManager
 from .customer import CustomerAgent
 
 class Orchestrator:
-    def __init__(self, azure_client, deployment, shared_observer):
+    def __init__(self, azure_client, deployment, shared_observer, scenario_context=None):
         self.azure_client = azure_client
         self.deployment = deployment
         # Reuse the evaluator's phase_manager to maintain synchronization
         self.evaluator_agent = shared_observer  # ✅ Use global instance
         self.phase_manager = self.evaluator_agent.phase_manager  # ⚠️ IMPORTANT: Use the same instance
+        self.scenario_context = scenario_context
         
         print("⚠️ ORCHESTRATOR: Using the same phase_manager as the evaluator")
         
-        # Usar el mismo phase_config que el evaluator
+        # Usar el mismo phase_config que el evaluator y pasarle el contexto del escenario
         self.customer_agent = CustomerAgent(
             azure_client=azure_client,
             deployment=deployment,
+            scenario_context=scenario_context,  # Pasar el contexto del escenario
             phase_config=self.phase_manager.config  # Pasar la configuración compartida
         )
 

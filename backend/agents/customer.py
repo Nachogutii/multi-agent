@@ -10,24 +10,26 @@ class CustomerAgent:
         self.client = azure_client
         self.deployment = deployment
         
-        # Usar el contexto de escenario si se proporciona, o cargar desde archivo
+        # Usar el contexto de escenario si se proporciona
         if scenario_context:
             self.general_context = scenario_context
+            print(f"✅ Usando contexto del escenario de Supabase ({len(scenario_context)} caracteres)")
+            # Mostrar algunas líneas del contexto para verificar
+            preview = scenario_context[:200] + "..." if len(scenario_context) > 200 else scenario_context
+            print(f"📄 PREVIEW DEL CONTEXTO:\n{preview}")
         else:
-            # Verificar si el archivo existe antes de leerlo
-            context_path = Path("scenario_context.md")
-            if context_path.exists():
-                self.general_context = context_path.read_text(encoding="utf-8")
-            else:
-                self.general_context = """
-                **B. Customer Profile:**
-                - Customer is Rachel Sanchez, using Microsoft 365 and interested in Copilot.
-                - She's a marketing professional looking to improve workflow efficiency.
-                - Has some experience with Microsoft 365 but is curious about new Copilot features.
-                """
-                print("⚠️ No se encontró el archivo scenario_context.md, usando perfil por defecto.")
+            # Si no hay contexto, usar un perfil predeterminado
+            self.general_context = """
+            **B. Customer Profile:**
+            - Customer is Rachel Sanchez, using Microsoft 365 and interested in Copilot.
+            - She's a marketing professional looking to improve workflow efficiency.
+            - Has some experience with Microsoft 365 but is curious about new Copilot features.
+            """
+            print("⚠️ No se proporcionó contexto del escenario, usando perfil por defecto.")
+            print(f"📄 CONTEXTO POR DEFECTO:\n{self.general_context}")
         
         self.profile = self._load_customer_profile()
+        print(f"👤 PERFIL CARGADO:\n{self.profile[:200]}..." if len(self.profile) > 200 else self.profile)
         self.conversation_history = []
         
         # Usar phase_config si se proporciona
