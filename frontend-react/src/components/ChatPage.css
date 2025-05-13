@@ -1,16 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .chat-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Inter', sans-serif;
+  background-color: #040121;
+  color: #E6EDF3;
 }
 
 .chat-header {
   display: flex;
   align-items: center;
-  background-color: #0078D4;
   color: white;
-  padding: 16px;
+  padding: 16px;  
 }
 
 .chat-header-left,
@@ -42,10 +45,10 @@
 .info-button {
   background-color: #fff;
   color: #0078D4;
-  border: none;
+  border: 2px solid #eee;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 35px;
+  height: 35px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,7 +57,7 @@
 }
 
 .info-button:hover {
-  background-color: #005a9e;
+  background-color: #281e70;
   color: white;
 }
 
@@ -62,58 +65,101 @@
   flex: 1;
   padding: 16px;
   overflow-y: auto;
-  background-color: #f4f4f4;
+  background-color: #040121;
 }
 
 .message {
-  max-width: 70%;
+  max-width: 60%;
   margin-bottom: 10px;
   padding: 10px;
   border-radius: 10px;
   clear: both;
+  display: inline-block;
+  width: fit-content;
+  word-break: break-word;
 }
 
 .user-message {
-  background-color: #cce5ff;
+  background-color: rgba(115, 114, 133, 0.392);
+  color: #C9D1D9;
   margin-left: auto;
+  float: right;
 }
 
 .bot-message {
-  background-color: #e2e3e5;
+  background-color: transparent;
+  color: #C9D1D9;
   margin-right: auto;
+  float: left;
+}
+
+.message-content {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.message-content p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .input-container {
-  padding: 16px;
-  background-color: white;
+  padding: 12px 20px;
+  background-color: rgba(51, 49, 61, 0.334);
   display: flex;
   align-items: center;
   gap: 10px;
+  border: 1px solid #ffffff17;
+  width: 80%;
+  margin: 0 auto 20px auto;
+  border-radius: 14px;
+}
+
+.copilot-logo {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
 }
 
 .message-input {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
+  padding: 10px 15px;
+  background-color: #040121;
+  border: 1px solid #1a0b4d00;
   border-radius: 6px;
+  color: #C9D1D9;
+  font-size: 14px;
+  min-height: 40px;
+}
+
+.message-input::placeholder {
+  color: #8B949E;
 }
 
 .send-button,
 .voice-button,
 .feedback-button {
-  padding: 10px 14px;
-  background-color: #0078D4;
-  color: white;
-  border: none;
+  padding: 10px 15px;
+  background-color:#040121;
+  color: #C9D1D9;
+  border: 1px solid #1a0b4d00;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  min-width: 45px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .send-button:hover,
 .voice-button:hover,
 .feedback-button:hover {
-  background-color: #005a9e;
+  background-color: #1A0B4D;
 }
 
 .voice-button.listening {
@@ -193,7 +239,7 @@
 }
 
 .mute-button:hover {
-  background-color: #eee;
+  background-color: #281e70;
 }
 
 .mute-button.muted {

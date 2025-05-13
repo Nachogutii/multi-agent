@@ -185,6 +185,7 @@ export default function ChatPage() {
       </div>
 
       <form className="input-container" onSubmit={sendMessage}>
+        <img src="/copilot_logo.png" alt="Copilot Logo" className="copilot-logo" />
         <input
           type="text"
           className="message-input"
