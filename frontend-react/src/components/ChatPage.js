@@ -6,6 +6,13 @@ import './ChatPage.css';
 const speechKey = process.env.REACT_APP_SPEECH_KEY;
 const speechRegion = process.env.REACT_APP_SPEECH_REGION;
 
+const typingPhrases = [
+  "Thinking",
+  "Looking into it",
+  "Formulating a response",
+  "Just a second"
+];
+
 export default function ChatPage() {
   const initialMessages = JSON.parse(localStorage.getItem("chatMessages")) || [];
   const [messages, setMessages] = useState(initialMessages);
@@ -16,6 +23,7 @@ export default function ChatPage() {
   const [scenario, setScenario] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
+  const [typingPhrase, setTypingPhrase] = useState(typingPhrases[0]);
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -50,6 +58,25 @@ export default function ChatPage() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    let phraseInterval;
+    if (loading) {
+      let phraseIndex = 0;
+      setTypingPhrase(typingPhrases[phraseIndex]);
+      
+      phraseInterval = setInterval(() => {
+        phraseIndex = (phraseIndex + 1) % typingPhrases.length;
+        setTypingPhrase(typingPhrases[phraseIndex]);
+      }, 5000);
+    }
+
+    return () => {
+      if (phraseInterval) {
+        clearInterval(phraseInterval);
+      }
+    };
+  }, [loading]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -125,16 +152,12 @@ export default function ChatPage() {
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!userInput.trim()) return;
-
-    // Si es el primer mensaje del usuario, eliminar el mensaje de bienvenida
-    if (messages.length === 1 && messages[0].text.includes("Welcome! Before you start")) {
-      setMessages([]);
-    }
+    if (!userInput.trim() || loading) return;
 
     const newMessage = { sender: "user", text: userInput };
     setMessages((prev) => [...prev, newMessage]);
     setLoading(true);
+    setUserInput(""); // Limpiar el input inmediatamente
 
     try {
       const res = await fetch("http://localhost:8000/api/chat", {
@@ -157,7 +180,6 @@ export default function ChatPage() {
       ]);
     }
 
-    setUserInput("");
     setLoading(false);
   };
 
@@ -208,7 +230,14 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
-        {loading && <p className="bot-message">Typing...</p>}
+        {loading && (
+          <div className="message bot-message">
+            <div className="typing-indicator">
+              <span className="typing-text">Typing</span>
+              <span className="typing-dots"></span>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -219,7 +248,8 @@ export default function ChatPage() {
           className="message-input"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Type your message..."
+          placeholder={loading ? "Waiting for response..." : "Type your message..."}
+          disabled={loading}
         />
         <button
           type="button"
@@ -227,9 +257,13 @@ export default function ChatPage() {
           onClick={recognizeSpeech}
           disabled={loading || listening}
         >
-          Speak
+          {listening ? 'Recording' : 'Speak'}
         </button>
-        <button type="submit" className="send-button">
+        <button 
+          type="submit" 
+          className="send-button"
+          disabled={loading}
+        >
           Send
         </button>
         <button
