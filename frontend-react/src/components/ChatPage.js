@@ -23,11 +23,13 @@ export default function ChatPage() {
   const [scenario, setScenario] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(true);
   const [isConversationEnded, setIsConversationEnded] = useState(() => {
     return localStorage.getItem("isConversationEnded") === "true";
   });
   const [lastMessageAllowed, setLastMessageAllowed] = useState(false);
   const [typingPhrase, setTypingPhrase] = useState(typingPhrases[0]);
+  const [notifications, setNotifications] = useState([]);
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -52,7 +54,8 @@ export default function ChatPage() {
     if (messages.length === 0) {
       setMessages([{
         sender: "bot",
-        text: "👋 Welcome! Before you start, click the ℹ️ info button (top right) to get key instructions."
+        text: "👋 Welcome! Before you start, click the ℹ️ info button (top right) to get key instructions.",
+        isWelcome: true
       }]);
     }
 
@@ -155,9 +158,22 @@ export default function ChatPage() {
     });
   };
 
+  const addNotification = (message, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(notification => notification.id !== id));
+    }, 5000);
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!userInput.trim() || loading) return;
+
+    // Remove welcome message when sending first message
+    if (messages.length === 1 && messages[0].isWelcome) {
+      setMessages([]);
+    }
 
     const newMessage = { sender: "user", text: userInput };
     setMessages((prev) => [...prev, newMessage]);
@@ -171,6 +187,23 @@ export default function ChatPage() {
         body: JSON.stringify({ text: userInput, phase: "exploration" })
       });
       const data = await res.json();
+
+      // Check for business goals and feedback in the response
+      const responseLower = data.response.toLowerCase();
+      console.log("Checking response for banners:", responseLower);
+
+      if (responseLower.includes("demo") || responseLower.includes("show me")) {
+        console.log("Demo detected - showing success banner");
+        addNotification("🎯 Business goal achieved: User requested a demo", "success");
+      }
+      if (responseLower.includes("feedback") || responseLower.includes("helpful") || responseLower.includes("using it")) {
+        console.log("Feedback detected - showing info banner");
+        addNotification("📝 Customer feedback noted: Product insights gathered", "info");
+      }
+      if (responseLower.includes("not ready") || responseLower.includes("later")) {
+        console.log("Not ready detected - showing warning banner");
+        addNotification("📝 Customer feedback noted: They're not ready to buy yet", "warning");
+      }
 
       // Check if the response indicates conversation end
       if (data.phase && (data.phase.includes("closure") || data.phase === "Conversation End")) {
@@ -213,13 +246,22 @@ export default function ChatPage() {
 
   return (
     <div className="chat-container">
+      <div className="notification-container">
+        {notifications.map(notification => (
+          <div key={notification.id} className={`notification-banner ${notification.type}`}>
+            <span className="notification-icon">{notification.message.split(' ')[0]}</span>
+            <span className="notification-message">{notification.message}</span>
+          </div>
+        ))}
+      </div>
+
       <div className="chat-header">
         <div className="chat-header-left">
           {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
         </div>
 
         <div className="chat-header-center">
-          <h2 className="chat-title">GigPlus Support Chat</h2>
+          <h2 className="chat-title">GigPlus Support Chat Simulation</h2>
         </div>
 
         <div className="chat-header-right">
@@ -246,6 +288,7 @@ export default function ChatPage() {
           <div
             key={idx}
             className={`message ${msg.sender === "user" ? "user-message" : "bot-message"}`}
+            data-welcome={msg.isWelcome ? "true" : "false"}
           >
             <div className="message-content">
               <p>{msg.text}</p>

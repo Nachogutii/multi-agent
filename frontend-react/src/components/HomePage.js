@@ -24,6 +24,7 @@ export default function HomePage() {
       fetch("http://localhost:8000/api/reset", { method: "POST" })
         .then(() => {
           localStorage.removeItem("chatMessages");
+          localStorage.removeItem("isConversationEnded");
           navigate("/chat");
         })
         .catch((err) => {
