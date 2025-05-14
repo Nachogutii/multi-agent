@@ -23,6 +23,8 @@ export default function ChatPage() {
   const [scenario, setScenario] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
+  const [isConversationEnded, setIsConversationEnded] = useState(false);
+  const [lastMessageAllowed, setLastMessageAllowed] = useState(false);
   const [typingPhrase, setTypingPhrase] = useState(typingPhrases[0]);
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -157,7 +159,7 @@ export default function ChatPage() {
     const newMessage = { sender: "user", text: userInput };
     setMessages((prev) => [...prev, newMessage]);
     setLoading(true);
-    setUserInput(""); // Limpiar el input inmediatamente
+    setUserInput("");
 
     try {
       const res = await fetch("http://localhost:8000/api/chat", {
@@ -166,6 +168,15 @@ export default function ChatPage() {
         body: JSON.stringify({ text: userInput, phase: "exploration" })
       });
       const data = await res.json();
+
+      // Check if the response indicates conversation end
+      if (data.phase && (data.phase.includes("closure") || data.phase === "Conversation End")) {
+        if (!lastMessageAllowed) {
+          setLastMessageAllowed(true);
+        } else {
+          setIsConversationEnded(true);
+        }
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -243,29 +254,37 @@ export default function ChatPage() {
 
       <form className="input-container" onSubmit={sendMessage}>
         <img src="/copilot_logo.png" alt="Copilot Logo" className="copilot-logo" />
-        <input
-          type="text"
-          className="message-input"
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          placeholder={loading ? "Waiting for response..." : "Type your message..."}
-          disabled={loading}
-        />
-        <button
-          type="button"
-          className={`voice-button ${listening ? 'listening' : ''}`}
-          onClick={recognizeSpeech}
-          disabled={loading || listening}
-        >
-          {listening ? 'Recording' : 'Speak'}
-        </button>
-        <button 
-          type="submit" 
-          className="send-button"
-          disabled={loading}
-        >
-          Send
-        </button>
+        {!isConversationEnded ? (
+          <>
+            <input
+              type="text"
+              className="message-input"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder={loading ? "Waiting for response..." : "Type your message..."}
+              disabled={loading}
+            />
+            <button
+              type="button"
+              className={`voice-button ${listening ? 'listening' : ''}`}
+              onClick={recognizeSpeech}
+              disabled={loading || listening}
+            >
+              {listening ? 'Recording' : 'Speak'}
+            </button>
+            <button 
+              type="submit" 
+              className="send-button"
+              disabled={loading}
+            >
+              Send
+            </button>
+          </>
+        ) : (
+          <div className="conversation-ended-message">
+            Conversation ended. Thank you for your time!
+          </div>
+        )}
         <button
           type="button"
           className="feedback-button"

@@ -405,3 +405,34 @@
     transform: translateX(0);
   }
 }
+
+.conversation-ended-message {
+  flex: 1;
+  text-align: center;
+  color: #C9D1D9;
+  font-size: 14px;
+  padding: 10px;
+  background-color: rgba(115, 114, 133, 0.2);
+  border-radius: 6px;
+  margin: 0 10px;
+}
+
+.feedback-button {
+  padding: 10px 15px;
+  background-color: #040121;
+  color: #C9D1D9;
+  border: 1px solid #1a0b4d00;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  min-width: 45px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.feedback-button:hover {
+  background-color: #1A0B4D;
+}
