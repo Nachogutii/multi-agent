@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-openai
+openai==1.70.0
 python-dotenv
 requests
 supabase
