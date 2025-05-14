@@ -23,7 +23,9 @@ export default function ChatPage() {
   const [scenario, setScenario] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
-  const [isConversationEnded, setIsConversationEnded] = useState(false);
+  const [isConversationEnded, setIsConversationEnded] = useState(() => {
+    return localStorage.getItem("isConversationEnded") === "true";
+  });
   const [lastMessageAllowed, setLastMessageAllowed] = useState(false);
   const [typingPhrase, setTypingPhrase] = useState(typingPhrases[0]);
   const synthesizerRef = useRef(null);
@@ -31,8 +33,9 @@ export default function ChatPage() {
 
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
+    localStorage.setItem("isConversationEnded", isConversationEnded);
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isConversationEnded]);
 
   useEffect(() => {
     const storedScenario = localStorage.getItem("scenario");
@@ -198,6 +201,14 @@ export default function ChatPage() {
 
   const handleFeedbackClick = () => {
     navigate("/feedback");
+  };
+
+  const handleReset = () => {
+    setMessages([]);
+    setIsConversationEnded(false);
+    setLastMessageAllowed(false);
+    localStorage.removeItem("chatMessages");
+    localStorage.removeItem("isConversationEnded");
   };
 
   return (
