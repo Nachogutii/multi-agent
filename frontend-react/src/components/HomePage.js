@@ -21,19 +21,19 @@ export default function HomePage() {
       localStorage.setItem('scenarioType', 'copilot');
       navigate("/copilot-chat");
     } else {
-      fetch("http://localhost:8000/api/reset", { method: "POST" })
-        .then(() => {
-          localStorage.removeItem("chatMessages");
+    fetch("http://localhost:8000/api/reset", { method: "POST" })
+      .then(() => {
+        localStorage.removeItem("chatMessages");
           localStorage.removeItem("isConversationEnded");
-          navigate("/chat");
-        })
-        .catch((err) => {
-          console.error("Error starting new simulation:", err);
+        navigate("/chat");
+      })
+      .catch((err) => {
+        console.error("Error starting new simulation:", err);
           setLoadingStates(prev => ({
             ...prev,
             [scenarioType]: false
           }));
-        });
+      });
     }
   };
 
@@ -46,25 +46,25 @@ export default function HomePage() {
         </div>
 
         <div className="scenarios-container">
-          <div className="scenario-card">
-            <h2>Copilot Welcome</h2>
-            <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
-            <p><strong>Difficulty:</strong> Intermediate</p>
+        <div className="scenario-card">
+          <h2>Copilot Welcome</h2>
+          <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
+          <p><strong>Difficulty:</strong> Intermediate</p>
 
-            <button
-              className="start-button"
+          <button
+            className="start-button"
               onClick={() => handleStartSimulation('welcome')}
               disabled={loadingStates.welcome || loadingStates.copilot}
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
               {loadingStates.welcome ? (
-                <>
-                  <span className="spinner" /> Starting simulation...
-                </>
-              ) : (
-                "Start Simulation"
-              )}
-            </button>
+              <>
+                <span className="spinner" /> Starting simulation...
+              </>
+            ) : (
+              "Start Simulation"
+            )}
+          </button>
           </div>
 
           <div className="scenario-card">
