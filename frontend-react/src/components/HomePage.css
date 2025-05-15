@@ -76,6 +76,11 @@
   cursor: pointer;
   font-size: 16px;
   transition: background-color 0.2s ease;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
 }
   
 .start-button:hover {
@@ -102,12 +107,20 @@
 }
 
 .spinner {
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #281e70;
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  animation: spin 0.8s linear infinite;
+  border: 2px solid #f3f3f3 !important;
+  border-top: 2px solid #281e70 !important;
+  border-radius: 50% !important;
+  margin-top: 23px !important;
+  width: 20px !important;
+  height: 20px !important;
+  animation: spin 0.8s linear infinite !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: 10px !important;
+  flex-shrink: 0 !important;
+  position: absolute !important;
+  right: calc(50% - 105px) !important;
 }
   
 @keyframes spin {

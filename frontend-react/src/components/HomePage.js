@@ -59,7 +59,7 @@ export default function HomePage() {
           >
               {loadingStates.welcome ? (
               <>
-                <span className="spinner" /> Starting simulation...
+                Starting simulation... <span className="spinner" />
               </>
             ) : (
               "Start Simulation"
@@ -71,7 +71,6 @@ export default function HomePage() {
             <h2>Copilot Chat</h2>
             <p>Interactive chat scenario with predefined responses.</p>
             <p><strong>Difficulty:</strong> Easy</p>
-            <p style={{ color: '#ff4444', fontSize: '0.9rem' }}>Coming soon...</p>
 
             <button
               className="start-button"
