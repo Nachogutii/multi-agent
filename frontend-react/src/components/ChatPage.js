@@ -20,19 +20,26 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showCopilotInfo, setShowCopilotInfo] = useState(false);
   const [scenario, setScenario] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(true);
-  const [isConversationEnded, setIsConversationEnded] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [isConversationEnded, setIsConversationEnded] = useState(() => {
+    return localStorage.getItem("isConversationEnded") === "true";
+  });
   const [lastMessageAllowed, setLastMessageAllowed] = useState(false);
   const [typingPhrase, setTypingPhrase] = useState(typingPhrases[0]);
+  const [notifications, setNotifications] = useState([]);
+  const [isInitialPosition, setIsInitialPosition] = useState(true);
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
+    localStorage.setItem("isConversationEnded", isConversationEnded);
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isConversationEnded]);
 
   useEffect(() => {
     const storedScenario = localStorage.getItem("scenario");
@@ -49,17 +56,22 @@ export default function ChatPage() {
     if (messages.length === 0) {
       setMessages([{
         sender: "bot",
-        text: "👋 Welcome! Before you start, click the ℹ️ info button (top right) to get key instructions."
+        text: "👋 Welcome! Before you start, click the ℹ️ info button (top right) to get key instructions.",
+        isWelcome: true
       }]);
     }
-
-    // Hide tooltip after 5 seconds
-    const timer = setTimeout(() => {
-      setShowTooltip(false);
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, []);
+
+  // Show tooltip when welcome message disappears
+  useEffect(() => {
+    if (!messages.some(msg => msg.isWelcome)) {
+      setShowTooltip(true);
+      const timer = setTimeout(() => {
+        setShowTooltip(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [messages]);
 
   useEffect(() => {
     let phraseInterval;
@@ -152,9 +164,23 @@ export default function ChatPage() {
     });
   };
 
+  const addNotification = (message, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(notification => notification.id !== id));
+    }, 5000);
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!userInput.trim() || loading) return;
+
+    // Remove welcome message and move input container when sending first message
+    if (messages.length === 1 && messages[0].isWelcome) {
+      setMessages([]);
+      setIsInitialPosition(false);
+    }
 
     const newMessage = { sender: "user", text: userInput };
     setMessages((prev) => [...prev, newMessage]);
@@ -168,6 +194,23 @@ export default function ChatPage() {
         body: JSON.stringify({ text: userInput, phase: "exploration" })
       });
       const data = await res.json();
+
+      // Check for business goals and feedback in the response
+      const responseLower = data.response.toLowerCase();
+      console.log("Checking response for banners:", responseLower);
+
+      if (responseLower.includes("demo") || responseLower.includes("show me")) {
+        console.log("Demo detected - showing success banner");
+        addNotification("🎯 Business goal achieved: User requested a demo", "success");
+      }
+      if (responseLower.includes("feedback") || responseLower.includes("helpful") || responseLower.includes("using it")) {
+        console.log("Feedback detected - showing info banner");
+        addNotification("📝 Customer feedback noted: Product insights gathered", "info");
+      }
+      if (responseLower.includes("not ready") || responseLower.includes("later")) {
+        console.log("Not ready detected - showing warning banner");
+        addNotification("📝 Customer feedback noted: They're not ready to buy yet", "warning");
+      }
 
       // Check if the response indicates conversation end
       if (data.phase && (data.phase.includes("closure") || data.phase === "Conversation End")) {
@@ -200,15 +243,32 @@ export default function ChatPage() {
     navigate("/feedback");
   };
 
+  const handleReset = () => {
+    setMessages([]);
+    setIsConversationEnded(false);
+    setLastMessageAllowed(false);
+    localStorage.removeItem("chatMessages");
+    localStorage.removeItem("isConversationEnded");
+  };
+
   return (
     <div className="chat-container">
+      <div className="notification-container">
+        {notifications.map(notification => (
+          <div key={notification.id} className={`notification-banner ${notification.type}`}>
+            <span className="notification-icon">{notification.message.split(' ')[0]}</span>
+            <span className="notification-message">{notification.message}</span>
+          </div>
+        ))}
+      </div>
+
       <div className="chat-header">
         <div className="chat-header-left">
           {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
         </div>
 
         <div className="chat-header-center">
-          <h2 className="chat-title">GigPlus Support Chat</h2>
+          <h2 className="chat-title">GigPlus Support Chat Simulation</h2>
         </div>
 
         <div className="chat-header-right">
@@ -220,12 +280,14 @@ export default function ChatPage() {
             {isMuted ? "🔇" : "🔊"}
           </button>
           <div className="info-button-container">
-            {showTooltip && (
+            {showTooltip && !messages.some(msg => msg.isWelcome) && (
               <div className="info-tooltip">
-                👈 Start here to understand the task!
+                👉 Need to recall the task?
               </div>
             )}
-            <button className="info-button" onClick={() => setShowInfo(true)}>i</button>
+            {!messages.some(msg => msg.isWelcome) && (
+              <button className="info-button" onClick={() => setShowInfo(true)}>i</button>
+            )}
           </div>
         </div>
       </div>
@@ -235,9 +297,21 @@ export default function ChatPage() {
           <div
             key={idx}
             className={`message ${msg.sender === "user" ? "user-message" : "bot-message"}`}
+            data-welcome={msg.isWelcome ? "true" : "false"}
           >
             <div className="message-content">
-              <p>{msg.text}</p>
+              <p>
+                {msg.text}
+                {msg.isWelcome && (
+                  <button 
+                    className="welcome-info-button" 
+                    onClick={() => setShowInfo(true)}
+                    title="Show instructions"
+                  >
+                    i
+                  </button>
+                )}
+              </p>
             </div>
           </div>
         ))}
@@ -252,8 +326,18 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="input-container" onSubmit={sendMessage}>
-        <img src="/copilot_logo.png" alt="Copilot Logo" className="copilot-logo" />
+      <form 
+        className={`input-container ${isInitialPosition ? 'initial-position' : 'moved'}`} 
+        onSubmit={sendMessage}
+      >
+        <div className="copilot-logo-container">
+          <img 
+            src="/copilot_logo.png" 
+            alt="Copilot Logo" 
+            className="copilot-logo" 
+            onClick={() => setShowCopilotInfo(true)}
+          />
+        </div>
         {!isConversationEnded ? (
           <>
             <input
@@ -294,13 +378,32 @@ export default function ChatPage() {
         </button>
       </form>
 
+      {showCopilotInfo && (
+        <>
+          <div className="popup-overlay" onClick={() => setShowCopilotInfo(false)} />
+          <div className="popup">
+            <h3>Chat Controls</h3>
+            <ul>
+              <li>🎤 <strong>Speak:</strong> Write your message by voice</li>
+              <li>📝 <strong>Send:</strong> Send your message</li>
+              <li>📊 <strong>Feedback:</strong> Go to feedback page</li>
+              <li>ℹ️ <strong>Info:</strong> Show chat objectives</li>
+              <li>🔊 <strong>Mute:</strong> Toggle bot voice</li>
+            </ul>
+            <button onClick={() => setShowCopilotInfo(false)} className="popup-close-button">
+              Close
+            </button>
+          </div>
+        </>
+      )}
+
       {showInfo && scenario && (
         <>
           <div className="popup-overlay" onClick={() => setShowInfo(false)} />
           <div className="popup">
             <h3>Scenario Information</h3>
             <ul>
-            <li><strong>Title:</strong> Microsoft Copilot Satisfaction Check</li>
+              <li><strong>Title:</strong> Microsoft Copilot Satisfaction Check</li>
               <li><strong>• Your role:</strong> You are a Copilot Welcome Ambassador<br /><strong>• Case History:</strong> You have been in touch with Rachel via email, and she agreed to a short call<p/><strong>• Your goals:</strong><br />• Have a product led growth conversation with Rachel<br />• Gather Copilot product insights</li>
             </ul>
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
