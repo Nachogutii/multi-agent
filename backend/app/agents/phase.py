@@ -1,9 +1,8 @@
 import json
 from backend.app.services.supabase import SupabasePhasesService
 from backend.app.services.azure_openai import AzureOpenAIClient
-import re
 
-class EvaluatorAgent:
+class PhaseAgent:
     def __init__(self):
         self.supabase_service = SupabasePhasesService()
         assert self.supabase_service.initialize(), "Could not initialize Supabase client"
@@ -11,8 +10,9 @@ class EvaluatorAgent:
         self.phases = {phase['name']: phase for phase in self.supabase_service.get_all_phases()}
         self.success_conditions_achieved = []
         self.llm = AzureOpenAIClient()
-        
-    def extract_json(self, text):
+
+    @staticmethod
+    def extract_json(text):
         import re
         text = re.sub(r"```json|```", "", text, flags=re.IGNORECASE).strip()
         return text
@@ -34,14 +34,9 @@ class EvaluatorAgent:
             - "red_flags_found": list of specific red flags found (empty if none)
         """
         red_flag_response = self.llm.get_response(
-            system_prompt = (
-                "You are a strict JSON generator. "
-                "You must return ONLY a valid JSON object as specified in the instructions, "
-                "with no extra text, no explanations, and no markdown formatting."
-            ),
+            system_prompt="You are an evaluator that only returns valid JSON as specified.",
             user_prompt=f"User message: {user_input}\n\n{red_flag_prompt}"
         )
-        print("LLM raw response:", red_flag_response)
         red_flag_response = self.extract_json(red_flag_response)
         red_flag_result = json.loads(red_flag_response)
         if red_flag_result.get("has_red_flags"):
@@ -70,8 +65,8 @@ class EvaluatorAgent:
                 system_prompt="You are an evaluator that only returns valid JSON as specified.",
                 user_prompt=f"User message: {user_input}\n\n{failure_conditions_prompt}"
             )
-            failure_response_clean = self.extract_json(failure_response)
-            res = json.loads(failure_response_clean)
+            failure_response = self.extract_json(failure_response)
+            res = json.loads(failure_response)
             if res.get('has_failure_conditions'):
                 return {
                     'phase': phase_name,
@@ -100,8 +95,8 @@ class EvaluatorAgent:
                 system_prompt="You are an evaluator that only returns valid JSON as specified.",
                 user_prompt=f"User message: {user_input}\n\n{success_conditions_prompt}"
             )
-            success_response_clean = self.extract_json(success_response)
-            res = json.loads(success_response_clean)
+            success_response = self.extract_json(success_response)
+            res = json.loads(success_response)
             if res.get('has_success_conditions'):
                 return {
                     'phase': phase_name,
@@ -129,8 +124,3 @@ class EvaluatorAgent:
             'observations': []
         }
 
-# Example usage
-if __name__ == "__main__":
-    agent = EvaluatorAgent()
-    result = agent.evaluate("Hello I am Miguel from Microsoft, can you tell me more abour your business goals?", "welcome")
-    print(result)
