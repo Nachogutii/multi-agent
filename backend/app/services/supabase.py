@@ -8,8 +8,6 @@ class SupabasePhasesService:
     def __init__(self):
         """Initialize the Supabase service."""
         load_dotenv()
-        print(os.getenv("SUPABASE_URL"))
-        print(os.getenv("SUPABASE_KEY"))
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_KEY")
         self.url = supabase_url
