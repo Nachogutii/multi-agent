@@ -1,14 +1,16 @@
 from typing import Dict, List, Optional, Any
 from supabase import create_client, Client
-from ..config import settings
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 class SupabasePhasesService:
     """Service for interacting with phases and red_flags tables in Supabase."""
 
     def __init__(self):
         """Initialize the Supabase service."""
-        self.url = settings.supabase_url
-        self.key = settings.supabase_key
+        self.url = os.getenv("SUPABASE_URL")
+        self.key = os.getenv("SUPABASE_KEY")
         self.client: Optional[Client] = None
 
     def initialize(self) -> bool:
