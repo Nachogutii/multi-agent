@@ -17,8 +17,13 @@ class PhaseAgent:
         text = re.sub(r"```json|```", "", text, flags=re.IGNORECASE).strip()
         return text
 
-    def evaluate(self, user_input, current_phase_name):
+    def evaluate(self, user_input, current_phase_name, accumulated_conditions=None):
+        if accumulated_conditions is None:
+            accumulated_conditions = []
+        
         current_phase = self.phases[current_phase_name]
+        print(f"[DEBUG] Evaluating message for phase '{current_phase_name}'")
+        print(f"[DEBUG] Accumulated conditions: {accumulated_conditions}")
 
         # 1. Check red flags
         red_flag_prompt = f"""
@@ -79,48 +84,61 @@ class PhaseAgent:
             if not phase:
                 continue
             conditions = phase.get('conditions', [])
+            
+            # Si no hay condiciones, podemos pasar directamente a esta fase
+            if not conditions:
+                print(f"[DEBUG] Phase '{phase_name}' has no conditions, transitioning directly")
+                return {
+                    'phase': phase_name,
+                    'observations': []
+                }
+            
             success_conditions_prompt = f"""
-                Evaluate if the message matches all of the following conditions
+                Evaluate if the message matches any of the following conditions.
+                The user might have already satisfied some conditions in previous messages.
 
-                ## Conditions 
+                ## All required conditions 
                 {conditions}
+                
+                ## Already satisfied conditions from previous messages
+                {accumulated_conditions}
+                
+                ## Current message to evaluate
+                "{user_input}"
 
                 ## response
 
                 Return ONLY a JSON with two fields:
-                - "has_success_conditions": boolean (true ONLY if the message matches all of the conditions)
-                - "success_conditions_found": list of specific conditions found (empty if none)
+                - "has_success_conditions": boolean (true ONLY if ALL required conditions are now satisfied, 
+                  either from previous messages or this message)
+                - "success_conditions_found": list of NEW conditions found in THIS message (not including previously satisfied ones)
             """
             success_response = self.llm.get_response(
                 system_prompt="You are an evaluator that only returns valid JSON as specified.",
-                user_prompt=f"User message: {user_input}\n\n{success_conditions_prompt}"
+                user_prompt=success_conditions_prompt
             )
             success_response = self.extract_json(success_response)
             res = json.loads(success_response)
-            if res.get('has_success_conditions'):
+            print(f"[DEBUG] Phase '{phase_name}' evaluation result: {res}")
+            
+            # Add newly found conditions to accumulated ones
+            new_conditions = res.get('success_conditions_found', [])
+            all_conditions = accumulated_conditions.copy()
+            for condition in new_conditions:
+                if condition not in all_conditions:
+                    all_conditions.append(condition)
+            
+            # Check if we have all required conditions now
+            if sorted(all_conditions) == sorted(conditions) or res.get('has_success_conditions'):
+                print(f"[DEBUG] All conditions met for phase '{phase_name}', transitioning")
                 return {
                     'phase': phase_name,
-                    'observations': conditions
+                    'observations': all_conditions
                 }
-            else:
-                # Track which success conditions have been achieved
-                for item in res.get('success_conditions_found', []):
-                    if item not in self.success_conditions_achieved:
-                        self.success_conditions_achieved.append(item)
-                if sorted(self.success_conditions_achieved) == sorted(conditions):
-                    return {
-                        'phase': phase_name,
-                        'observations': conditions
-                    }
-                else:
-                    return {
-                        'phase': current_phase_name,
-                        'observations': []
-                    }
-
-        # If no match, stay in current phase
+        
+        # No transition, return updated accumulated conditions
         return {
             'phase': current_phase_name,
-            'observations': []
+            'observations': accumulated_conditions + [c for c in new_conditions if c not in accumulated_conditions]
         }
 
