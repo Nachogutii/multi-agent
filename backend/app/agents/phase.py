@@ -21,6 +21,9 @@ class PhaseAgent:
         if accumulated_conditions is None:
             accumulated_conditions = []
         
+        # Initialize new_conditions here to avoid UnboundLocalError
+        new_conditions = []
+        
         current_phase = self.phases[current_phase_name]
         print(f"[DEBUG] Evaluating message for phase '{current_phase_name}'")
         print(f"[DEBUG] Accumulated conditions: {accumulated_conditions}")

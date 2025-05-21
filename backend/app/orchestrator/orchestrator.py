@@ -1,10 +1,13 @@
 from backend.app.agents.phase import PhaseAgent
 from backend.app.agents.customer import CustomerAgent
+from backend.app.services.supabase import SupabasePhasesService
 
 class SimpleOrchestrator:
     def __init__(self):
         self.phase_agent = PhaseAgent()
         self.customer_agent = CustomerAgent()
+        self.supabase_service = SupabasePhasesService()
+        self.supabase_service.initialize()
         # Set initial phase
         self.current_phase = "welcome"
         # Dictionary to track conditions by phase
@@ -13,6 +16,18 @@ class SimpleOrchestrator:
     def process_message(self, user_message: str):
         # Get current accumulated conditions for this phase
         current_conditions = self.conditions_by_phase.get(self.current_phase, [])
+        
+        # Get phase data from database
+        phase_data = self.supabase_service.get_phase_by_name(self.current_phase)
+        if phase_data and "id" in phase_data:
+            # Get conditions from success phases
+            success_conditions = self.supabase_service.get_success_phase_conditions(self.current_phase)
+            
+            # Add success phase conditions to current conditions if they don't already exist
+            for condition in success_conditions:
+                if condition not in current_conditions:
+                    current_conditions.append(condition)
+        
         print(f"[DEBUG] Current phase: {self.current_phase}")
         print(f"[DEBUG] Accumulated conditions: {current_conditions}")
         
@@ -42,10 +57,11 @@ class SimpleOrchestrator:
             self.conditions_by_phase[self.current_phase] = updated_conditions
             print(f"[DEBUG] Updated conditions for phase '{self.current_phase}': {updated_conditions}")
         else:
-            # Phase changed, reset conditions for new phase
+            # Phase changed, initialize conditions for new phase from database
+            next_success_conditions = self.supabase_service.get_success_phase_conditions(next_phase)
+            self.conditions_by_phase[next_phase] = next_success_conditions
             print(f"[DEBUG] Phase changed from '{self.current_phase}' to '{next_phase}'")
-            self.conditions_by_phase[next_phase] = []
-            print(f"[DEBUG] Reset conditions for new phase '{next_phase}'")
+            print(f"[DEBUG] Initial conditions for new phase from success phases: {next_success_conditions}")
         
         # Update phase in customer agent
         self.customer_agent.set_phase(next_phase)
