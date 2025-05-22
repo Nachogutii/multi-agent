@@ -40,8 +40,8 @@ class AzureOpenAIClient:
                     "content": user_prompt,
                 }
             ],
-            max_tokens=4096,
-            temperature=1.0,
+            max_tokens=500,
+            temperature=1,
             model=deployment
         )
         return response.choices[0].message.content
