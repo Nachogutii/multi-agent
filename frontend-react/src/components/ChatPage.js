@@ -212,15 +212,15 @@ export default function ChatPage() {
       console.log("Checking response for banners:", responseLower);
       if (responseLower.includes("demo") || responseLower.includes("show me")) {
         console.log("Demo detected - showing success banner");
-        addNotification("🎯 Business goal achieved: User requested a demo", "success");
+        addNotification("Business goal achieved: User requested a demo", "success");
       }
       if (responseLower.includes("feedback") || responseLower.includes("helpful") || responseLower.includes("using it")) {
         console.log("Feedback detected - showing info banner");
-        addNotification("📝 Customer feedback noted: Product insights gathered", "info");
+        addNotification("Customer feedback noted: Product insights gathered", "info");
       }
       if (responseLower.includes("not ready") || responseLower.includes("later")) {
         console.log("Not ready detected - showing warning banner");
-        addNotification("📝 Customer feedback noted: They're not ready to buy yet", "warning");
+        addNotification("Customer feedback noted: They're not ready to buy yet", "warning");
       }
       if (data.phase && (data.phase.includes("closure") || data.phase === "Conversation End")) {
         if (!lastMessageAllowed) {
@@ -418,11 +418,11 @@ export default function ChatPage() {
           <div className="popup">
             <h3>Chat Controls</h3>
             <ul>
-              <li>🎤 <strong>Speak:</strong> Write your message by voice</li>
-              <li>📝 <strong>Send:</strong> Send your message</li>
-              <li>📊 <strong>Feedback:</strong> Go to feedback page</li>
-              <li>ℹ️ <strong>Info:</strong> Show chat objectives</li>
-              <li>🔊 <strong>Mute:</strong> Toggle bot voice</li>
+              <li><strong>Speak:</strong> Write your message by voice</li>
+              <li><strong>Send:</strong> Send your message</li>
+              <li><strong>Feedback:</strong> Go to feedback page</li>
+              <li><strong>Info:</strong> Show chat objectives</li>
+              <li><strong>Mute:</strong> Toggle bot voice</li>
             </ul>
             <button onClick={() => setShowCopilotInfo(false)} className="popup-close-button">
               Close
