@@ -13,38 +13,28 @@ export default function FeedbackPage() {
   useEffect(() => {
     if (effectRan.current) return;
     effectRan.current = true;
-  
     const timestamp = new Date().getTime();
     const path = routeLocation.pathname;
     const sessionId = btoa(`${path}_${timestamp}`).slice(0, 32);
-  
     const feedbackKey = `feedback_sent_${sessionId}`;
     const conversationKey = `conversation_sent_${sessionId}`;
-  
     const feedbackAlreadySent = localStorage.getItem(feedbackKey);
     const conversationAlreadySent = localStorage.getItem(conversationKey);
-
     const storedMessages = localStorage.getItem("chatMessages");
     const conversation = storedMessages ? JSON.parse(storedMessages) : [];
-  
     if (feedbackAlreadySent && conversationAlreadySent) {
-      console.log("✅ Feedback y conversación ya enviados para esta sesión");
       return;
     }
-  
     fetch("http://localhost:8000/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Structured feedback received:", data);
         setFeedback(data);
-  
         if (data?.metrics) {
           submitFeedbackToSupabase({
             ...data,
             sessionId,
           }).then((feedbackId) => {
             localStorage.setItem(feedbackKey, "true");
-  
             if (
               feedbackId &&
               conversation.length > 0 &&
@@ -58,17 +48,15 @@ export default function FeedbackPage() {
         }
       })
       .catch((err) => {
-        console.error("❌ Error fetching feedback:", err);
         setFeedback({ error: "Error fetching feedback." });
       });
   }, [routeLocation.pathname]);
-  
+
   const renderSection = (title, items, icon, colorClass) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
       <div className={`feedback-card ${colorClass}`}>
         <div className="card-header">
-          <span className="card-icon">{icon}</span>
           <h3>{title}</h3>
         </div>
         <ul className="feedback-list">
@@ -84,7 +72,6 @@ export default function FeedbackPage() {
     return (
       <div className="feedback-card training-card">
         <div className="card-header">
-          <span className="card-icon">🎓</span>
           <h3>Training Recommendations</h3>
         </div>
         <ul className="feedback-list">
@@ -108,38 +95,25 @@ export default function FeedbackPage() {
   };
 
   const renderOverallScore = (metrics, customScore) => {
-    // If customScore exists, use that value, otherwise use the original calculation
     if (customScore !== undefined && customScore !== null) {
-      // Determine message based on score
       let scoreMessage = "";
-      let emoji = "";
-      
       if (customScore >= 90) {
         scoreMessage = "Excellent job! Your conversation was outstanding.";
-        emoji = "🏆";
       } else if (customScore >= 80) {
         scoreMessage = "Great work! Your conversation skills are impressive.";
-        emoji = "🌟";
       } else if (customScore >= 70) {
         scoreMessage = "Good job! You're on the right track.";
-        emoji = "👍";
       } else if (customScore >= 60) {
         scoreMessage = "Not bad! With a few improvements, you'll do even better.";
-        emoji = "🔍";
       } else {
         scoreMessage = "There's room for improvement. Review the suggestions below.";
-        emoji = "📝";
       }
-      
-      // Render with custom score
       return (
         <div className="feedback-score-card">
           <div className="score-header">
             <h2>
               Conversation Performance
-              <span className="custom-score-indicator">*</span>
             </h2>
-            <div className="score-emoji">{emoji}</div>
           </div>
           <div className="score-content">
             <div className="score-value">
@@ -153,39 +127,26 @@ export default function FeedbackPage() {
         </div>
       );
     } else {
-      // Original behavior as fallback
       if (!metrics || typeof metrics !== "object") return null;
       const values = Object.values(metrics);
       if (!values.length) return null;
       const average = (values.reduce((acc, v) => acc + v, 0) / values.length).toFixed(1);
-      
-      // Determine message using the original scale
       let scoreMessage = "";
-      let emoji = "";
-      
       if (average >= 4.5) {
         scoreMessage = "Excellent job! Your conversation was outstanding.";
-        emoji = "🏆";
       } else if (average >= 4.0) {
         scoreMessage = "Great work! Your conversation skills are impressive.";
-        emoji = "🌟";
       } else if (average >= 3.5) {
         scoreMessage = "Good job! You're on the right track.";
-        emoji = "👍";
       } else if (average >= 3.0) {
         scoreMessage = "Not bad! With a few improvements, you'll do even better.";
-        emoji = "🔍";
       } else {
         scoreMessage = "There's room for improvement. Review the suggestions below.";
-        emoji = "📝";
       }
-      
-      // Render with original score
       return (
         <div className="feedback-score-card">
           <div className="score-header">
             <h2>Conversation Performance</h2>
-            <div className="score-emoji">{emoji}</div>
           </div>
           <div className="score-content">
             <div className="score-value">
@@ -222,22 +183,19 @@ export default function FeedbackPage() {
           Here's a detailed analysis of your conversation. Use these insights to improve your future interactions.
         </p>
       </div>
-      
       {renderOverallScore(feedback.metrics, feedback.custom_score)}
-      
       <div className="feedback-sections">
-        {renderSection("Key Strengths", feedback.strength, "💪", "strength-card")}
-        {renderSection("Improvement Suggestions", feedback.suggestions, "💡", "suggestion-card")}
-        {renderSection("Issues to Address", feedback.issues, "⚠️", "issue-card")}
+        {renderSection("Key Strengths", feedback.strength, null, "strength-card")}
+        {renderSection("Improvement Suggestions", feedback.suggestions, null, "suggestion-card")}
+        {renderSection("Issues to Address", feedback.issues, null, "issue-card")}
         {renderTrainingSection()}
       </div>
-      
       <div className="feedback-actions">
         <button onClick={() => navigate("/chat")} className="action-button chat-button">
-          <span className="button-icon">💬</span> Back to Chat
+          <span className="button-icon"></span> Back to Chat
         </button>
         <button onClick={() => navigate("/")} className="action-button home-button">
-          <span className="button-icon">🏠</span> Back to Lobby
+          <span className="button-icon"></span> Back to Lobby
         </button>
       </div>
     </div>
