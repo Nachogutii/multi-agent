@@ -31,7 +31,9 @@ export default function ChatPage() {
   const [lastMessageAllowed, setLastMessageAllowed] = useState(false);
   const [typingPhrase, setTypingPhrase] = useState(typingPhrases[0]);
   const [notifications, setNotifications] = useState([]);
-  const [isInitialPosition, setIsInitialPosition] = useState(true);
+  const [isInitialPosition, setIsInitialPosition] = useState(() => {
+    return initialMessages.length === 0 || (initialMessages.length === 1 && initialMessages[0].isWelcome);
+  });
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -40,7 +42,6 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
     localStorage.setItem("isConversationEnded", isConversationEnded);
-    scrollToBottom();
   }, [messages, isConversationEnded]);
 
   useEffect(() => {
@@ -101,8 +102,20 @@ export default function ChatPage() {
   }, [userInput]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: "smooth",
+        block: "end"
+      });
+    }
   };
+
+  useEffect(() => {
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }, [messages]);
 
   const speakResponse = (text) => {
     if (isMuted || !speechKey || !speechRegion || !text) return;
@@ -223,17 +236,14 @@ export default function ChatPage() {
         addNotification("Customer feedback noted: They're not ready to buy yet", "warning");
       }
       if (data.phase && (data.phase.includes("closure") || data.phase === "Conversation End")) {
-        if (!lastMessageAllowed) {
-          setLastMessageAllowed(true);
-        } else {
-          setIsConversationEnded(true);
-        }
+        setIsConversationEnded(true);
       }
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: data.response }
       ]);
       speakResponse(data.response);
+      scrollToBottom();
     } catch (err) {
       console.error("Error connecting to backend:", err);
       setMessages((prev) => [
