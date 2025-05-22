@@ -17,8 +17,8 @@ class SimpleOrchestrator:
         # Get current accumulated conditions for this phase
         current_conditions = self.conditions_by_phase.get(self.current_phase, [])
         
-        print(f"[DEBUG] Current phase: {self.current_phase}")
-        print(f"[DEBUG] Accumulated conditions: {current_conditions}")
+        print(f"[INFO] Current phase: {self.current_phase}")
+        print(f"[INFO] Accumulated conditions: {current_conditions}")
         
         # Evaluate message with current conditions
         phase_result = self.phase_agent.evaluate(
@@ -26,7 +26,7 @@ class SimpleOrchestrator:
             self.current_phase,
             current_conditions
         )
-        print(f"[DEBUG] PhaseAgent result: {phase_result}")
+        print(f"[INFO] Evaluation result: {phase_result}")
 
         # Handle conversation end
         if phase_result.get("end"):
@@ -44,12 +44,11 @@ class SimpleOrchestrator:
         if next_phase == self.current_phase:
             # Still in same phase, update conditions
             self.conditions_by_phase[self.current_phase] = updated_conditions
-            print(f"[DEBUG] Updated conditions for phase '{self.current_phase}': {updated_conditions}")
+            print(f"[INFO] Updated conditions: {updated_conditions}")
         else:
             # Phase changed, initialize conditions for new phase
             self.conditions_by_phase[next_phase] = []
-            print(f"[DEBUG] Phase changed from '{self.current_phase}' to '{next_phase}'")
-            print(f"[DEBUG] Initial conditions for new phase: []")
+            print(f"[INFO] Phase changed: {self.current_phase} -> {next_phase}")
         
         # Update phase in customer agent
         self.customer_agent.set_phase(next_phase)

@@ -11,9 +11,7 @@ class CustomerAgent:
         # Load scenario context or use default
         if scenario_context:
             self.general_context = scenario_context
-            print(f"✅ Using scenario context from Supabase ({len(scenario_context)} characters)")
-            preview = scenario_context[:200] + "..." if len(scenario_context) > 200 else scenario_context
-            print(f"📄 CONTEXT PREVIEW:\n{preview}")
+            print(f"[INFO] Using scenario context from Supabase")
         else:
             self.general_context = """
             **B. Customer Profile:**
@@ -21,11 +19,9 @@ class CustomerAgent:
             - She's a marketing professional looking to improve workflow efficiency.
             - Has some experience with Microsoft 365 but is curious about new Copilot features.
             """
-            print("⚠️ No scenario context provided, using default profile.")
-            print(f"📄 DEFAULT CONTEXT:\n{self.general_context}")
+            print("[INFO] Using default customer profile")
 
         self.profile = self._load_customer_profile()
-        print(f"👤 PROFILE LOADED:\n{self.profile[:200]}..." if len(self.profile) > 200 else self.profile)
         self.conversation_history = []
 
         # Load phases from Supabase
@@ -82,11 +78,11 @@ class CustomerAgent:
         # Get the system_prompt of the current phase
         phase = self.phases.get(self.current_phase_name)
         if not phase:
-            print(f"⚠️ Phase '{self.current_phase_name}' not found. Using default system prompt.")
+            print(f"[INFO] Phase '{self.current_phase_name}' not found. Using default system prompt.")
             system_prompt = "You are a helpful assistant that only responds as the customer, never as an AI."
         else:
             system_prompt = phase.get("system_prompt", "You are a helpful assistant that only responds as the customer, never as an AI.")
-            print(f"[DEBUG] Using system_prompt for phase '{self.current_phase_name}':\n{system_prompt}\n")
+            print(f"[INFO] Customer in phase: {self.current_phase_name}")
 
         combined_prompt = self._build_prompt(user_message)
         try:
@@ -99,14 +95,14 @@ class CustomerAgent:
             self.conversation_history.append({"role": "assistant", "content": customer_response})
             return customer_response
         except Exception as e:
-            print(f"Error generating customer response: {e}")
+            print(f"[ERROR] Failed to generate customer response: {e}")
             return "I'm not sure how to respond to that right now."
 
     def set_phase(self, phase_name: str):
         if phase_name in self.phases:
             self.current_phase_name = phase_name
         else:
-            print(f"Phase '{phase_name}' not found. Keeping current phase.")
+            print(f"[WARNING] Phase '{phase_name}' not found. Keeping current phase.")
 
     def generate_terminal_response(self) -> str:
         closing_phrases = [
