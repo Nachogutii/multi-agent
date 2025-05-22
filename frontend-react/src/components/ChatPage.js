@@ -316,7 +316,7 @@ export default function ChatPage() {
           {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
         </div>
         <div className="chat-header-center">
-          <h2 className="chat-title">GigPlus Support Chat Simulation</h2>
+          <h2 className="chat-title" onClick={() => navigate("/")}>GigPlus Support Chat Simulation</h2>
         </div>
         <div className="chat-header-right">
           <button
@@ -423,6 +423,7 @@ export default function ChatPage() {
               <li><strong>Feedback:</strong> Go to feedback page</li>
               <li><strong>Info:</strong> Show chat objectives</li>
               <li><strong>Mute:</strong> Toggle bot voice</li>
+              <li><strong>Title</strong> Back to lobby</li>
             </ul>
             <button onClick={() => setShowCopilotInfo(false)} className="popup-close-button">
               Close
