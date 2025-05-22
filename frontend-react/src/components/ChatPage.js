@@ -65,11 +65,15 @@ export default function ChatPage() {
   // Show tooltip when welcome message disappears
   useEffect(() => {
     if (!messages.some(msg => msg.isWelcome)) {
-      setShowTooltip(true);
-      const timer = setTimeout(() => {
-        setShowTooltip(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+      const showTooltipInterval = setInterval(() => {
+        setShowTooltip(true);
+        const hideTimeout = setTimeout(() => {
+          setShowTooltip(false);
+        }, 5000);
+        return () => clearTimeout(hideTimeout);
+      }, 15000);
+
+      return () => clearInterval(showTooltipInterval);
     }
   }, [messages]);
 

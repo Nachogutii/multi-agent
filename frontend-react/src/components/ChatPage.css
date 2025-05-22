@@ -67,10 +67,13 @@
   padding: 16px;
   overflow-y: auto;
   background-color: #040121;
+  max-width: 837px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .message {
-  max-width: 60%;
+  max-width: 80%;
   margin-bottom: 16px;
   padding: 10px;
   border-radius: 10px;
@@ -117,7 +120,8 @@
   align-items: center;
   gap: 10px;
   border: 1px solid #ffffff17;
-  width: 40%;
+  max-width: 837px;
+  width: 100%;
   margin: 0 auto 20px auto;
   border-radius: 14px;
   transition: all 0.3s ease;
@@ -130,6 +134,8 @@
   height: 90px;
   transform: translate(-50%, -50%);
   margin: 0;
+  max-width: 800px;
+  width: 100%;
 }
 
 .input-container.moved {
