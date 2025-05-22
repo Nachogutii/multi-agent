@@ -53,8 +53,6 @@ export default function ChatPage() {
         .then((data) => setScenario(data))
         .catch((err) => console.error("Error fetching scenario:", err));
     }
-
-    // Add welcome message if no messages exist
     if (messages.length === 0) {
       setMessages([{
         sender: "bot",
@@ -64,7 +62,6 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Show tooltip when welcome message disappears
   useEffect(() => {
     if (!messages.some(msg => msg.isWelcome)) {
       const showTooltipInterval = setInterval(() => {
@@ -74,7 +71,6 @@ export default function ChatPage() {
         }, 5000);
         return () => clearTimeout(hideTimeout);
       }, 15000);
-
       return () => clearInterval(showTooltipInterval);
     }
   }, [messages]);
@@ -84,13 +80,11 @@ export default function ChatPage() {
     if (loading) {
       let phraseIndex = 0;
       setTypingPhrase(typingPhrases[phraseIndex]);
-      
       phraseInterval = setInterval(() => {
         phraseIndex = (phraseIndex + 1) % typingPhrases.length;
         setTypingPhrase(typingPhrases[phraseIndex]);
       }, 5000);
     }
-
     return () => {
       if (phraseInterval) {
         clearInterval(phraseInterval);
@@ -98,19 +92,25 @@ export default function ChatPage() {
     };
   }, [loading]);
 
+  useEffect(() => {
+    if (textareaRef.current && inputContainerRef.current) {
+      textareaRef.current.style.height = '40px'; 
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      inputContainerRef.current.style.height = (textareaRef.current.scrollHeight + 24) + 'px'; 
+    }
+  }, [userInput]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const speakResponse = (text) => {
     if (isMuted || !speechKey || !speechRegion || !text) return;
-
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
     speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
     const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
     const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
     synthesizerRef.current = synthesizer;
-
     synthesizer.speakTextAsync(
       text,
       () => {
@@ -132,7 +132,6 @@ export default function ChatPage() {
   const toggleMute = () => {
     const newMuteState = !isMuted;
     setIsMuted(newMuteState);
-
     if (newMuteState && synthesizerRef.current) {
       synthesizerRef.current.stopSpeakingAsync(() => {
         synthesizerRef.current.close();
@@ -149,12 +148,10 @@ export default function ChatPage() {
   const recognizeSpeech = async () => {
     if (!speechKey || !speechRegion) return;
     setListening(true);
-
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
     speechConfig.speechRecognitionLanguage = "en-US";
     const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
     const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-
     recognizer.recognizeOnceAsync(result => {
       setListening(false);
       if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
@@ -178,28 +175,24 @@ export default function ChatPage() {
     }, 5000);
   };
 
-  useEffect(() => {
-    if (textareaRef.current && inputContainerRef.current) {
-      textareaRef.current.style.height = '40px'; 
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-      inputContainerRef.current.style.height = (textareaRef.current.scrollHeight + 24) + 'px'; 
-    }
-  }, [userInput]);
-
   const handleTextareaChange = (e) => {
     setUserInput(e.target.value);
+  };
+
+  const handleTextareaKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
+    }
   };
 
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!userInput.trim() || loading) return;
-
-    // Remove welcome message and move input container when sending first message
     if (messages.length === 1 && messages[0].isWelcome) {
       setMessages([]);
       setIsInitialPosition(false);
     }
-
     const newMessage = { sender: "user", text: userInput };
     setMessages((prev) => [...prev, newMessage]);
     setLoading(true);
@@ -208,7 +201,6 @@ export default function ChatPage() {
       textareaRef.current.style.height = '40px';
       inputContainerRef.current.style.height = '';
     }
-
     try {
       const res = await fetch("http://localhost:8000/api/chat", {
         method: "POST",
@@ -216,11 +208,8 @@ export default function ChatPage() {
         body: JSON.stringify({ text: userInput, phase: "exploration" })
       });
       const data = await res.json();
-
-      // Check for business goals and feedback in the response
       const responseLower = data.response.toLowerCase();
       console.log("Checking response for banners:", responseLower);
-
       if (responseLower.includes("demo") || responseLower.includes("show me")) {
         console.log("Demo detected - showing success banner");
         addNotification("🎯 Business goal achieved: User requested a demo", "success");
@@ -233,8 +222,6 @@ export default function ChatPage() {
         console.log("Not ready detected - showing warning banner");
         addNotification("📝 Customer feedback noted: They're not ready to buy yet", "warning");
       }
-
-      // Check if the response indicates conversation end
       if (data.phase && (data.phase.includes("closure") || data.phase === "Conversation End")) {
         if (!lastMessageAllowed) {
           setLastMessageAllowed(true);
@@ -242,7 +229,6 @@ export default function ChatPage() {
           setIsConversationEnded(true);
         }
       }
-
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: data.response }
@@ -255,7 +241,6 @@ export default function ChatPage() {
         { sender: "bot", text: "Error connecting to the backend." }
       ]);
     }
-
     setLoading(false);
   };
 
@@ -283,16 +268,13 @@ export default function ChatPage() {
           </div>
         ))}
       </div>
-
       <div className="chat-header">
         <div className="chat-header-left">
           {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
         </div>
-
         <div className="chat-header-center">
           <h2 className="chat-title">GigPlus Support Chat Simulation</h2>
         </div>
-
         <div className="chat-header-right">
           <button
             className={`mute-button ${isMuted ? 'muted' : ''}`}
@@ -313,7 +295,6 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-
       <div className="messages-container">
         {messages.map((msg, idx) => (
           <div
@@ -347,7 +328,6 @@ export default function ChatPage() {
         )}
         <div ref={messagesEndRef} />
       </div>
-
       <form 
         className={`input-container ${isInitialPosition ? 'initial-position' : 'moved'}`} 
         onSubmit={sendMessage}
@@ -368,6 +348,7 @@ export default function ChatPage() {
               className="message-input"
               value={userInput}
               onChange={handleTextareaChange}
+              onKeyDown={handleTextareaKeyDown}
               placeholder={loading ? "Waiting for response..." : "Type your message..."}
               disabled={loading}
               rows={1}
@@ -402,7 +383,6 @@ export default function ChatPage() {
           Feedback
         </button>
       </form>
-
       {showCopilotInfo && (
         <>
           <div className="popup-overlay" onClick={() => setShowCopilotInfo(false)} />
@@ -421,7 +401,6 @@ export default function ChatPage() {
           </div>
         </>
       )}
-
       {showInfo && scenario && (
         <>
           <div className="popup-overlay" onClick={() => setShowInfo(false)} />
