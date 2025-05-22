@@ -25,10 +25,12 @@
 
 .chat-header-left {
   justify-content: flex-start;
+  margin-left: 36px;
 }
 
 .chat-header-right {
   justify-content: flex-end;
+  margin-right: 36px;
 }
 
 .chat-header-center {
@@ -40,6 +42,12 @@
 .chat-title {
   font-size: 24px;
   margin: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.chat-title:hover {
+  transform: scale(1.1);
 }
 
 .info-button {
@@ -60,6 +68,7 @@
 .info-button:hover {
   background-color: rgba(115, 114, 133, 0.6);
   color: white;
+  transform: scale(1.1);
 }
 
 .messages-container {
@@ -67,10 +76,13 @@
   padding: 16px;
   overflow-y: auto;
   background-color: #040121;
+  max-width: 837px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .message {
-  max-width: 60%;
+  max-width: 80%;
   margin-bottom: 16px;
   padding: 10px;
   border-radius: 10px;
@@ -117,10 +129,14 @@
   align-items: center;
   gap: 10px;
   border: 1px solid #ffffff17;
-  width: 40%;
+  max-width: 837px;
+  width: 100%;
   margin: 0 auto 20px auto;
   border-radius: 14px;
   transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  min-height: 64px;
+  max-height: 174px;
 }
 
 .input-container.initial-position {
@@ -130,6 +146,8 @@
   height: 90px;
   transform: translate(-50%, -50%);
   margin: 0;
+  max-width: 800px;
+  width: 100%;
 }
 
 .input-container.moved {
@@ -164,9 +182,14 @@
   z-index: 1000;
   display: none;
 }
+.copilot-logo:hover{
+  display: block;
+  transform: scale(1.1);
+}
 
 .copilot-logo:hover .copilot-tooltip {
   display: block;
+  
 }
 
 .copilot-tooltip ul {
@@ -195,10 +218,17 @@
   color: #C9D1D9;
   font-size: 14px;
   min-height: 40px;
+  max-height: 150px;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.5;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .message-input::placeholder {
   color: #8B949E;
+  font-family: inherit;
 }
 
 .send-button,
@@ -222,6 +252,7 @@
 .voice-button:hover,
 .feedback-button:hover {
   background-color: #1A0B4D;
+  border: 1px solid #ffffff17;
 }
 
 .voice-button {
@@ -357,6 +388,7 @@
 
 .mute-button:hover {
   background-color: rgba(115, 114, 133, 0.6);
+  transform: scale(1.1);
 }
 
 .mute-button.muted {
@@ -614,4 +646,42 @@
   text-align: center;
   float: none;
   display: block;
+}
+
+.dynamic-button {
+  background: none;
+  border: none;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  height: 40px;
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.icon:hover {
+  filter: brightness(0) invert(1);
+  transform: scale(1.13);
+}
+
+.recording-icon {
+  animation: vibrate 0.7s infinite linear;
+  filter: brightness(0) invert(1) drop-shadow(0 0 4px #ff4444);
+}
+
+@keyframes vibrate {
+  0% { transform: scale(1) rotate(0deg); }
+  20% { transform: scale(1.08) rotate(-5deg); }
+  40% { transform: scale(1) rotate(0deg); }
+  60% { transform: scale(1.08) rotate(5deg); }
+  80% { transform: scale(1) rotate(0deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }

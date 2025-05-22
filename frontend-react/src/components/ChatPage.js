@@ -31,14 +31,17 @@ export default function ChatPage() {
   const [lastMessageAllowed, setLastMessageAllowed] = useState(false);
   const [typingPhrase, setTypingPhrase] = useState(typingPhrases[0]);
   const [notifications, setNotifications] = useState([]);
-  const [isInitialPosition, setIsInitialPosition] = useState(true);
+  const [isInitialPosition, setIsInitialPosition] = useState(() => {
+    return initialMessages.length === 0 || (initialMessages.length === 1 && initialMessages[0].isWelcome);
+  });
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
+  const inputContainerRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
     localStorage.setItem("isConversationEnded", isConversationEnded);
-    scrollToBottom();
   }, [messages, isConversationEnded]);
 
   useEffect(() => {
@@ -51,8 +54,6 @@ export default function ChatPage() {
         .then((data) => setScenario(data))
         .catch((err) => console.error("Error fetching scenario:", err));
     }
-
-    // Add welcome message if no messages exist
     if (messages.length === 0) {
       setMessages([{
         sender: "bot",
@@ -62,14 +63,16 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Show tooltip when welcome message disappears
   useEffect(() => {
     if (!messages.some(msg => msg.isWelcome)) {
-      setShowTooltip(true);
-      const timer = setTimeout(() => {
-        setShowTooltip(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+      const showTooltipInterval = setInterval(() => {
+        setShowTooltip(true);
+        const hideTimeout = setTimeout(() => {
+          setShowTooltip(false);
+        }, 5000);
+        return () => clearTimeout(hideTimeout);
+      }, 15000);
+      return () => clearInterval(showTooltipInterval);
     }
   }, [messages]);
 
@@ -78,13 +81,11 @@ export default function ChatPage() {
     if (loading) {
       let phraseIndex = 0;
       setTypingPhrase(typingPhrases[phraseIndex]);
-      
       phraseInterval = setInterval(() => {
         phraseIndex = (phraseIndex + 1) % typingPhrases.length;
         setTypingPhrase(typingPhrases[phraseIndex]);
       }, 5000);
     }
-
     return () => {
       if (phraseInterval) {
         clearInterval(phraseInterval);
@@ -92,19 +93,37 @@ export default function ChatPage() {
     };
   }, [loading]);
 
+  useEffect(() => {
+    if (textareaRef.current && inputContainerRef.current) {
+      textareaRef.current.style.height = '40px'; 
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      inputContainerRef.current.style.height = (textareaRef.current.scrollHeight + 24) + 'px'; 
+    }
+  }, [userInput]);
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: "smooth",
+        block: "end"
+      });
+    }
   };
+
+  useEffect(() => {
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }, [messages]);
 
   const speakResponse = (text) => {
     if (isMuted || !speechKey || !speechRegion || !text) return;
-
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
     speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
     const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
     const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
     synthesizerRef.current = synthesizer;
-
     synthesizer.speakTextAsync(
       text,
       () => {
@@ -126,7 +145,6 @@ export default function ChatPage() {
   const toggleMute = () => {
     const newMuteState = !isMuted;
     setIsMuted(newMuteState);
-
     if (newMuteState && synthesizerRef.current) {
       synthesizerRef.current.stopSpeakingAsync(() => {
         synthesizerRef.current.close();
@@ -143,12 +161,10 @@ export default function ChatPage() {
   const recognizeSpeech = async () => {
     if (!speechKey || !speechRegion) return;
     setListening(true);
-
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
     speechConfig.speechRecognitionLanguage = "en-US";
     const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
     const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-
     recognizer.recognizeOnceAsync(result => {
       setListening(false);
       if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
@@ -172,21 +188,32 @@ export default function ChatPage() {
     }, 5000);
   };
 
+  const handleTextareaChange = (e) => {
+    setUserInput(e.target.value);
+  };
+
+  const handleTextareaKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!userInput.trim() || loading) return;
-
-    // Remove welcome message and move input container when sending first message
     if (messages.length === 1 && messages[0].isWelcome) {
       setMessages([]);
       setIsInitialPosition(false);
     }
-
     const newMessage = { sender: "user", text: userInput };
     setMessages((prev) => [...prev, newMessage]);
     setLoading(true);
     setUserInput("");
-
+    if (textareaRef.current && inputContainerRef.current) {
+      textareaRef.current.style.height = '40px';
+      inputContainerRef.current.style.height = '';
+    }
     try {
       const res = await fetch("http://localhost:8000/api/chat", {
         method: "POST",
@@ -194,38 +221,29 @@ export default function ChatPage() {
         body: JSON.stringify({ text: userInput, phase: "exploration" })
       });
       const data = await res.json();
-
-      // Check for business goals and feedback in the response
       const responseLower = data.response.toLowerCase();
       console.log("Checking response for banners:", responseLower);
-
       if (responseLower.includes("demo") || responseLower.includes("show me")) {
         console.log("Demo detected - showing success banner");
-        addNotification("🎯 Business goal achieved: User requested a demo", "success");
+        addNotification("Business goal achieved: User requested a demo", "success");
       }
       if (responseLower.includes("feedback") || responseLower.includes("helpful") || responseLower.includes("using it")) {
         console.log("Feedback detected - showing info banner");
-        addNotification("📝 Customer feedback noted: Product insights gathered", "info");
+        addNotification("Customer feedback noted: Product insights gathered", "info");
       }
       if (responseLower.includes("not ready") || responseLower.includes("later")) {
         console.log("Not ready detected - showing warning banner");
-        addNotification("📝 Customer feedback noted: They're not ready to buy yet", "warning");
+        addNotification("Customer feedback noted: They're not ready to buy yet", "warning");
       }
-
-      // Check if the response indicates conversation end
       if (data.phase && (data.phase.includes("closure") || data.phase === "Conversation End")) {
-        if (!lastMessageAllowed) {
-          setLastMessageAllowed(true);
-        } else {
-          setIsConversationEnded(true);
-        }
+        setIsConversationEnded(true);
       }
-
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: data.response }
       ]);
       speakResponse(data.response);
+      scrollToBottom();
     } catch (err) {
       console.error("Error connecting to backend:", err);
       setMessages((prev) => [
@@ -233,7 +251,6 @@ export default function ChatPage() {
         { sender: "bot", text: "Error connecting to the backend." }
       ]);
     }
-
     setLoading(false);
   };
 
@@ -251,6 +268,49 @@ export default function ChatPage() {
     localStorage.removeItem("isConversationEnded");
   };
 
+  // Botón dinámico
+  const renderDynamicButton = () => {
+    if (listening) {
+      // Grabando: micrófono rojo animado
+      return (
+        <button
+          type="button"
+          className="dynamic-button recording"
+          onClick={() => {}}
+          disabled={loading}
+          tabIndex={0}
+        >
+          <img src="/speak.png" alt="Recording" className="icon recording-icon" />
+        </button>
+      );
+    } else if (userInput.trim().length > 0) {
+      // Hay texto: mostrar send
+      return (
+        <button
+          type="submit"
+          className="dynamic-button"
+          disabled={loading}
+          tabIndex={0}
+        >
+          <img src="/send.png" alt="Send" className="icon" />
+        </button>
+      );
+    } else {
+      // Por defecto: micrófono
+      return (
+        <button
+          type="button"
+          className="dynamic-button"
+          onClick={recognizeSpeech}
+          disabled={loading}
+          tabIndex={0}
+        >
+          <img src="/speak.png" alt="Speak" className="icon" />
+        </button>
+      );
+    }
+  };
+
   return (
     <div className="chat-container">
       <div className="notification-container">
@@ -261,16 +321,13 @@ export default function ChatPage() {
           </div>
         ))}
       </div>
-
       <div className="chat-header">
         <div className="chat-header-left">
           {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
         </div>
-
         <div className="chat-header-center">
-          <h2 className="chat-title">GigPlus Support Chat Simulation</h2>
+          <h2 className="chat-title" onClick={() => navigate("/")}>GigPlus Support Chat Simulation</h2>
         </div>
-
         <div className="chat-header-right">
           <button
             className={`mute-button ${isMuted ? 'muted' : ''}`}
@@ -291,7 +348,6 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-
       <div className="messages-container">
         {messages.map((msg, idx) => (
           <div
@@ -325,10 +381,10 @@ export default function ChatPage() {
         )}
         <div ref={messagesEndRef} />
       </div>
-
       <form 
         className={`input-container ${isInitialPosition ? 'initial-position' : 'moved'}`} 
         onSubmit={sendMessage}
+        ref={inputContainerRef}
       >
         <div className="copilot-logo-container">
           <img 
@@ -340,29 +396,18 @@ export default function ChatPage() {
         </div>
         {!isConversationEnded ? (
           <>
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
               className="message-input"
               value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
+              onChange={handleTextareaChange}
+              onKeyDown={handleTextareaKeyDown}
               placeholder={loading ? "Waiting for response..." : "Type your message..."}
               disabled={loading}
+              rows={1}
+              style={{ minHeight: '40px', resize: 'none', overflowY: 'auto', fontFamily: 'inherit' }}
             />
-            <button
-              type="button"
-              className={`voice-button ${listening ? 'listening' : ''}`}
-              onClick={recognizeSpeech}
-              disabled={loading || listening}
-            >
-              {listening ? 'Recording' : 'Speak'}
-            </button>
-            <button 
-              type="submit" 
-              className="send-button"
-              disabled={loading}
-            >
-              Send
-            </button>
+            {renderDynamicButton()}
           </>
         ) : (
           <div className="conversation-ended-message">
@@ -377,18 +422,18 @@ export default function ChatPage() {
           Feedback
         </button>
       </form>
-
       {showCopilotInfo && (
         <>
           <div className="popup-overlay" onClick={() => setShowCopilotInfo(false)} />
           <div className="popup">
             <h3>Chat Controls</h3>
             <ul>
-              <li>🎤 <strong>Speak:</strong> Write your message by voice</li>
-              <li>📝 <strong>Send:</strong> Send your message</li>
-              <li>📊 <strong>Feedback:</strong> Go to feedback page</li>
-              <li>ℹ️ <strong>Info:</strong> Show chat objectives</li>
-              <li>🔊 <strong>Mute:</strong> Toggle bot voice</li>
+              <li><strong>Speak:</strong> Write your message by voice</li>
+              <li><strong>Send:</strong> Send your message</li>
+              <li><strong>Feedback:</strong> Go to feedback page</li>
+              <li><strong>Info:</strong> Show chat objectives</li>
+              <li><strong>Mute:</strong> Toggle bot voice</li>
+              <li><strong>Title</strong> Back to lobby</li>
             </ul>
             <button onClick={() => setShowCopilotInfo(false)} className="popup-close-button">
               Close
@@ -396,7 +441,6 @@ export default function ChatPage() {
           </div>
         </>
       )}
-
       {showInfo && scenario && (
         <>
           <div className="popup-overlay" onClick={() => setShowInfo(false)} />
