@@ -35,6 +35,19 @@ orchestrator = SimpleOrchestrator()
 def chat(msg: Message):
     print(f"[INFO] Received message: {msg.text}, phase: {msg.phase}")
     result = orchestrator.process_message(msg.text)
+    
+    # Handle red flag case
+    if result.get("end"):
+        return {
+            "response": result.get("customer_response", "This conversation has ended."),
+            "phase": result.get("phase", "abrupt_closure"),
+            "feedback": {
+                "observations": result.get("details", []),
+                "accumulated_conditions": []
+            }
+        }
+    
+    # Normal case
     return {
         "response": result["customer_response"],
         "phase": result["phase"],

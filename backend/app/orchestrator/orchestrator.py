@@ -28,12 +28,14 @@ class SimpleOrchestrator:
         )
         print(f"[INFO] Evaluation result: {phase_result}")
 
-        # Handle conversation end
+        # Handle conversation end due to red flags
         if phase_result.get("end"):
+            terminal_response = self.customer_agent.generate_terminal_response()
             return {
+                "end": True,
                 "phase": "abrupt_closure",
-                "customer_response": self.customer_agent.generate_terminal_response(),
-                "phase_observations": phase_result.get("observations", [])
+                "customer_response": terminal_response,
+                "details": phase_result.get("details", [])
             }
         
         # Get next phase and updated conditions
@@ -71,7 +73,7 @@ if __name__ == "__main__":
         user_message = input("Microsoft Rep: ")
         result = orchestrator.process_message(user_message)
         print(f"\n[Phase: {result['phase']}] Customer: {result['customer_response']}\n")
-        print(f"Accumulated conditions: {result['accumulated_conditions']}")
-        if result['phase'] in ["abrupt_closure", "polite_closure"]:
+        print(f"Accumulated conditions: {result.get('accumulated_conditions', [])}")
+        if result.get('end') or result['phase'] in ["abrupt_closure", "polite_closure"]:
             print("Conversation ended by customer.")
             break
