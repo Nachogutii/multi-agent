@@ -36,6 +36,12 @@ class PhaseAgent:
         success_phase_names = [self.phase_id_to_name.get(phase_id) for phase_id in success_phase_ids if phase_id in self.phase_id_to_name]
         print(f"[DEBUG] Success phase IDs: {success_phase_ids}")
         print(f"[DEBUG] Success phase names: {success_phase_names}")
+        
+        # Obtener IDs de fases de fallo y mapearlos a nombres
+        failure_phase_ids = current_phase.get('failure_phases', [])
+        failure_phase_names = [self.phase_id_to_name.get(phase_id) for phase_id in failure_phase_ids if phase_id in self.phase_id_to_name]
+        print(f"[DEBUG] Failure phase IDs: {failure_phase_ids}")
+        print(f"[DEBUG] Failure phase names: {failure_phase_names}")
 
         # 1. Check red flags
         red_flag_prompt = f"""
@@ -61,20 +67,40 @@ class PhaseAgent:
             return {"end": True, "reason": "red_flag", "details": red_flag_result["red_flags_found"]}
 
         # 2. Check failure conditions for each failure phase
-        failure_phase_ids = current_phase.get('failure_phases', [])
-        failure_phase_names = [self.phase_id_to_name.get(phase_id) for phase_id in failure_phase_ids if phase_id in self.phase_id_to_name]
-        
         for phase_name in failure_phase_names:
             phase = self.phases.get(phase_name)
             if not phase:
                 print(f"[DEBUG] Phase '{phase_name}' not found in phases dictionary")
                 continue
-            conditions = phase.get('conditions', [])
+            
+            # Obtener condiciones para esta fase de fallo desde la base de datos
+            phase_id = None
+            for pid, name in self.phase_id_to_name.items():
+                if name == phase_name:
+                    phase_id = pid
+                    break
+            
+            if phase_id:
+                conditions = self.supabase_service.get_phase_conditions(phase_id)
+            else:
+                conditions = phase.get('conditions', [])
+                
+            print(f"[DEBUG] Conditions for failure phase '{phase_name}': {conditions}")
+            
+            # Si no hay condiciones, saltamos esta fase (no pasamos directamente)
+            if not conditions:
+                print(f"[DEBUG] Failure phase '{phase_name}' has no conditions defined, skipping evaluation")
+                continue
+                
             failure_conditions_prompt = f"""
-                Evaluate if the message matches any of the following conditions
+                Evaluate if the message matches any of the following conditions. The context of the conversation is the following:
+                Rachel is a customer from Microsoft who has a small marketing business. Keep in mind for checking the conditions that Rachel is a customer from Microsoft.
 
                 ## Conditions 
                 {conditions}
+                
+                ## The message to evaluate
+                "{user_input}"
 
                 ## response
 
@@ -84,10 +110,11 @@ class PhaseAgent:
             """
             failure_response = self.llm.get_response(
                 system_prompt="You are an evaluator that only returns valid JSON as specified.",
-                user_prompt=f"User message: {user_input}\n\n{failure_conditions_prompt}"
+                user_prompt=failure_conditions_prompt
             )
             failure_response = self.extract_json(failure_response)
             res = json.loads(failure_response)
+            print(f"[DEBUG] Failure phase '{phase_name}' evaluation result: {res}")
             if res.get('has_failure_conditions'):
                 return {
                     'phase': phase_name,
@@ -113,11 +140,11 @@ class PhaseAgent:
             else:
                 conditions = phase.get('conditions', [])
             
-            print(f"[DEBUG] Conditions for phase '{phase_name}': {conditions}")
+            print(f"[DEBUG] Conditions for success phase '{phase_name}': {conditions}")
             
             # Si no hay condiciones, no pasamos directamente, debe cumplir alguna condición
             if not conditions:
-                print(f"[DEBUG] Phase '{phase_name}' has no conditions defined, skipping")
+                print(f"[DEBUG] Success phase '{phase_name}' has no conditions defined, skipping")
                 continue
             
             success_conditions_prompt = f"""
@@ -148,7 +175,7 @@ class PhaseAgent:
             success_response = self.extract_json(success_response)
             print(f"[DEBUG] Raw LLM response for phase '{phase_name}':\n{success_response}")
             res = json.loads(success_response)
-            print(f"[DEBUG] Phase '{phase_name}' evaluation result: {res}")
+            print(f"[DEBUG] Success phase '{phase_name}' evaluation result: {res}")
             
             # Add newly found conditions to accumulated ones
             new_conditions = res.get('success_conditions_found', [])

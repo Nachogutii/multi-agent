@@ -1,0 +1,82 @@
+[
+    {
+      "id": 1,
+      "name": "welcome",
+      "system_prompt": "You have agreed to this call but you do not want to make much time for it...",
+      "scenario_id": 1,
+      "success_phases": [2],
+      "failure_phases": [3]
+    },
+    {
+      "id": 2,
+      "name": "Copilot Positive Experience",
+      "system_prompt": "You have found some aspects of Microsoft Copilot helpful for you marketing agency...",
+      "scenario_id": 1,
+      "success_phases": [4],
+      "failure_phases": [3]
+    },
+    {
+      "id": 3,
+      "name": "Abrupt closure",
+      "system_prompt": "You are EXTREMELY angry and frustrated with this Microsoft agent...",
+      "scenario_id": 1,
+      "success_phases": [10],
+      "failure_phases": [10]
+    },
+    {
+      "id": 4,
+      "name": "Business Goal",
+      "system_prompt": "You are looking to expand your client base...",
+      "scenario_id": 1,
+      "success_phases": [5],
+      "failure_phases": [6]
+    },
+    {
+      "id": 5,
+      "name": "Value Add",
+      "system_prompt": "You are interested in saving time and streamlining processes...",
+      "scenario_id": 1,
+      "success_phases": [7],
+      "failure_phases": [6]
+    },
+    {
+      "id": 6,
+      "name": "Polite Closure",
+      "system_prompt": "You may not find the call particularly helpful at this point...",
+      "scenario_id": 1,
+      "success_phases": [10],
+      "failure_phases": [10]
+    },
+    {
+      "id": 7,
+      "name": "Satisfied Closure",
+      "system_prompt": "Rachel is satisfied with the information and assistance provided...",
+      "scenario_id": 1,
+      "success_phases": [10],
+      "failure_phases": [10]
+    },
+    {
+      "id": 8,
+      "name": "Copilot Negative Experiences",
+      "system_prompt": "You have encountered issues or has negative feedback about Microsoft Copilot...",
+      "scenario_id": 1,
+      "success_phases": [9],
+      "failure_phases": [6]
+    },
+    {
+      "id": 9,
+      "name": "Copilot Negative Experience Handling",
+      "system_prompt": "You have expressed negative feedback, and the agent has addressed it satisfactorily...",
+      "scenario_id": 1,
+      "success_phases": [2, 4],
+      "failure_phases": [6]
+    },
+    {
+      "id": 10,
+      "name": "Conversation End",
+      "system_prompt": "IMPORTANT: Act as a customer who is VERY ANGRY and FRUSTRATED...",
+      "scenario_id": 1,
+      "success_phases": [10],
+      "failure_phases": [10]
+    }
+  ]
