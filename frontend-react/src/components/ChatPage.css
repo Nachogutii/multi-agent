@@ -125,6 +125,9 @@
   margin: 0 auto 20px auto;
   border-radius: 14px;
   transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  min-height: 64px;
+  max-height: 174px;
 }
 
 .input-container.initial-position {
@@ -201,10 +204,17 @@
   color: #C9D1D9;
   font-size: 14px;
   min-height: 40px;
+  max-height: 150px;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.5;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .message-input::placeholder {
   color: #8B949E;
+  font-family: inherit;
 }
 
 .send-button,

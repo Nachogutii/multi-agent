@@ -34,6 +34,8 @@ export default function ChatPage() {
   const [isInitialPosition, setIsInitialPosition] = useState(true);
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
+  const inputContainerRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
@@ -176,6 +178,18 @@ export default function ChatPage() {
     }, 5000);
   };
 
+  useEffect(() => {
+    if (textareaRef.current && inputContainerRef.current) {
+      textareaRef.current.style.height = '40px'; 
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      inputContainerRef.current.style.height = (textareaRef.current.scrollHeight + 24) + 'px'; 
+    }
+  }, [userInput]);
+
+  const handleTextareaChange = (e) => {
+    setUserInput(e.target.value);
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!userInput.trim() || loading) return;
@@ -190,6 +204,10 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, newMessage]);
     setLoading(true);
     setUserInput("");
+    if (textareaRef.current && inputContainerRef.current) {
+      textareaRef.current.style.height = '40px';
+      inputContainerRef.current.style.height = '';
+    }
 
     try {
       const res = await fetch("http://localhost:8000/api/chat", {
@@ -333,6 +351,7 @@ export default function ChatPage() {
       <form 
         className={`input-container ${isInitialPosition ? 'initial-position' : 'moved'}`} 
         onSubmit={sendMessage}
+        ref={inputContainerRef}
       >
         <div className="copilot-logo-container">
           <img 
@@ -344,15 +363,17 @@ export default function ChatPage() {
         </div>
         {!isConversationEnded ? (
           <>
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
               className="message-input"
               value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
+              onChange={handleTextareaChange}
               placeholder={loading ? "Waiting for response..." : "Type your message..."}
               disabled={loading}
+              rows={1}
+              style={{ minHeight: '40px', resize: 'none', overflowY: 'auto', fontFamily: 'inherit' }}
             />
-            <button
+            <button 
               type="button"
               className={`voice-button ${listening ? 'listening' : ''}`}
               onClick={recognizeSpeech}
