@@ -258,6 +258,49 @@ export default function ChatPage() {
     localStorage.removeItem("isConversationEnded");
   };
 
+  // Botón dinámico
+  const renderDynamicButton = () => {
+    if (listening) {
+      // Grabando: micrófono rojo animado
+      return (
+        <button
+          type="button"
+          className="dynamic-button recording"
+          onClick={() => {}}
+          disabled={loading}
+          tabIndex={0}
+        >
+          <img src="/speak.png" alt="Recording" className="icon recording-icon" />
+        </button>
+      );
+    } else if (userInput.trim().length > 0) {
+      // Hay texto: mostrar send
+      return (
+        <button
+          type="submit"
+          className="dynamic-button"
+          disabled={loading}
+          tabIndex={0}
+        >
+          <img src="/send.png" alt="Send" className="icon" />
+        </button>
+      );
+    } else {
+      // Por defecto: micrófono
+      return (
+        <button
+          type="button"
+          className="dynamic-button"
+          onClick={recognizeSpeech}
+          disabled={loading}
+          tabIndex={0}
+        >
+          <img src="/speak.png" alt="Speak" className="icon" />
+        </button>
+      );
+    }
+  };
+
   return (
     <div className="chat-container">
       <div className="notification-container">
@@ -354,21 +397,7 @@ export default function ChatPage() {
               rows={1}
               style={{ minHeight: '40px', resize: 'none', overflowY: 'auto', fontFamily: 'inherit' }}
             />
-            <button 
-              type="button"
-              className={`voice-button ${listening ? 'listening' : ''}`}
-              onClick={recognizeSpeech}
-              disabled={loading || listening}
-            >
-              {listening ? 'Recording' : 'Speak'}
-            </button>
-            <button 
-              type="submit" 
-              className="send-button"
-              disabled={loading}
-            >
-              Send
-            </button>
+            {renderDynamicButton()}
           </>
         ) : (
           <div className="conversation-ended-message">
