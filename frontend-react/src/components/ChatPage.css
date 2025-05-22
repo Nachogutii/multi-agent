@@ -173,9 +173,14 @@
   z-index: 1000;
   display: none;
 }
+.copilot-logo:hover{
+  display: block;
+  transform: scale(1.1);
+}
 
 .copilot-logo:hover .copilot-tooltip {
   display: block;
+  
 }
 
 .copilot-tooltip ul {
@@ -238,6 +243,7 @@
 .voice-button:hover,
 .feedback-button:hover {
   background-color: #1A0B4D;
+  border: 1px solid #ffffff17;
 }
 
 .voice-button {
@@ -649,6 +655,11 @@
   height: 28px;
   display: block;
   filter: brightness(0) invert(1);
+}
+
+.icon:hover {
+  filter: brightness(0) invert(1);
+  transform: scale(1.2);
 }
 
 .recording-icon {
