@@ -1,6 +1,6 @@
 import random
-from backend.app.services.azure_openai import AzureOpenAIClient
-from backend.app.services.supabase import SupabasePhasesService
+from app.services.azure_openai import AzureOpenAIClient
+from app.services.supabase import SupabasePhasesService
 
 class CustomerAgent:
     def __init__(self, scenario_context=None):

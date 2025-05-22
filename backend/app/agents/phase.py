@@ -1,6 +1,6 @@
 import json
-from backend.app.services.supabase import SupabasePhasesService
-from backend.app.services.azure_openai import AzureOpenAIClient
+from app.services.supabase import SupabasePhasesService
+from app.services.azure_openai import AzureOpenAIClient
 
 class PhaseAgent:
     def __init__(self):

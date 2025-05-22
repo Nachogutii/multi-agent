@@ -1,6 +1,6 @@
-from backend.app.agents.phase import PhaseAgent
-from backend.app.agents.customer import CustomerAgent
-from backend.app.services.supabase import SupabasePhasesService
+from app.agents.phase import PhaseAgent
+from app.agents.customer import CustomerAgent
+from app.services.supabase import SupabasePhasesService
 
 class SimpleOrchestrator:
     def __init__(self):
