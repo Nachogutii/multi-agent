@@ -57,7 +57,7 @@ export default function ChatPage() {
     if (messages.length === 0) {
       setMessages([{
         sender: "bot",
-        text: "👋 Welcome! Before you start, click the ℹ️ info button (top right) to get key instructions.",
+        text: "👋 Welcome! Before you start, click the info button (top right) to get key instructions.",
         isWelcome: true
       }]);
     }
@@ -339,7 +339,7 @@ export default function ChatPage() {
           <div className="info-button-container">
             {showTooltip && !messages.some(msg => msg.isWelcome) && (
               <div className="info-tooltip">
-                👉 Need to recall the task?
+                Need to recall the task?
               </div>
             )}
             {!messages.some(msg => msg.isWelcome) && (
@@ -433,7 +433,7 @@ export default function ChatPage() {
               <li><strong>Feedback:</strong> Go to feedback page</li>
               <li><strong>Info:</strong> Show chat objectives</li>
               <li><strong>Mute:</strong> Toggle bot voice</li>
-              <li><strong>Title</strong> Back to lobby</li>
+              <li><strong>Title:</strong> Back to lobby</li>
             </ul>
             <button onClick={() => setShowCopilotInfo(false)} className="popup-close-button">
               Close
