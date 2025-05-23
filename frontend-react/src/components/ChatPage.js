@@ -321,6 +321,11 @@ export default function ChatPage() {
     }
   };
 
+  const canUseFeedback = () => {
+    const userMessages = messages.filter(msg => msg.sender === "user").length;
+    return isConversationEnded || userMessages >= 3;
+  };
+
   return (
     <div className="chat-container">
       <div className="notification-container">
@@ -396,43 +401,54 @@ export default function ChatPage() {
         onSubmit={sendMessage}
         ref={inputContainerRef}
       >
-        <div className="input-top-row">
-          <textarea
-            ref={textareaRef}
-            className="message-input"
-            value={userInput}
-            onChange={handleTextareaChange}
-            onKeyDown={handleTextareaKeyDown}
-            placeholder={loading ? "Waiting for response..." : "Type your message..."}
-            disabled={loading}
-            rows={1}
-            style={{ minHeight: '40px', resize: 'none', overflowY: 'auto', fontFamily: 'inherit' }}
-          />
-        </div>
         {!isConversationEnded ? (
-          <div className="input-bottom-row">
-            <div className="copilot-logo-container">
-              <img 
-                src="/copilot_logo.png" 
-                alt="Copilot Logo" 
-                className="copilot-logo" 
-                onClick={() => setShowCopilotInfo(true)}
+          <>
+            <div className="input-top-row">
+              <textarea
+                ref={textareaRef}
+                className="message-input"
+                value={userInput}
+                onChange={handleTextareaChange}
+                onKeyDown={handleTextareaKeyDown}
+                placeholder={loading ? "Waiting for response..." : "Type your message..."}
+                disabled={loading}
+                rows={1}
+                style={{ minHeight: '40px', resize: 'none', overflowY: 'auto', fontFamily: 'inherit' }}
               />
             </div>
-            <div className="right-buttons">
-              {renderDynamicButton()}
-              <button
-                type="button"
-                className="feedback-button"
-                onClick={handleFeedbackClick}
-              >
-                Feedback
-              </button>
+            <div className="input-bottom-row">
+              <div className="copilot-logo-container">
+                <img 
+                  src="/copilot_logo.png" 
+                  alt="Copilot Logo" 
+                  className="copilot-logo" 
+                  onClick={() => setShowCopilotInfo(true)}
+                />
+              </div>
+              <div className="right-buttons">
+                {renderDynamicButton()}
+                <button
+                  type="button"
+                  className={`feedback-button ${canUseFeedback() ? 'enabled' : ''}`}
+                  onClick={canUseFeedback() ? handleFeedbackClick : undefined}
+                >
+                  Feedback
+                </button>
+              </div>
             </div>
-          </div>
+          </>
         ) : (
-          <div className="conversation-ended-message">
-            Conversation ended. Thank you for your time!
+          <div className="conversation-ended-container">
+            <div className="conversation-ended-message">
+              Conversation ended. Thank you for your time!
+            </div>
+            <button
+              type="button"
+              className="feedback-button enabled"
+              onClick={handleFeedbackClick}
+            >
+              Feedback
+            </button>
           </div>
         )}
       </form>

@@ -158,6 +158,13 @@
   margin: 0 auto 50px auto;
 }
 
+.input-container.moved:has(.conversation-ended-container) {
+  max-width: 400px;
+  min-height: auto;
+  max-height: none;
+  padding: 15px 20px 25px 20px;
+}
+
 .input-top-row {
   display: flex;
   align-items: center;
@@ -561,23 +568,31 @@
   }
 }
 
+.conversation-ended-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  padding: 5px 0;
+}
+
 .conversation-ended-message {
-  flex: 1;
   text-align: center;
   color: #C9D1D9;
   font-size: 14px;
   padding: 10px;
   background-color: rgba(115, 114, 133, 0.2);
   border-radius: 6px;
-  margin: 0 10px;
+  width: 100%;
 }
 
 .feedback-button {
   padding: 6px 10px;
   background: none;
-  color: #C9D1D9;
+  color: #8B949E;
   border: none;
-  cursor: pointer;
+  cursor: not-allowed;
   font-size: 12px;
   min-width: 35px;
   height: 32px;
@@ -585,11 +600,49 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  position: relative;
 }
 
-.feedback-button:hover {
+.feedback-button.enabled {
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.feedback-button.enabled:hover {
   color: #ffffff;
   transform: scale(1.05);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.feedback-button:not(.enabled):hover::after {
+  content: "Disabled until the third message is reached or the conversation is finished.";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(115, 114, 133, 0.95);
+  color: #E6EDF3;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid #ffffff17;
+  min-width: 350px;
+  text-align: center;
+}
+
+.feedback-button:not(.enabled):hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(115, 114, 133, 0.95) transparent transparent transparent;
 }
 
 .notification-container {
