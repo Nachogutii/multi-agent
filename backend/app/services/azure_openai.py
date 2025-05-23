@@ -8,11 +8,15 @@ class AzureOpenAIClient:
         self.endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
         self.api_key = os.environ.get("AZURE_OPENAI_KEY")
         self.deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
-        self.client = AzureOpenAI(
-            azure_endpoint=self.endpoint,
-            api_version="2024-02-15-preview",  # Make sure to use the correct version
-            api_key=self.api_key
-        )
+        try:
+            self.client = AzureOpenAI(
+                api_key=self.api_key,
+                azure_endpoint=self.endpoint,
+                api_version="2024-02-15-preview"
+            )
+        except Exception as e:
+            print(f"Error initializing Azure OpenAI client: {str(e)}")
+            raise
 
     def get_response(self, system_prompt, user_prompt, deployment=None):
         """
@@ -29,22 +33,26 @@ class AzureOpenAIClient:
         if deployment is None:
             deployment = self.deployment
 
-        response = self.client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
-                {
-                    "role": "user",
-                    "content": user_prompt,
-                }
-            ],
-            max_tokens=500,
-            temperature=1,
-            model=deployment
-        )
-        return response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                model=deployment,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": user_prompt,
+                    }
+                ],
+                max_tokens=500,
+                temperature=1
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error getting response from Azure OpenAI: {str(e)}")
+            return "Lo siento, hubo un error al procesar tu solicitud."
 
 # Usage example
 if __name__ == "__main__":
