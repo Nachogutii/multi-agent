@@ -1,4 +1,4 @@
-from backend.app.services.azure_openai import AzureOpenAIClient
+from app.services.azure_openai import AzureOpenAIClient
 from typing import Dict, List
 
 class FeedbackAgent:
@@ -116,6 +116,7 @@ class FeedbackAgent:
         
         # Calcular el score personalizado
         score_data = self.calculate_custom_score(accumulated_conditions, conditions, optional_aspects, red_flags)
+        print(score_data)
         
         # Generar el feedback usando el LLM
         prompt = self.generate_feedback_prompt(conversation_history, conditions, accumulated_conditions)

@@ -6,6 +6,7 @@ import logging
 from typing import Optional
 
 from app.orchestrator.orchestrator import SimpleOrchestrator
+from app.agents.feedback import FeedbackAgent
 
 # Configure logging
 logging.basicConfig(level=logging.WARNING)
@@ -85,24 +86,38 @@ def get_scenario():
 
 @app.get("/api/feedback/structured")
 def get_structured_feedback():
-    # Implementación básica para devolver feedback estructurado
-    # Esto se puede ampliar según sea necesario
-    return {
-        "metrics": {},
-        "custom_score": 0,
-        "custom_score_explanation": "Feedback not yet implemented",
-        "score_details": {},
-        "aspect_counts": {
-            "critical": 0,
-            "optional": 0,
-            "red_flags": 0
-        },
-        "suggestions": [],
-        "strength": [],
-        "opportunity": [],
-        "training": [],
-        "issues": []
-    }
+    # Obtener todas las condiciones acumuladas del orquestador
+    global_conditions = orchestrator.global_conditions_history
+    
+    # Obtener todas las condiciones posibles del servicio de fases
+    all_conditions = []
+    phases = orchestrator.supabase_service.get_all_phases()
+    for phase in phases:
+        phase_id = phase.get('id')
+        if phase_id is not None:
+            phase_conditions = orchestrator.supabase_service.get_phase_conditions(phase_id)
+            all_conditions.extend(phase_conditions)
+    
+    # Crear instancia del agente de feedback
+    feedback_agent = FeedbackAgent()
+    
+    # Obtener el historial de conversación del agente del cliente
+    conversation_history = orchestrator.customer_agent.conversation_history
+    
+    # Generar feedback usando todas las condiciones acumuladas
+    feedback = feedback_agent.generate_feedback(
+        conversation_history="\n".join([msg["content"] for msg in conversation_history]) if conversation_history else "",
+        conditions=all_conditions,
+        accumulated_conditions=global_conditions,
+        optional_aspects=orchestrator.optional_aspects,
+        red_flags=orchestrator.red_flags
+    )
+    
+    # Agregar información adicional al feedback
+    feedback["conversation_history"] = conversation_history
+    feedback["global_conditions"] = global_conditions
+    
+    return feedback
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="warning")
