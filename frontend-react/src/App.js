@@ -6,9 +6,7 @@ import FeedbackPage from './components/FeedbackPage';
 import LoginPage from './components/LoginPage';
 
 function App() {
-  if (localStorage.getItem("v-account") === null) {
-    return <LoginPage />;
-  }
+
   return (
     <Router>
       <Routes>
