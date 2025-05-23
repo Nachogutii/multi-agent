@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -27,6 +27,9 @@ app.add_middleware(
 class Message(BaseModel):
     text: str
     phase: Optional[str] = None
+
+class ResetRequest(BaseModel):
+    id: Optional[int] = None
 
 # Inicializar el orquestrador
 orchestrator = SimpleOrchestrator()
@@ -58,10 +61,13 @@ def chat(msg: Message):
     }
 
 @app.post("/api/reset")
-def reset():
+def reset(request: ResetRequest):
     global orchestrator
-    # Reiniciar el orquestrador creando una nueva instancia
-    orchestrator = SimpleOrchestrator()
+    # Reiniciar el orquestrador creando una nueva instancia, pasando el id si se proporciona
+    if request.id is not None:
+        orchestrator = SimpleOrchestrator(scenario_id=request.id)
+    else:
+        orchestrator = SimpleOrchestrator()
     return {
         "scenario": "Customer conversation",
         "description": "Conversation with a potential customer",

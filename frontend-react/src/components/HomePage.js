@@ -17,24 +17,30 @@ export default function HomePage() {
       [scenarioType]: true
     }));
 
+    let scenarioId = 1;
     if (scenarioType === 'copilot') {
-      localStorage.setItem('scenarioType', 'copilot');
-      navigate("/copilot-chat");
-    } else {
-    fetch("http://localhost:8000/api/reset", { method: "POST" })
+      scenarioId = 2;
+    }
+
+    fetch("http://localhost:8000/api/reset", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ id: scenarioId })
+    })
       .then(() => {
         localStorage.removeItem("chatMessages");
-          localStorage.removeItem("isConversationEnded");
+        localStorage.removeItem("isConversationEnded");
         navigate("/chat");
       })
       .catch((err) => {
         console.error("Error starting new simulation:", err);
-          setLoadingStates(prev => ({
-            ...prev,
-            [scenarioType]: false
-          }));
+        setLoadingStates(prev => ({
+          ...prev,
+          [scenarioType]: false
+        }));
       });
-    }
   };
 
   return (

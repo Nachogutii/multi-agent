@@ -3,9 +3,9 @@ from app.services.azure_openai import AzureOpenAIClient
 from app.services.supabase import SupabasePhasesService
 
 class CustomerAgent:
-    def __init__(self, scenario_context=None):
+    def __init__(self, scenario_context=None, scenario_id=None):
         self.llm = AzureOpenAIClient()
-        self.supabase = SupabasePhasesService()
+        self.supabase = SupabasePhasesService(scenario_id=scenario_id)
         assert self.supabase.initialize(), "Could not initialize Supabase client"
 
         # Cargar el contexto del escenario desde Supabase si no se proporciona

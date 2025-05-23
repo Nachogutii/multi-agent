@@ -3,10 +3,10 @@ from app.agents.customer import CustomerAgent
 from app.services.supabase import SupabasePhasesService
 
 class SimpleOrchestrator:
-    def __init__(self):
-        self.phase_agent = PhaseAgent()
-        self.customer_agent = CustomerAgent()
-        self.supabase_service = SupabasePhasesService()
+    def __init__(self, scenario_id=None):
+        self.phase_agent = PhaseAgent(scenario_id=scenario_id)
+        self.customer_agent = CustomerAgent(scenario_id=scenario_id)
+        self.supabase_service = SupabasePhasesService(scenario_id=scenario_id)
         self.supabase_service.initialize()
         # Set initial phase
         self.current_phase = "welcome"

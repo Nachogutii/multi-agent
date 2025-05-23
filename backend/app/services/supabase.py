@@ -5,14 +5,15 @@ from dotenv import load_dotenv
 class SupabasePhasesService:
     """Service for interacting with phases and red_flags tables in Supabase."""
 
-    def __init__(self):
-        """Initialize the Supabase service."""
+    def __init__(self, scenario_id: int = None):
+        """Initialize the Supabase service and store scenario_id."""
         load_dotenv()
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_KEY")
         self.url = supabase_url
         self.key = supabase_key
         self.client: Optional[Client] = None
+        self.scenario_id = scenario_id
 
     def initialize(self) -> bool:
         """
@@ -54,7 +55,7 @@ class SupabasePhasesService:
 
     def get_all_phases(self) -> List[Dict[str, Any]]:
         """
-        Get all phases from Supabase.
+        Get all phases from Supabase for the current scenario.
 
         Returns:
             List[Dict[str, Any]]: List of phases with their success and failure phases
@@ -64,7 +65,10 @@ class SupabasePhasesService:
             return []
 
         try:
-            response = self.client.table("phases").select("*").execute()
+            query = self.client.table("phases").select("*")
+            if self.scenario_id is not None:
+                query = query.eq("scenario_id", self.scenario_id)
+            response = query.execute()
             phases = response.data
             return phases
         except Exception as e:
@@ -210,15 +214,16 @@ class SupabasePhasesService:
             return ""
 
         try:
-            # Obtener el primer escenario disponible
-            response = self.client.table("scenarios").select("system_prompt").limit(1).execute()
-            
+            query = self.client.table("scenarios").select("system_prompt")
+            if self.scenario_id is not None:
+                query = query.eq("id", self.scenario_id)
+            else:
+                query = query.limit(1)
+            response = query.execute()
             if not response.data:
                 print("⚠️ No se encontraron escenarios en la base de datos")
                 return ""
-                
             return response.data[0].get("system_prompt", "")
-            
         except Exception as e:
             print(f"❌ Error obteniendo el contexto del escenario: {str(e)}")
             return ""

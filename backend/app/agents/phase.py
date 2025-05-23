@@ -3,8 +3,8 @@ from app.services.supabase import SupabasePhasesService
 from app.services.azure_openai import AzureOpenAIClient
 
 class PhaseAgent:
-    def __init__(self):
-        self.supabase_service = SupabasePhasesService()
+    def __init__(self, scenario_id=None):
+        self.supabase_service = SupabasePhasesService(scenario_id=scenario_id)
         assert self.supabase_service.initialize(), "Could not initialize Supabase client"
         self.red_flags = self.supabase_service.get_red_flags()
         self.phases = {phase['name']: phase for phase in self.supabase_service.get_all_phases()}
