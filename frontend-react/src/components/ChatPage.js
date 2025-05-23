@@ -72,7 +72,7 @@ export default function ChatPage() {
           setShowTooltip(false);
         }, 5000);
         return () => clearTimeout(hideTimeout);
-      }, 15000);
+      }, 25000);
       return () => clearInterval(showTooltipInterval);
     }
   }, [messages]);
@@ -396,41 +396,45 @@ export default function ChatPage() {
         onSubmit={sendMessage}
         ref={inputContainerRef}
       >
-        <div className="copilot-logo-container">
-          <img 
-            src="/copilot_logo.png" 
-            alt="Copilot Logo" 
-            className="copilot-logo" 
-            onClick={() => setShowCopilotInfo(true)}
+        <div className="input-top-row">
+          <textarea
+            ref={textareaRef}
+            className="message-input"
+            value={userInput}
+            onChange={handleTextareaChange}
+            onKeyDown={handleTextareaKeyDown}
+            placeholder={loading ? "Waiting for response..." : "Type your message..."}
+            disabled={loading}
+            rows={1}
+            style={{ minHeight: '40px', resize: 'none', overflowY: 'auto', fontFamily: 'inherit' }}
           />
         </div>
         {!isConversationEnded ? (
-          <>
-            <textarea
-              ref={textareaRef}
-              className="message-input"
-              value={userInput}
-              onChange={handleTextareaChange}
-              onKeyDown={handleTextareaKeyDown}
-              placeholder={loading ? "Waiting for response..." : "Type your message..."}
-              disabled={loading}
-              rows={1}
-              style={{ minHeight: '40px', resize: 'none', overflowY: 'auto', fontFamily: 'inherit' }}
-            />
-            {renderDynamicButton()}
-          </>
+          <div className="input-bottom-row">
+            <div className="copilot-logo-container">
+              <img 
+                src="/copilot_logo.png" 
+                alt="Copilot Logo" 
+                className="copilot-logo" 
+                onClick={() => setShowCopilotInfo(true)}
+              />
+            </div>
+            <div className="right-buttons">
+              {renderDynamicButton()}
+              <button
+                type="button"
+                className="feedback-button"
+                onClick={handleFeedbackClick}
+              >
+                Feedback
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="conversation-ended-message">
             Conversation ended. Thank you for your time!
           </div>
         )}
-        <button
-          type="button"
-          className="feedback-button"
-          onClick={handleFeedbackClick}
-        >
-          Feedback
-        </button>
       </form>
       {showCopilotInfo && (
         <>
