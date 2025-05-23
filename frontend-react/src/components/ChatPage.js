@@ -21,6 +21,7 @@ export default function ChatPage() {
   const [listening, setListening] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showCopilotInfo, setShowCopilotInfo] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [scenario, setScenario] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -57,7 +58,7 @@ export default function ChatPage() {
     if (messages.length === 0) {
       setMessages([{
         sender: "bot",
-        text: "👋 Welcome! Before you start, click the ℹ️ info button (top right) to get key instructions.",
+        text: "👋 Welcome! Before you start, click the info button (top right) to get key instructions.",
         isWelcome: true
       }]);
     }
@@ -268,6 +269,15 @@ export default function ChatPage() {
     localStorage.removeItem("isConversationEnded");
   };
 
+  const handleTitleClick = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmNavigation = () => {
+    setShowConfirmDialog(false);
+    navigate("/");
+  };
+
   // Botón dinámico
   const renderDynamicButton = () => {
     if (listening) {
@@ -323,10 +333,10 @@ export default function ChatPage() {
       </div>
       <div className="chat-header">
         <div className="chat-header-left">
-          {scenario && <h3 className="scenario-title">Copilot Welcome</h3>}
+          {scenario && <h3 className="scenario-title">GigPlus Support Chat Simulation</h3>}
         </div>
         <div className="chat-header-center">
-          <h2 className="chat-title" onClick={() => navigate("/")}>GigPlus Support Chat Simulation</h2>
+          <h2 className="chat-title" onClick={handleTitleClick}>Copilot Welcome</h2>
         </div>
         <div className="chat-header-right">
           <button
@@ -339,7 +349,7 @@ export default function ChatPage() {
           <div className="info-button-container">
             {showTooltip && !messages.some(msg => msg.isWelcome) && (
               <div className="info-tooltip">
-                👉 Need to recall the task?
+                Need to recall the task?
               </div>
             )}
             {!messages.some(msg => msg.isWelcome) && (
@@ -433,7 +443,7 @@ export default function ChatPage() {
               <li><strong>Feedback:</strong> Go to feedback page</li>
               <li><strong>Info:</strong> Show chat objectives</li>
               <li><strong>Mute:</strong> Toggle bot voice</li>
-              <li><strong>Title</strong> Back to lobby</li>
+              <li><strong>Title:</strong> Back to lobby</li>
             </ul>
             <button onClick={() => setShowCopilotInfo(false)} className="popup-close-button">
               Close
@@ -453,6 +463,23 @@ export default function ChatPage() {
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
               Close
             </button>
+          </div>
+        </>
+      )}
+      {showConfirmDialog && (
+        <>
+          <div className="popup-overlay" onClick={() => setShowConfirmDialog(false)} />
+          <div className="popup">
+            <h3>Confirm Navigation</h3>
+            <p>Are you sure you want to return to the lobby? Any unsaved progress will be lost.</p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+              <button onClick={() => setShowConfirmDialog(false)} className="popup-close-button">
+                Cancel
+              </button>
+              <button onClick={handleConfirmNavigation} className="popup-close-button" style={{ backgroundColor: 'rgba(255, 0, 0, 0.6)' }}>
+                Return to Lobby
+              </button>
+            </div>
           </div>
         </>
       )}
