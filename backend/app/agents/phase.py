@@ -169,7 +169,7 @@ class PhaseAgent:
                     all_conditions.append(condition)
             
             # Check if we have all required conditions now
-            if sorted(all_conditions) == sorted(conditions) or res.get('has_success_conditions'):
+            if sorted(all_conditions) == sorted(conditions):
                 print(f"[INFO] Success conditions met for phase '{phase_name}': {all_conditions}")
                 return {
                     'phase': phase_name,
