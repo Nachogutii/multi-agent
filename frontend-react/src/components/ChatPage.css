@@ -124,11 +124,11 @@
 
 .input-container {
   padding: 12px 20px;
-  background-color: #040121;
+  background-color: rgba(51, 49, 61, 0.334);
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 4px solid #ffffff17;
+  border: 1px solid #ffffff17;
   max-width: 837px;
   width: 100%;
   margin: 0 auto 20px auto;
