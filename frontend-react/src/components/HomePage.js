@@ -22,7 +22,7 @@ export default function HomePage() {
       scenarioId = 2;
     }
 
-    fetch("http://localhost:8000/api/reset", {
+    fetch("https://plg-simulator.onrender.com/api/reset", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
