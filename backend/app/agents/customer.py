@@ -8,18 +8,22 @@ class CustomerAgent:
         self.supabase = SupabasePhasesService()
         assert self.supabase.initialize(), "Could not initialize Supabase client"
 
-        # Load scenario context or use default
+        # Cargar el contexto del escenario desde Supabase si no se proporciona
         if scenario_context:
             self.general_context = scenario_context
-            print(f"[INFO] Using scenario context from Supabase")
+            print(f"[INFO] Using scenario context from argument")
         else:
-            self.general_context = """
-            **B. Customer Profile:**
-            - Customer is Rachel Sanchez, using Microsoft 365 and interested in Copilot.
-            - She's a marketing professional looking to improve workflow efficiency.
-            - Has some experience with Microsoft 365 but is curious about new Copilot features.
-            """
-            print("[INFO] Using default customer profile")
+            self.general_context = self.supabase.get_scenario_context()
+            if self.general_context:
+                print(f"[INFO] Using scenario context from Supabase (system_prompt)")
+            else:
+                self.general_context = """
+                **B. Customer Profile:**
+                - Customer is Rachel Sanchez, using Microsoft 365 and interested in Copilot.
+                - She's a marketing professional looking to improve workflow efficiency.
+                - Has some experience with Microsoft 365 but is curious about new Copilot features.
+                """
+                print("[INFO] Using default customer profile")
 
         self.profile = self._load_customer_profile()
         self.conversation_history = []

@@ -197,6 +197,31 @@ class SupabasePhasesService:
         except Exception as e:
             print(f"❌ Error parsing phase IDs '{phase_ids_str}': {str(e)}")
             return []
+        
+    def get_scenario_context(self) -> str:
+        """
+        Obtiene el contexto del escenario desde la columna system_prompt de la tabla scenarios.
+
+        Returns:
+            str: El system_prompt del escenario o un string vacío si no se encuentra.
+        """
+        if not self.client:
+            print("⚠️ Supabase client not initialized")
+            return ""
+
+        try:
+            # Obtener el primer escenario disponible
+            response = self.client.table("scenarios").select("system_prompt").limit(1).execute()
+            
+            if not response.data:
+                print("⚠️ No se encontraron escenarios en la base de datos")
+                return ""
+                
+            return response.data[0].get("system_prompt", "")
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo el contexto del escenario: {str(e)}")
+            return ""
 
 # Example usage
 if __name__ == "__main__":
