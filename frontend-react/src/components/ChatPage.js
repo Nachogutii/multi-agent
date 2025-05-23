@@ -62,7 +62,7 @@ export default function ChatPage() {
         isWelcome: true
       }]);
     }
-  }, []);
+  }, [messages.length]);
 
   useEffect(() => {
     if (!messages.some(msg => msg.isWelcome)) {
