@@ -19,12 +19,11 @@ html, body {
 .login-container {
     max-width: 420px;
     width: 100%;
-    background-color: rgba(115, 114, 133, 0.392);
+    background-color: #040121;
     padding: 2rem;
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     text-align: center;
-    border: 1px solid #ffffff17;
     color: #E6EDF3;
     margin-bottom: 100px;
 }
@@ -58,7 +57,7 @@ html, body {
 
 .login-input {
     padding: 0.75rem 1rem;
-    background-color: #040121;
+    background-color: rgba(115, 114, 133, 0.392);
     border: 1px solid #ffffff17;
     border-radius: 8px;
     font-size: 16px;
@@ -96,10 +95,10 @@ html, body {
     margin-top: 1rem;
     font-size: 16px;
     color: #E6EDF3;
-    background-color: rgba(46, 160, 140, 0.2);
+    background-color: rgba(115, 114, 133, 0.392);
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid rgba(46, 160, 140, 0.3);
+    border: 1px solid rgba(115, 114, 133, 0.392);;
 }
 
 .login-error {
