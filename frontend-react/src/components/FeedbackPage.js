@@ -30,10 +30,15 @@ export default function FeedbackPage() {
       .then((data) => {
         setFeedback(data);
         if (data?.metrics) {
-          submitFeedbackToSupabase({
-            ...data,
-            sessionId,
-          }).then((feedbackId) => {
+          const feedbackData = {
+            custom_score: data.custom_score,
+            suggestions: data.suggestions || [],
+            issues: data.issues || [],
+            strength: data.strength || [],
+            sessionId
+          };
+          
+          submitFeedbackToSupabase(feedbackData).then((feedbackId) => {
             localStorage.setItem(feedbackKey, "true");
             if (
               feedbackId &&
@@ -111,9 +116,7 @@ export default function FeedbackPage() {
       return (
         <div className="feedback-score-card">
           <div className="score-header">
-            <h2>
-              Conversation Performance
-            </h2>
+            <h2>Conversation Performance</h2>
           </div>
           <div className="score-content">
             <div className="score-value">

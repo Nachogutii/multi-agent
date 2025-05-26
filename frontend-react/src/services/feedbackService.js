@@ -20,11 +20,13 @@ export async function submitFeedbackToSupabase(feedback) {
     {
       user_id: user?.email || null,
       v_account: vAccount,
-      metrics: feedback.metrics,
+      metrics: feedback.custom_score,
       suggestions: feedback.suggestions,
       issues: feedback.issues,
+      strength: feedback.strength,
+      session_id: feedback.sessionId
     },
-  ]).select('id') // 👈 para obtener el ID del feedback insertado
+  ]).select('id')
 
   if (error || !data?.length) {
     console.error('❌ Error al enviar feedback:', error)
