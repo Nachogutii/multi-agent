@@ -165,8 +165,8 @@ export default function FeedbackPage() {
       <div className="feedback-loading">
         <p>
           Hang tight, we're analyzing your conversation to generate feedback.
-          <span className="spinner-inline"><div className="feedback-spinner" /></span>
         </p>
+        <div className="feedback-spinner" />
         <div className="loading-facts">
           <h4>Did you know?</h4>
           <p>AI-powered feedback analysis can help improve your customer service skills by up to 30%!</p>
