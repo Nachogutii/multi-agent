@@ -7,6 +7,10 @@ class CustomerAgent:
         self.llm = AzureOpenAIClient()
         self.supabase = SupabasePhasesService(scenario_id=scenario_id)
         assert self.supabase.initialize(), "Could not initialize Supabase client"
+        if scenario_id == 1:
+            scenario = "Copilot Welcome"
+        else:
+            scenario = "Copilot Chat"
 
         # Cargar el contexto del escenario desde Supabase si no se proporciona
         if scenario_context:
@@ -15,7 +19,7 @@ class CustomerAgent:
         else:
             self.general_context = self.supabase.get_scenario_context()
             if self.general_context:
-                print(f"[INFO] Using scenario context from Supabase (system_prompt)")
+                print(f"[INFO] Using scenario {scenario} context from Supabase (system_prompt)")
             else:
                 self.general_context = """
                 **B. Customer Profile:**

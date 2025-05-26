@@ -80,10 +80,17 @@ export default function HomePage() {
 
             <button
               className="start-button"
-              disabled={true}
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", opacity: 0.5 }}
+              onClick={() => handleStartSimulation('copilot')}
+              disabled={loadingStates.welcome || loadingStates.copilot}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
             >
-              Coming Soon
+              {loadingStates.copilot ? (
+                <>
+                  Starting simulation... <span className="spinner" />
+                </>
+              ) : (
+                "Start Simulation"
+              )}
             </button>
           </div>
         </div>
