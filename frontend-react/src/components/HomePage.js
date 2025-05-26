@@ -30,6 +30,7 @@ export default function HomePage() {
       body: JSON.stringify({ id: scenarioId })
     })
       .then(() => {
+        localStorage.setItem("scenarioId", scenarioId);
         localStorage.removeItem("chatMessages");
         localStorage.removeItem("isConversationEnded");
         navigate("/chat");

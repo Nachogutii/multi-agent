@@ -46,9 +46,11 @@ export default function ChatPage() {
   }, [messages, isConversationEnded]);
 
   useEffect(() => {
-    const storedScenario = localStorage.getItem("scenario");
-    if (storedScenario) {
-      setScenario(JSON.parse(storedScenario));
+    const storedScenarioId = localStorage.getItem("scenarioId");
+    if (storedScenarioId) {
+      const parsedScenarioId = parseInt(storedScenarioId, 10);
+      console.log("Scenario ID:", parsedScenarioId);
+      setScenario({ id: parsedScenarioId });
     } else {
       fetch("http://localhost:8000/api/scenario")
         .then((res) => res.json())
@@ -326,6 +328,17 @@ export default function ChatPage() {
     return isConversationEnded || userMessages >= 3;
   };
 
+  const getChatTitle = () => {
+    if (scenario) {
+      if (scenario.id === 1) {
+        return "Copilot Welcome";
+      } else if (scenario.id === 2) {
+        return "Copilot Chat";
+      }
+    }
+    return "Chat"; // Título por defecto
+  };
+
   return (
     <div className="chat-container">
       <div className="notification-container">
@@ -341,7 +354,7 @@ export default function ChatPage() {
           {scenario && <h3 className="scenario-title">GigPlus Support Chat Simulation</h3>}
         </div>
         <div className="chat-header-center">
-          <h2 className="chat-title" onClick={handleTitleClick}>Copilot Welcome</h2>
+          <h2 className="chat-title" onClick={handleTitleClick}>{getChatTitle()}</h2>
         </div>
         <div className="chat-header-right">
           <button
