@@ -163,8 +163,10 @@ export default function FeedbackPage() {
   if (!feedback) {
     return (
       <div className="feedback-loading">
-        <div className="spinner" />
-        <p>Hang tight, we're analyzing your conversation to generate feedback.</p>
+        <p>
+          Hang tight, we're analyzing your conversation to generate feedback.
+          <span className="spinner-inline"><div className="spinner" /></span>
+        </p>
         <div className="loading-facts">
           <h4>Did you know?</h4>
           <p>AI-powered feedback analysis can help improve your customer service skills by up to 30%!</p>

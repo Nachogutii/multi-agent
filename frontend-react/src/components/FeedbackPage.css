@@ -272,6 +272,9 @@ body {
 
 /* Loading State */
 .feedback-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding: 60px 20px;
   background-color: #040121;
@@ -289,14 +292,22 @@ body {
   color: #C9D1D9;
 }
 
+.spinner-inline {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 12px;
+}
+
 .spinner {
-  border: 4px solid #040121;
-  border-top: 4px solid #281e70;
+  border: 3px solid #040121;
+  border-top: 3px solid #281e70;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   animation: spin 1s linear infinite;
-  margin: 0 auto 24px;
+  display: inline-block;
+  margin: 0;
+  margin-right: 100px;
 }
 
 .loading-facts {
