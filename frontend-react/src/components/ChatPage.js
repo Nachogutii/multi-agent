@@ -490,8 +490,26 @@ export default function ChatPage() {
           <div className="popup">
             <h3>Scenario Information</h3>
             <ul>
-              <li><strong>Title:</strong> Microsoft Copilot Satisfaction Check</li>
-              <li><strong>• Your role:</strong> You are a Copilot Welcome Ambassador<br /><strong>• Case History:</strong> You have been in touch with Rachel via email, and she agreed to a short call<p/><strong>• Your goals:</strong><br />• Have a product led growth conversation with Rachel<br />• Gather Copilot product insights</li>
+              {scenario.id === 1 ? (
+                <>
+                  <li><strong>Title:</strong> Microsoft Copilot Satisfaction Check</li>
+                  <li><strong>• Your role:</strong> You are a Copilot Welcome Ambassador<br /><strong>• Case History:</strong> You have been in touch with Rachel via email, and she agreed to a short call<p/><strong>• Your goals:</strong><br />• Have a product led growth conversation with Rachel<br />• Gather Copilot product insights</li>
+                </>
+              ) : scenario.id === 2 ? (
+                <>
+                  <li><strong>Title:</strong> Microsoft 365 Copilot Chat Adoption Outreach</li>
+                  <li>
+                    <strong>• Your role:</strong> You are a Copilot Chat Ambassador<br />
+                    <strong>• Case History:</strong> You contacted Jordan Evans by email and they agreed to a short call<br />
+                    <p/>
+                    <strong>• Your goals:</strong><br />
+                    • Raise awareness about Microsoft 365 Copilot Chat<br />
+                    • Clarify any doubts about licensing, security, or usability<br />
+                    • Spark interest in trying Copilot Chat through relevant use cases
+                  </li>
+
+                </>
+              ) : null}
             </ul>
             <button onClick={() => setShowInfo(false)} className="popup-close-button">
               Close
