@@ -2,7 +2,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import logo from '../GIG+.png'
-import background from '../background.png'
 import './LoginPage.css'
 
 export default function LoginPage({ onLogin }) {
@@ -25,21 +24,7 @@ export default function LoginPage({ onLogin }) {
   
 
   return (
-    <div
-      className="login-page-bg"
-      style={{
-        backgroundImage: `url(${background})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem'
-      }}
-    >
+    <div className="login-page-bg">
       <div className="login-container">
         <div className="login-title-row">
           <img src={logo} alt="GigPlus logo" className="login-logo-inline" />
