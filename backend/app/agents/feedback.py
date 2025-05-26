@@ -1,9 +1,69 @@
 from app.services.azure_openai import AzureOpenAIClient
-from typing import Dict, List
+from typing import Dict, List, Any
+from app.services.supabase import SupabasePhasesService
 
 class FeedbackAgent:
     def __init__(self):
         self.llm = AzureOpenAIClient()
+        self.supabase = SupabasePhasesService()
+        assert self.supabase.initialize(), "Could not initialize Supabase client"
+
+    def analyze_optional_conditions(self, conversation_history: List[Dict[str, Any]]) -> List[str]:
+        """
+        Analyzes the conversation history to determine which optional conditions were met.
+        
+        Args:
+            conversation_history (List[Dict[str, Any]]): List of conversation messages as dictionaries
+        
+        Returns:
+            List[str]: List of met optional condition descriptions
+        """
+        # Get optional conditions from database
+        optional_conditions = self.supabase.get_optional_conditions()
+        
+        if not optional_conditions:
+            return []
+
+        # Create prompt for LLM
+        conditions_text = "\n".join([f"{i+1}. {cond['description']}" for i, cond in enumerate(optional_conditions)])
+        # Extraer solo el contenido de los mensajes
+        conversation_text = "\n".join([msg.get("content", "") for msg in conversation_history])
+        
+        prompt = f"""
+        Analyze the following conversation and determine which of these optional conditions were met.
+        Only return conditions that are CLEARLY demonstrated in the conversation.
+        
+        Optional Conditions:
+        {conditions_text}
+        
+        Conversation:
+        {conversation_text}
+        
+        Return ONLY a comma-separated list of numbers corresponding to the conditions that were met.
+        For example: "1,3,4" or "none" if no conditions were met.
+        """
+        
+        try:
+            response = self.llm.get_response(
+                system_prompt="You are an objective conversation analyzer. Return ONLY comma-separated numbers or 'none'.",
+                user_prompt=prompt
+            )
+            
+            if response.lower().strip() == "none":
+                return []
+                
+            # Convert response to list of met conditions
+            try:
+                met_indices = [int(idx.strip()) - 1 for idx in response.split(",")]
+                met_conditions = [optional_conditions[idx]["description"] for idx in met_indices if idx < len(optional_conditions)]
+                return met_conditions
+            except (ValueError, IndexError) as e:
+                print(f"[ERROR] Error al procesar la respuesta del LLM: {e}")
+                return []
+            
+        except Exception as e:
+            print(f"[ERROR] Error al analizar condiciones opcionales: {e}")
+            return []
 
     def calculate_custom_score(self, accumulated_conditions: List[str], conditions: List[str], optional_aspects: List[str], red_flags: List[str]) -> Dict[str, any]:
         """
@@ -116,7 +176,6 @@ class FeedbackAgent:
         
         # Calcular el score personalizado
         score_data = self.calculate_custom_score(accumulated_conditions, conditions, optional_aspects, red_flags)
-        print(score_data)
         
         # Generar el feedback usando el LLM
         prompt = self.generate_feedback_prompt(conversation_history, conditions, accumulated_conditions)
@@ -155,44 +214,3 @@ class FeedbackAgent:
                 "Some key points could have been addressed more thoroughly."
             ])
         }
-    
-red_flags = [
-    "Adri have a lot of lack of commitment",
-]
-optional_aspects = [
-]
-
-conversation_history = [
-    "Could you tell me about your issues with copilot?",
-    "I've had a frustrating experience with Copilot, particularly in Excel. It has crashed a couple of times when I was trying to use it, which is really inconvenient during busy times. Also, the accuracy of the basic formulas it applies to rows is just off, which doesn't make sense for a tool that's supposed to assist with data analysis. I do appreciate its drafting capabilities, but for the data work I need, it feels like it's not quite there yet.",
-    "Okay, I understand your issues and I appreciate your feedback so much. Could you tell me more about what kind of prompts are you using?",
-    "I've primarily been using prompts for data analysis, like creating pivot tables or summarizing data sets. But when it comes to handling complex formulas, it just doesn't deliver what I expect. It's frustrating because I really want to rely on it to help manage our campaigns more efficiently. Have these issues been reported by others?",
-    "Okay, so are you sending as a context the tables of the context? Most of times Copilot doesn't work properly due to a lack of context. If you want, I can share you a documentation of how to make successful prompts. Im sure this will improve your results a lot",
-    "I appreciate the suggestion, but to be honest, I feel like I'm already inputting enough context for it to understand what I need. It's just frustrating that it doesn't seem to process that accurately. Thanks for your help, though. I'll look into the documentation if I have time, but I hope these issues get sorted out soon."
-]
-
-conditions = [
-    "Agent mentions they are from Microsoft",
-    "Agent ask about positive experience with Copilot",
-    "Agent asks details",
-    "Agent aligns to business goals",
-    "Agent ask about issues or bad experiences with Copilot"
-]
-
-accumulated_conditions = [
-    "Agent mentions they are from Microsoft",
-    "Agent asks details",
-    "Agent ask about issues or bad experiences with Copilot"
-]
-
-if __name__ == "__main__":
-    agent = FeedbackAgent()
-    feedback = agent.generate_feedback(
-        conversation_history="\n".join(conversation_history),
-        conditions=conditions,
-        accumulated_conditions=accumulated_conditions,
-        optional_aspects=optional_aspects,
-        red_flags=red_flags
-    )
-    import pprint
-    pprint.pprint(feedback) 

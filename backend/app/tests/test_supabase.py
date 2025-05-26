@@ -30,6 +30,12 @@ def test_supabase_service():
     for flag in red_flags:
         print(f"  - {flag}")
     
+    # Test optional conditions retrieval
+    optional_conditions = service.get_optional_conditions()
+    print(f"\nOptional conditions retrieved: {len(optional_conditions)}")
+    for condition in optional_conditions:
+        print(f"  - {condition['description']}")
+    
     # Test phases retrieval
     all_phases = service.get_all_phases()
     print(f"\nPhases retrieved: {len(all_phases)}")

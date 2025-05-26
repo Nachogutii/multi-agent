@@ -227,6 +227,27 @@ class SupabasePhasesService:
         except Exception as e:
             print(f"❌ Error obteniendo el contexto del escenario: {str(e)}")
             return ""
+    
+    def get_optional_conditions(self) -> List[Dict[str, Any]]:
+        """
+        Get all optional conditions from the optional_conditions table.
+
+        Returns:
+            List[Dict[str, Any]]: List of optional conditions with their IDs and descriptions
+        """
+        if not self.client:
+            print("⚠️ Supabase client not initialized")
+            return []
+
+        try:
+            print("[DEBUG] Intentando obtener optional_conditions...")
+            response = self.client.table("optional_conditions").select("*").execute()
+            print(f"[DEBUG] Respuesta de Supabase: {response.data}")
+            return response.data
+        except Exception as e:
+            print(f"❌ Error getting optional conditions: {str(e)}")
+            print(f"[DEBUG] Detalles del error: {type(e).__name__}")
+            return []
 
 # Example usage
 if __name__ == "__main__":

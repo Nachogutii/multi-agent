@@ -89,6 +89,7 @@ def get_structured_feedback():
     # Obtener todas las condiciones acumuladas del orquestador
     global_conditions = orchestrator.global_conditions_history
     
+    
     # Obtener todas las condiciones posibles del servicio de fases
     all_conditions = []
     phases = orchestrator.supabase_service.get_all_phases()
@@ -104,12 +105,14 @@ def get_structured_feedback():
     # Obtener el historial de conversación del agente del cliente
     conversation_history = orchestrator.customer_agent.conversation_history
     
+    optional_aspects = feedback_agent.analyze_optional_conditions(conversation_history)
+    print(optional_aspects)
     # Generar feedback usando todas las condiciones acumuladas
     feedback = feedback_agent.generate_feedback(
         conversation_history="\n".join([msg["content"] for msg in conversation_history]) if conversation_history else "",
         conditions=all_conditions,
         accumulated_conditions=global_conditions,
-        optional_aspects=orchestrator.optional_aspects,
+        optional_aspects=optional_aspects,
         red_flags=orchestrator.red_flags
     )
     
