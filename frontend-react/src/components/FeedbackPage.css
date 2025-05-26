@@ -9,12 +9,11 @@ body {
   margin: 40px auto;
   text-align: left;
   padding: 2rem;
-  background-color: rgba(115, 114, 133, 0.392);
+  background-color: #040121;
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   font-family: 'Inter', sans-serif;
   color: #E6EDF3;
-  border: 1px solid #ffffff17;
 }
 
 .feedback-header {
@@ -35,7 +34,6 @@ body {
   margin: 0 auto;
 }
 
-/* Score Card Styles */
 .feedback-score-card {
   background: rgba(115, 114, 133, 0.392);
   color: #E6EDF3;
@@ -195,7 +193,7 @@ body {
 
 .feedback-list li:before {
   content: "•";
-  color: #281e70;
+  color: #E6EDF3;
   position: absolute;
   left: 0;
   font-weight: bold;
@@ -270,8 +268,10 @@ body {
   transform: scale(1.03);
 }
 
-/* Loading State */
 .feedback-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding: 60px 20px;
   background-color: #040121;
@@ -289,14 +289,22 @@ body {
   color: #C9D1D9;
 }
 
+.spinner-inline {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 12px;
+}
+
 .spinner {
-  border: 4px solid #040121;
-  border-top: 4px solid #281e70;
+  border: 3px solid #040121;
+  border-top: 3px solid #281e70;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   animation: spin 1s linear infinite;
-  margin: 0 auto 24px;
+  display: inline-block;
+  margin: 0;
+  margin-right: 100px;
 }
 
 .loading-facts {
@@ -327,7 +335,6 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* Error State */
 .feedback-error {
   text-align: center;
   padding: 40px;
@@ -340,7 +347,6 @@ body {
   border: 1px solid #ffffff17;
 }
 
-/* Responsive Adjustments */
 @media (max-width: 768px) {
   .feedback-page {
     padding: 1.5rem;
@@ -388,4 +394,16 @@ body {
   font-size: 0.85rem;
   color: #C9D1D9;
   font-style: italic;
+}
+
+.feedback-spinner {
+  border: 2px solid #E6EDF3;
+  border-top: 2px solid #281e70;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin: 0;
+  margin-top: 6px;
 }
