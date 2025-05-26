@@ -400,3 +400,15 @@ body {
   color: #C9D1D9;
   font-style: italic;
 }
+
+.feedback-spinner {
+  border: 2px solid #E6EDF3;
+  border-top: 2px solid #281e70;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin: 0;
+  margin-top: 6px;
+}

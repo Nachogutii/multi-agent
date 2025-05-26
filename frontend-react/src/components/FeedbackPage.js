@@ -165,7 +165,7 @@ export default function FeedbackPage() {
       <div className="feedback-loading">
         <p>
           Hang tight, we're analyzing your conversation to generate feedback.
-          <span className="spinner-inline"><div className="spinner" /></span>
+          <span className="spinner-inline"><div className="feedback-spinner" /></span>
         </p>
         <div className="loading-facts">
           <h4>Did you know?</h4>
