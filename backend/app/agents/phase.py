@@ -35,7 +35,7 @@ class PhaseAgent:
         failure_phase_ids = current_phase.get('failure_phases', [])
         failure_phase_names = [self.phase_id_to_name.get(phase_id) for phase_id in failure_phase_ids if phase_id in self.phase_id_to_name]
         
-        print(f"[INFO] Evaluating: Success paths: {success_phase_names}, Failure paths: {failure_phase_names}")
+        print(f"[INFO] Evaluating phase transitions from '{current_phase_name}'")
 
         # 1. Check red flags
         red_flag_prompt = f"""
@@ -83,21 +83,26 @@ class PhaseAgent:
                 continue
                 
             failure_conditions_prompt = f"""
-                Evaluate if the message matches any of the following conditions. The context of the conversation is the following:
-                Rachel is a customer from Microsoft who has a small marketing business. Keep in mind for checking the conditions that Rachel is a customer from Microsoft.
-
-                ## Conditions 
+                You are an evaluator that checks if a message matches any given conditions.
+                Your task is to analyze the message and determine if it matches ANY of the conditions listed below.
+                
+                ## Conditions to check for:
                 {conditions}
                 
-                ## The message to evaluate
+                ## Message to evaluate:
                 "{user_input}"
 
-                ## response
+                ## Instructions:
+                1. Check if the message matches ANY of the conditions above
+                2. If ANY condition matches, set has_failure_conditions to true
+                3. Add ALL matching conditions to the failure_conditions_found list
+                4. Be literal in your matching - if the condition says "Agent mentions they are from Microsoft" and the message contains "I'm from Microsoft", that IS a match
 
+                ## Response format:
                 Return ONLY a JSON with two fields:
-                - "has_failure_conditions": boolean (true ONLY if the message matches any of the conditions)
-                - "failure_conditions_found": list of specific conditions found (empty if none)
-            """
+                - "has_failure_conditions": boolean (true if ANY condition matches, false if NONE match)
+                - "failure_conditions_found": list of the EXACT conditions that were found (empty if none)
+                """
             failure_response = self.llm.get_response(
                 system_prompt="You are an evaluator that only returns valid JSON as specified.",
                 user_prompt=failure_conditions_prompt
@@ -106,10 +111,10 @@ class PhaseAgent:
             res = json.loads(failure_response)
             
             if res.get('has_failure_conditions'):
-                print(f"[INFO] Failure conditions met for phase '{phase_name}': {res['failure_conditions_found']}")
+                print(f"[INFO] Transitioning to failure phase '{phase_name}'")
                 return {
                     'phase': phase_name,
-                    'observations': res['failure_conditions_found']
+                    'observations': []
                 }
 
         # 3. Check success conditions for each success phase
@@ -135,25 +140,31 @@ class PhaseAgent:
                 continue
             
             success_conditions_prompt = f"""
-                Evaluate if the message matches any of the following conditions.
-                The user might have already satisfied some conditions in previous messages.
+                You are an evaluator that checks if a message satisfies required conditions.
+                Your task is to analyze the message and determine which conditions it satisfies, considering both previously satisfied conditions and new ones from this message.
 
-                ## All required conditions 
+                ## Required conditions (ALL must be satisfied):
                 {conditions}
                 
-                ## Already satisfied conditions
+                ## Already satisfied conditions from previous messages:
                 {accumulated_conditions}
                 
-                ## Current message to evaluate
+                ## Current message to evaluate:
                 "{user_input}"
 
-                ## response
+                ## Instructions:
+                1. Check which NEW conditions from the required list are satisfied by THIS message
+                2. Consider both explicit and implicit satisfaction of conditions
+                3. Be literal in your matching - for example:
+                   - If a condition is "Agent explains reason for the call" and the message includes "I wanted to check in on...", that IS a match
+                   - If a condition is "Agent mentions purpose is to help with Microsoft 365 tools" and the message mentions "check in on how you're using Microsoft 365", that IS a match
+                4. has_success_conditions should be true ONLY if ALL required conditions are now satisfied (combining previous and new conditions)
 
+                ## Response format:
                 Return ONLY a JSON with two fields:
-                - "has_success_conditions": boolean (true ONLY if ALL required conditions are now satisfied, 
-                  either from previous messages or this message)
+                - "has_success_conditions": boolean (true if ALL required conditions are now satisfied between previous and new conditions)
                 - "success_conditions_found": list of NEW conditions found in THIS message (not including previously satisfied ones)
-            """
+                """
             success_response = self.llm.get_response(
                 system_prompt="You are an evaluator that only returns valid JSON as specified.",
                 user_prompt=success_conditions_prompt
@@ -170,19 +181,19 @@ class PhaseAgent:
             
             # Check if we have all required conditions now
             if sorted(all_conditions) == sorted(conditions):
-                print(f"[INFO] Success conditions met for phase '{phase_name}': {all_conditions}")
+                print(f"[INFO] Transitioning to success phase '{phase_name}'")
                 return {
                     'phase': phase_name,
-                    'observations': all_conditions
+                    'observations': []
                 }
         
-        # No transition, return updated accumulated conditions
+        # No transition, return updated accumulated conditions for current phase
         all_updated_conditions = accumulated_conditions.copy()
         for condition in new_conditions:
             if condition not in all_updated_conditions:
                 all_updated_conditions.append(condition)
         
-        print(f"[INFO] No phase transition, staying in '{current_phase_name}'")        
+        print(f"[INFO] Staying in phase '{current_phase_name}'")        
         return {
             'phase': current_phase_name,
             'observations': all_updated_conditions

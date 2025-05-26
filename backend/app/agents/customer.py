@@ -68,7 +68,7 @@ class CustomerAgent:
 
         # INSTRUCTIONS:
         1. Respond as this specific customer would, maintaining consistent personality and concerns
-        2. Keep responses concise (1-3 sentences) and conversational
+        2. Keep responses concise (1-2 sentences) and conversational
         3. Don't be overly polite or helpful - be realistic based on your profile
         4. Occasionally express frustration, confusion, or satisfaction as appropriate
         5. Use industry-specific terminology when relevant
