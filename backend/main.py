@@ -47,7 +47,8 @@ def chat(msg: Message):
             "phase": result.get("phase", "abrupt_closure"),
             "feedback": {
                 "observations": result.get("details", []),
-                "accumulated_conditions": []
+                "accumulated_conditions": [],
+                "conditions_for_next_phases": result.get("conditions_for_next_phases", [])
             }
         }
     
@@ -57,7 +58,8 @@ def chat(msg: Message):
         "phase": result["phase"],
         "feedback": {
             "observations": result["phase_observations"],
-            "accumulated_conditions": result["accumulated_conditions"]
+            "accumulated_conditions": result["accumulated_conditions"],
+            "conditions_for_next_phases": result.get("conditions_for_next_phases", [])
         }
     }
 

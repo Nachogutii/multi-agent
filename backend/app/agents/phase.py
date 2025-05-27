@@ -23,17 +23,43 @@ class PhaseAgent:
         if accumulated_conditions is None:
             accumulated_conditions = []
         
-        # Initialize new_conditions here to avoid UnboundLocalError
         new_conditions = []
+        # Lista para todas las transiciones potenciales con sus condiciones
+        potential_transitions_info = []
         
         current_phase = self.phases[current_phase_name]
         
-        # Get success and failure phase names
         success_phase_ids = current_phase.get('success_phases', [])
         success_phase_names = [self.phase_id_to_name.get(phase_id) for phase_id in success_phase_ids if phase_id in self.phase_id_to_name]
         
         failure_phase_ids = current_phase.get('failure_phases', [])
         failure_phase_names = [self.phase_id_to_name.get(phase_id) for phase_id in failure_phase_ids if phase_id in self.phase_id_to_name]
+
+        # Poblar potential_transitions_info para fases de éxito
+        for s_name in success_phase_names:
+            s_phase_obj = self.phases.get(s_name)
+            if not s_phase_obj: continue
+            s_phase_id = next((pid for pid, name in self.phase_id_to_name.items() if name == s_name), None)
+            s_conditions = self.supabase_service.get_phase_conditions(s_phase_id) if s_phase_id else s_phase_obj.get('conditions', [])
+            if s_conditions:
+                potential_transitions_info.append({
+                    "next_phase_name": s_name,
+                    "type": "success",
+                    "conditions_to_meet": s_conditions
+                })
+
+        # Poblar potential_transitions_info para fases de fracaso
+        for f_name in failure_phase_names:
+            f_phase_obj = self.phases.get(f_name)
+            if not f_phase_obj: continue
+            f_phase_id = next((pid for pid, name in self.phase_id_to_name.items() if name == f_name), None)
+            f_conditions = self.supabase_service.get_phase_conditions(f_phase_id) if f_phase_id else f_phase_obj.get('conditions', [])
+            if f_conditions:
+                potential_transitions_info.append({
+                    "next_phase_name": f_name,
+                    "type": "failure",
+                    "conditions_to_meet": f_conditions
+                })
         
         print(f"[INFO] Evaluating phase transitions from '{current_phase_name}'")
 
@@ -58,7 +84,8 @@ class PhaseAgent:
         red_flag_result = json.loads(red_flag_response)
         if red_flag_result.get("has_red_flags"):
             print("[INFO] Red flags detected, ending conversation")
-            return {"end": True, "reason": "red_flag", "details": red_flag_result["red_flags_found"]}
+            # En caso de red flag, la fase 'siguiente' es una terminal, así que mostramos todas las transiciones originales como posibles.
+            return {"end": True, "reason": "red_flag", "details": red_flag_result["red_flags_found"], "conditions_for_next_phases": potential_transitions_info}
 
         # 2. Check failure conditions for each failure phase
         for phase_name in failure_phase_names:
@@ -81,7 +108,14 @@ class PhaseAgent:
             # Skip if no conditions
             if not conditions:
                 continue
+            
+            # Asegurarse de no añadir la fase actual
+            if phase_name == current_phase_name:
+                continue
                 
+            # Añadir a la lista de condiciones para fases siguientes
+            conditions_for_next_phases = []
+            
             failure_conditions_prompt = f"""
                 You are an evaluator that checks if a message matches any given conditions.
                 Your task is to analyze the message and determine if it matches ANY of the conditions listed below.
@@ -115,9 +149,11 @@ class PhaseAgent:
             
             if res.get('has_failure_conditions'):
                 print(f"[INFO] Transitioning to failure phase '{phase_name}'")
+                final_next_phases = [pt for pt in potential_transitions_info if pt["next_phase_name"] != phase_name]
                 return {
                     'phase': phase_name,
-                    'observations': []
+                    'observations': [],
+                    "conditions_for_next_phases": final_next_phases
                 }
 
         # 3. Check success conditions for each success phase
@@ -141,6 +177,13 @@ class PhaseAgent:
             # Skip if no conditions
             if not conditions:
                 continue
+            
+            # Asegurarse de no añadir la fase actual
+            if phase_name == current_phase_name:
+                continue
+            
+            # Añadir a la lista de condiciones para fases siguientes
+            conditions_for_next_phases = []
             
             success_conditions_prompt = f"""
                 You are an evaluator that checks if a message satisfies required conditions.
@@ -185,9 +228,11 @@ class PhaseAgent:
             # Check if we have all required conditions now
             if sorted(all_conditions) == sorted(conditions):
                 print(f"[INFO] Transitioning to success phase '{phase_name}'")
+                final_next_phases = [pt for pt in potential_transitions_info if pt["next_phase_name"] != phase_name]
                 return {
                     'phase': phase_name,
-                    'observations': []
+                    'observations': [],
+                    "conditions_for_next_phases": final_next_phases
                 }
         
         # No transition, return updated accumulated conditions for current phase
@@ -196,9 +241,12 @@ class PhaseAgent:
             if condition not in all_updated_conditions:
                 all_updated_conditions.append(condition)
         
-        print(f"[INFO] Staying in phase '{current_phase_name}'")        
+        print(f"[INFO] Staying in phase '{current_phase_name}'")
+        # Si se queda en la misma fase, mostramos todas las transiciones originales como posibles siguientes.
+        final_next_phases_on_stay = [pt for pt in potential_transitions_info if pt["next_phase_name"] != current_phase_name]
         return {
             'phase': current_phase_name,
-            'observations': all_updated_conditions
+            'observations': all_updated_conditions,
+            "conditions_for_next_phases": final_next_phases_on_stay
         }
 

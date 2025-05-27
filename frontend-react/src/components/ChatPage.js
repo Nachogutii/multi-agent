@@ -35,6 +35,12 @@ export default function ChatPage() {
   const [isInitialPosition, setIsInitialPosition] = useState(() => {
     return initialMessages.length === 0 || (initialMessages.length === 1 && initialMessages[0].isWelcome);
   });
+  // Estados para el modo admin
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [currentPhase, setCurrentPhase] = useState(null);
+  const [currentConditions, setCurrentConditions] = useState(null);
+  const [currentObservations, setCurrentObservations] = useState(null);
+  const [conditionsForNextPhases, setConditionsForNextPhases] = useState([]);
   const synthesizerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -46,6 +52,12 @@ export default function ChatPage() {
   }, [messages, isConversationEnded]);
 
   useEffect(() => {
+    // Verificar parámetro de URL para modo admin
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("admin_pswrd") === "helloworld") {
+      setIsAdminMode(true);
+    }
+
     const storedScenarioId = localStorage.getItem("scenarioId");
     if (storedScenarioId) {
       const parsedScenarioId = parseInt(storedScenarioId, 10);
@@ -225,6 +237,13 @@ export default function ChatPage() {
       });
       const data = await res.json();
       const responseLower = data.response.toLowerCase();
+      
+      // Actualizar estados del modo admin
+      setCurrentPhase(data.phase);
+      setCurrentConditions(data.feedback?.accumulated_conditions);
+      setCurrentObservations(data.feedback?.observations);
+      setConditionsForNextPhases(data.feedback?.conditions_for_next_phases || []);
+      
       console.log("Checking response for banners:", responseLower);
       if (responseLower.includes("demo") || responseLower.includes("show me")) {
         console.log("Demo detected - showing success banner");
@@ -376,7 +395,54 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-      <div className="messages-container">
+      {isAdminMode && (
+        <div className="admin-panel">
+          <h4>
+            Admin Info
+            <span className="admin-badge">ADMIN MODE</span>
+          </h4>
+          <div className="admin-panel-section">
+            <strong>Current Phase:</strong>
+            <p>{currentPhase || 'N/A'}</p>
+          </div>
+          <div className="admin-panel-section">
+            <strong>Accumulated Conditions:</strong>
+            {currentConditions && currentConditions.length > 0 ? (
+              <ul>
+                {currentConditions.map((condition, index) => (
+                  <li key={index}>{typeof condition === 'object' ? JSON.stringify(condition) : condition}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>None</p>
+            )}
+          </div>
+          <div className="admin-panel-section">
+            <strong>Conditions to Achieve Next Phases:</strong>
+            {conditionsForNextPhases && conditionsForNextPhases.length > 0 ? (
+              conditionsForNextPhases.map((phaseInfo, index) => (
+                <div key={index} style={{ marginTop: '10px' }}>
+                  <strong style={{ color: phaseInfo.type === 'success' ? 'lightgreen' : 'lightcoral' }}>
+                    Next {phaseInfo.type} phase: {phaseInfo.next_phase_name}
+                  </strong>
+                  {phaseInfo.conditions_to_meet && phaseInfo.conditions_to_meet.length > 0 ? (
+                    <ul>
+                      {phaseInfo.conditions_to_meet.map((condition, cIndex) => (
+                        <li key={cIndex}>{typeof condition === 'object' ? JSON.stringify(condition) : condition}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>No specific conditions listed for this phase.</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p>No upcoming phase conditions available.</p>
+            )}
+          </div>
+        </div>
+      )}
+      <div className={`messages-container ${isAdminMode ? 'with-admin' : ''}`}>
         {messages.map((msg, idx) => (
           <div
             key={idx}

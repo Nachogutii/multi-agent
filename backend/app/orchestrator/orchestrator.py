@@ -47,7 +47,8 @@ class SimpleOrchestrator:
                 "details": phase_result.get("details", []),
                 "global_conditions": self.global_conditions_history,
                 "red_flags": self.red_flags,
-                "optional_aspects": self.optional_aspects
+                "optional_aspects": self.optional_aspects,
+                "conditions_for_next_phases": phase_result.get("conditions_for_next_phases", [])
             }
         
         # Get next phase and updated conditions
@@ -83,7 +84,8 @@ class SimpleOrchestrator:
             "accumulated_conditions": self.conditions_by_phase.get(self.current_phase, []),
             "global_conditions": self.global_conditions_history,
             "red_flags": self.red_flags,
-            "optional_aspects": self.optional_aspects
+            "optional_aspects": self.optional_aspects,
+            "conditions_for_next_phases": phase_result.get("conditions_for_next_phases", [])
         }
 
 # Example usage
