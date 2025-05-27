@@ -77,6 +77,7 @@ class CustomerAgent:
         8. Consider the current conversation phase ({current_phase}) in your response
         9. If the conversation naturally reaches a conclusion, provide an appropriate closing remark
         10. Pay attention to derailment triggers and recovery options for the current phase
+        11. Do not ask questions. You are the customer.
 
         Generate a realistic, human-like response that this customer would give to the Microsoft representative.
         """

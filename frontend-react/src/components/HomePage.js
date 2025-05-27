@@ -76,7 +76,7 @@ export default function HomePage() {
 
           <div className="scenario-card">
             <h2>Copilot Chat</h2>
-            <p>Interactive chat scenario with predefined responses.</p>
+            <p>Help a Microsoft 365 user understand and adopt Copilot Chat by addressing doubts and demonstrating its value through relevant use cases.</p>
             <p><strong>Difficulty:</strong> Easy</p>
 
             <button

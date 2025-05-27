@@ -97,6 +97,8 @@ class PhaseAgent:
                 2. If ANY condition matches, set has_failure_conditions to true
                 3. Add ALL matching conditions to the failure_conditions_found list
                 4. Be literal in your matching - if the condition says "Agent mentions they are from Microsoft" and the message contains "I'm from Microsoft", that IS a match
+                5. IMPORTANT: Ignore spelling mistakes, capitalization, and punctuation when evaluating. Focus on the semantic meaning and intent of the message.
+                6. Only mark "Agent lacks clear communication" if the message is truly unclear in meaning or irrelevant, NOT for simple formatting issues.
 
                 ## Response format:
                 Return ONLY a JSON with two fields:
@@ -109,6 +111,7 @@ class PhaseAgent:
             )
             failure_response = self.extract_json(failure_response)
             res = json.loads(failure_response)
+            print(f"[INFO] Failure response: {res}")
             
             if res.get('has_failure_conditions'):
                 print(f"[INFO] Transitioning to failure phase '{phase_name}'")
