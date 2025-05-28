@@ -57,7 +57,6 @@ export default function ChatPage() {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get("admin_pswrd") === "helloworld") {
       setIsAdminMode(true);
-      setMessages([]); // Limpiar mensajes cuando estamos en modo admin
     }
 
     const storedScenarioId = localStorage.getItem("scenarioId");
@@ -71,7 +70,7 @@ export default function ChatPage() {
         .then((data) => setScenario(data))
         .catch((err) => console.error("Error fetching scenario:", err));
     }
-    if (messages.length === 0 && !isAdminMode) {
+    if (messages.length === 0) {
       setMessages([{
         sender: "bot",
         text: "👋 Welcome! Before you start, click the info button to get key instructions.",
