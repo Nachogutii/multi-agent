@@ -486,7 +486,7 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
       <form 
-        className={`input-container ${isInitialPosition ? 'initial-position' : 'moved'}`} 
+        className={`input-container ${isInitialPosition ? 'initial-position' : 'moved'} ${isAdminMode ? 'with-admin' : ''} ${isAdminMode && !isAdminPanelOpen ? 'collapsed' : ''}`} 
         onSubmit={sendMessage}
         ref={inputContainerRef}
       >

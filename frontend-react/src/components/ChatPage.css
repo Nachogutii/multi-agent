@@ -81,6 +81,16 @@
   width: 100%;
 }
 
+.messages-container.with-admin {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.messages-container.with-admin.collapsed {
+  margin-right: auto;
+  margin-left: auto;
+}
+
 .message {
   max-width: 80%;
   margin-bottom: 16px;
@@ -137,6 +147,16 @@
   font-family: 'Inter', sans-serif;
   min-height: 64px;
   max-height: 174px;
+}
+
+.input-container.with-admin {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.input-container.with-admin.collapsed {
+  margin-right: auto;
+  margin-left: auto;
 }
 
 .input-container.initial-position {
@@ -872,14 +892,4 @@
 
 .admin-panel strong {
   color: rgba(230, 237, 243, 0.9);
-}
-
-/* Ajustar el contenedor de mensajes cuando el modo admin está activo */
-.messages-container.with-admin {
-  margin-right: 320px;
-  transition: margin-right 0.3s ease;
-}
-
-.messages-container.with-admin.collapsed {
-  margin-right: 20px;
 }
