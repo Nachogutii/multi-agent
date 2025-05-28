@@ -356,7 +356,7 @@ export default function ChatPage() {
         return "Copilot Chat";
       }
     }
-    return "Chat"; // Título por defecto
+    return "Chat";
   };
 
   return (
