@@ -37,6 +37,7 @@ export default function ChatPage() {
   });
   // Estados para el modo admin
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [currentPhase, setCurrentPhase] = useState(null);
   const [currentConditions, setCurrentConditions] = useState(null);
   const [currentObservations, setCurrentObservations] = useState(null);
@@ -56,6 +57,7 @@ export default function ChatPage() {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get("admin_pswrd") === "helloworld") {
       setIsAdminMode(true);
+      setMessages([]); // Limpiar mensajes cuando estamos en modo admin
     }
 
     const storedScenarioId = localStorage.getItem("scenarioId");
@@ -69,10 +71,10 @@ export default function ChatPage() {
         .then((data) => setScenario(data))
         .catch((err) => console.error("Error fetching scenario:", err));
     }
-    if (messages.length === 0) {
+    if (messages.length === 0 && !isAdminMode) {
       setMessages([{
         sender: "bot",
-        text: "👋 Welcome! Before you start, click the info button (top right) to get key instructions.",
+        text: "👋 Welcome! Before you start, click the info button to get key instructions.",
         isWelcome: true
       }]);
     }
@@ -396,53 +398,61 @@ export default function ChatPage() {
         </div>
       </div>
       {isAdminMode && (
-        <div className="admin-panel">
-          <h4>
-            Admin Info
-            <span className="admin-badge">ADMIN MODE</span>
-          </h4>
-          <div className="admin-panel-section">
-            <strong>Current Phase:</strong>
-            <p>{currentPhase || 'N/A'}</p>
+        <>
+          <button 
+            className={`admin-toggle ${isAdminPanelOpen ? 'open' : ''}`}
+            onClick={() => setIsAdminPanelOpen(!isAdminPanelOpen)}
+          >
+            {isAdminPanelOpen ? 'Close Admin Panel' : 'Open Admin Panel'}
+          </button>
+          <div className={`admin-panel ${isAdminPanelOpen ? 'open' : ''}`}>
+            <h4>
+              Admin Info
+              <span className="admin-badge">ADMIN MODE</span>
+            </h4>
+            <div className="admin-panel-section">
+              <strong>Current Phase:</strong>
+              <p>{currentPhase || 'N/A'}</p>
+            </div>
+            <div className="admin-panel-section">
+              <strong>Accumulated Conditions:</strong>
+              {currentConditions && currentConditions.length > 0 ? (
+                <ul>
+                  {currentConditions.map((condition, index) => (
+                    <li key={index}>{typeof condition === 'object' ? JSON.stringify(condition) : condition}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>None</p>
+              )}
+            </div>
+            <div className="admin-panel-section">
+              <strong>Conditions to Achieve Next Phases:</strong>
+              {conditionsForNextPhases && conditionsForNextPhases.length > 0 ? (
+                conditionsForNextPhases.map((phaseInfo, index) => (
+                  <div key={index} style={{ marginTop: '10px' }}>
+                    <strong style={{ color: phaseInfo.type === 'success' ? 'lightgreen' : 'lightcoral' }}>
+                      Next {phaseInfo.type} phase: {phaseInfo.next_phase_name}
+                    </strong>
+                    {phaseInfo.conditions_to_meet && phaseInfo.conditions_to_meet.length > 0 ? (
+                      <ul>
+                        {phaseInfo.conditions_to_meet.map((condition, cIndex) => (
+                          <li key={cIndex}>{typeof condition === 'object' ? JSON.stringify(condition) : condition}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No specific conditions listed for this phase.</p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p>No upcoming phase conditions available.</p>
+              )}
+            </div>
           </div>
-          <div className="admin-panel-section">
-            <strong>Accumulated Conditions:</strong>
-            {currentConditions && currentConditions.length > 0 ? (
-              <ul>
-                {currentConditions.map((condition, index) => (
-                  <li key={index}>{typeof condition === 'object' ? JSON.stringify(condition) : condition}</li>
-                ))}
-              </ul>
-            ) : (
-              <p>None</p>
-            )}
-          </div>
-          <div className="admin-panel-section">
-            <strong>Conditions to Achieve Next Phases:</strong>
-            {conditionsForNextPhases && conditionsForNextPhases.length > 0 ? (
-              conditionsForNextPhases.map((phaseInfo, index) => (
-                <div key={index} style={{ marginTop: '10px' }}>
-                  <strong style={{ color: phaseInfo.type === 'success' ? 'lightgreen' : 'lightcoral' }}>
-                    Next {phaseInfo.type} phase: {phaseInfo.next_phase_name}
-                  </strong>
-                  {phaseInfo.conditions_to_meet && phaseInfo.conditions_to_meet.length > 0 ? (
-                    <ul>
-                      {phaseInfo.conditions_to_meet.map((condition, cIndex) => (
-                        <li key={cIndex}>{typeof condition === 'object' ? JSON.stringify(condition) : condition}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>No specific conditions listed for this phase.</p>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p>No upcoming phase conditions available.</p>
-            )}
-          </div>
-        </div>
+        </>
       )}
-      <div className={`messages-container ${isAdminMode ? 'with-admin' : ''}`}>
+      <div className={`messages-container ${isAdminMode ? 'with-admin' : ''} ${isAdminMode && !isAdminPanelOpen ? 'collapsed' : ''}`}>
         {messages.map((msg, idx) => (
           <div
             key={idx}
