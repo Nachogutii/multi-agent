@@ -371,10 +371,10 @@ export default function ChatPage() {
       </div>
       <div className="chat-header">
         <div className="chat-header-left">
-          {scenario && <h3 className="scenario-title">GigPlus Support Chat Simulation</h3>}
+          {scenario && <h3 className="scenario-title" onClick={handleTitleClick}>GigPlus Support Chat Simulation</h3>}
         </div>
         <div className="chat-header-center">
-          <h2 className="chat-title" onClick={handleTitleClick}>{getChatTitle()}</h2>
+          <h2 className="chat-title">{getChatTitle()}</h2>
         </div>
         <div className="chat-header-right">
           <button

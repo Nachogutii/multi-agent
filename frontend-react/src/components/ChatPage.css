@@ -42,11 +42,19 @@
 .chat-title {
   font-size: 24px;
   margin: 0;
+  cursor: default;
+}
+
+.scenario-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-left: 16px;
   cursor: pointer;
   transition: transform 0.2s ease;
 }
 
-.chat-title:hover {
+.scenario-title:hover {
   transform: scale(1.1);
 }
 
@@ -418,13 +426,6 @@
 
 .popup-close-button:hover {
   background-color: rgba(115, 114, 133, 0.8);
-}
-
-.scenario-title {
-  font-size: 20px;
-  font-weight: bold;
-  color: #ffffff;
-  margin-left: 16px;
 }
 
 .mute-button {
