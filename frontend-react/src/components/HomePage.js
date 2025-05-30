@@ -32,7 +32,7 @@ export default function HomePage() {
         localStorage.setItem("scenarioId", scenarioId);
         localStorage.removeItem("chatMessages");
         localStorage.removeItem("isConversationEnded");
-        navigate("/chat");
+        navigate("/load");
       })
       .catch((err) => {
         console.error("Error starting new simulation:", err);
