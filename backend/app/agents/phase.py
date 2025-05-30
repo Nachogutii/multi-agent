@@ -133,6 +133,22 @@ class PhaseAgent:
                 4. Be literal in your matching - if the condition says "Agent mentions they are from Microsoft" and the message contains "I'm from Microsoft", that IS a match
                 5. IMPORTANT: Ignore spelling mistakes, capitalization, and punctuation when evaluating. Focus on the semantic meaning and intent of the message.
                 6. Only mark "Agent lacks clear communication" if the message is truly unclear in meaning or irrelevant, NOT for simple formatting issues.
+                7. CRITICAL: Initial greetings and introductions from Microsoft representatives are ALWAYS valid and should NOT trigger the off-topic condition
+
+                ## Examples for "Agent do not speak about the topic of the conversation":
+                SHOULD MATCH (transition to polite closure):
+                - "Did you watch the soccer game yesterday? The match was incredible!"
+                - "Let me tell you about my favorite movies and TV shows..."
+                - "The weather is really nice today, isn't it?"
+                - "Have you tried this new restaurant downtown?"
+                - "Let's discuss cryptocurrency investments"
+
+                SHOULD NOT MATCH:
+                - "Hi this is [Name] from Microsoft, how can I help you?"
+                - "Hello! I'm your assistant from Microsoft. How can I help you with your Microsoft 365 tools today?"
+                - "I understand you're having issues with Excel. Could you tell me more about the specific problem?"
+                - "Let me check your previous message to better assist you with your SharePoint question."
+                - "I'm reaching out from Microsoft to discuss your experience with our tools"
 
                 ## Response format:
                 Return ONLY a JSON with two fields:
