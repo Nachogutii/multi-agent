@@ -13,6 +13,8 @@ const typingPhrases = [
   "Just a second"
 ];
 
+//test
+
 export default function ChatPage() {
   const initialMessages = JSON.parse(localStorage.getItem("chatMessages")) || [];
   const [messages, setMessages] = useState(initialMessages);
