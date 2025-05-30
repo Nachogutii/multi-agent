@@ -77,7 +77,7 @@ export default function ChatPage() {
         isWelcome: true
       }]);
     }
-  }, []);
+  }, [messages.length]);
 
   useEffect(() => {
     if (!messages.some(msg => msg.isWelcome)) {
@@ -96,11 +96,12 @@ export default function ChatPage() {
     let phraseInterval;
     if (loading) {
       let phraseIndex = 0;
-      setTypingPhrase(typingPhrases[phraseIndex]);
-      phraseInterval = setInterval(() => {
-        phraseIndex = (phraseIndex + 1) % typingPhrases.length;
+      const updateTypingPhrase = () => {
         setTypingPhrase(typingPhrases[phraseIndex]);
-      }, 5000);
+        phraseIndex = (phraseIndex + 1) % typingPhrases.length;
+      };
+      updateTypingPhrase();
+      phraseInterval = setInterval(updateTypingPhrase, 5000);
     }
     return () => {
       if (phraseInterval) {

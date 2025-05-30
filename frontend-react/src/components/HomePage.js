@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import background from '../background.png';
-import "./HomePage.css";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import './HomePage.css';
 import logo from '../GIG+.png';
 
 export default function HomePage() {
