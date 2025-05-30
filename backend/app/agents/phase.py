@@ -150,6 +150,22 @@ class PhaseAgent:
                 - "Let me check your previous message to better assist you with your SharePoint question."
                 - "I'm reaching out from Microsoft to discuss your experience with our tools"
 
+                ## Examples for "Agent lacks clear communication or gives vague/irrelevant examples":
+                SHOULD MATCH (transition to polite closure):
+                - "Oh, you have Excel problems? Just Google it."
+                - "Figure it out yourself, it's not that hard."
+                - "IDK what's wrong, maybe restart your computer or something."
+                - "That's your problem, not mine."
+                - "Just click around until it works."
+                - "Have you tried turning it off and on again? That usually fixes everything lol"
+
+                SHOULD NOT MATCH:
+                - "I understand you're having issues with Excel. Let me help you troubleshoot this step by step."
+                - "Could you please provide more details about the error message you're seeing?"
+                - "I'm here to help you with your Microsoft 365 tools. What specific challenges are you facing?"
+                - "Let me guide you through the process of resolving this SharePoint issue."
+                - "Based on what you've described, here are the specific steps we can take to solve this."
+
                 ## Response format:
                 Return ONLY a JSON with two fields:
                 - "has_failure_conditions": boolean (true if ANY condition matches, false if NONE match)
