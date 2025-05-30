@@ -68,9 +68,15 @@
 
 .loadpage-info-box {
   max-width: 800px;
+  background-color: rgba(115, 114, 133, 0.392);
+  border-radius: 10px;
+  padding: 20px;
+  border: 2px solid #ffffff17;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
   width: 100%;
   color: #E6EDF3;
-  margin-top: 170px;
+  margin-top: 100px;
+  margin-bottom: 40px;
 }
 
 .loadpage-info-box li {
@@ -82,16 +88,17 @@
 .loadpage-footer {
   width: 100%;
   display: flex;
-  justify-content: flex-start;
-  align-items: flex-end;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
   padding: 0 40px 40px 40px;
   box-sizing: border-box;
-  margin-top: auto;
-  margin-bottom: 80px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .loadpage-start-btn {
-  margin: 0 auto;
+  margin: 0;
   background-color: rgba(115, 114, 133, 0.392);
   color: #E6EDF3;
   padding: 12px 32px;
