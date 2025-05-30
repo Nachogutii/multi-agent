@@ -25,7 +25,7 @@ export default function FeedbackPage() {
     if (feedbackAlreadySent && conversationAlreadySent) {
       return;
     }
-    fetch("http://localhost:8000/api/feedback/structured")
+    fetch("https://plg-simulator.onrender.com/api/feedback/structured")
       .then((res) => res.json())
       .then((data) => {
         setFeedback(data);
