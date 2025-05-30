@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.loadpage-bg {
+  background-color: #040121;
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  font-family: 'Inter', sans-serif;
+  color: #E6EDF3;
+  padding: 0;
+}
+
+.loadpage-header {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 40px 48px 0 48px;
+  box-sizing: border-box;
+  position: relative;
+  margin-top: 30px;
+}
+
+.loadpage-title-sub {
+  font-size: 24px;
+  font-weight: 600;
+  color: #E6EDF3;
+  line-height: 1.1;
+  text-align: left;
+  margin-bottom: 8px;
+  white-space: pre-line;
+  align-self: flex-start;
+  z-index: 2;
+}
+
+.loadpage-header-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 40px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.loadpage-chat-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #E6EDF3;
+  letter-spacing: 1px;
+  text-align: center;
+  margin: 0;
+  pointer-events: auto;
+}
+
+.loadpage-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  margin-top: 60px;
+}
+
+.loadpage-info-box {
+  max-width: 800px;
+  width: 100%;
+  color: #E6EDF3;
+  margin-top: 170px;
+}
+
+.loadpage-info-box li {
+  margin-bottom: 20px;
+  font-size: 20px;
+  line-height: 1.7;
+}
+
+.loadpage-footer {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  padding: 0 40px 40px 40px;
+  box-sizing: border-box;
+  margin-top: auto;
+  margin-bottom: 80px;
+}
+
+.loadpage-start-btn {
+  margin: 0 auto;
+  background-color: rgba(115, 114, 133, 0.392);
+  color: #E6EDF3;
+  padding: 12px 32px;
+  border: 1px solid #ffffff17;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  width: 150px;
+}
+
+.loadpage-back-btn {
+  margin: 0;
+  background-color: rgba(115, 114, 133, 0.392);
+  color: #E6EDF3;
+  border: 1px solid #ffffff17;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 10px 32px;
+  transition: background-color 0.2s;
+  width: 150px;
+}
+
+.loadpage-start-btn:hover, .loadpage-back-btn:hover {
+  background-color: #281e70;
+} 
