@@ -29,7 +29,7 @@ export default function HomePage() {
     const sessionId = btoa(`/chat_${timestamp}`).slice(0, 32);
     localStorage.setItem("currentSessionId", sessionId);
 
-    fetch("http://localhost:8000/api/reset", {
+    fetch("https://plg-simulator.onrender.com/api/reset", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -37,7 +37,7 @@ export default function FeedbackPage() {
       }
 
       // Si no existe feedback, lo generamos
-      fetch("http://localhost:8000/api/feedback/structured")
+      fetch("https://plg-simulator.onrender.com/api/feedback/structured")
         .then((res) => res.json())
         .then((data) => {
           setFeedback(data);
