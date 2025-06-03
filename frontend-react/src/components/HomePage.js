@@ -22,6 +22,14 @@ export default function HomePage() {
       scenarioId = 2;
     }
 
+    // Clean up any existing session
+    localStorage.removeItem("currentSessionId");
+    
+    // Generate a session ID that will be consistent throughout the chat and feedback
+    const timestamp = new Date().getTime();
+    const sessionId = btoa(`/chat_${timestamp}`).slice(0, 32);
+    localStorage.setItem("currentSessionId", sessionId);
+
     fetch("http://localhost:8000/api/reset", {
       method: "POST",
       headers: {

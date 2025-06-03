@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { submitFeedbackToSupabase } from "../services/feedbackService.js"
+import { submitFeedbackToSupabase, getFeedbackFromSupabase } from "../services/feedbackService.js"
 import { submitConversationToSupabase } from "../services/submitConversationToSupabase.js"
 import "./FeedbackPage.css";
 
@@ -13,48 +13,58 @@ export default function FeedbackPage() {
   useEffect(() => {
     if (effectRan.current) return;
     effectRan.current = true;
-    const timestamp = new Date().getTime();
-    const path = routeLocation.pathname;
-    const sessionId = btoa(`${path}_${timestamp}`).slice(0, 32);
-    const feedbackKey = `feedback_sent_${sessionId}`;
-    const conversationKey = `conversation_sent_${sessionId}`;
-    const feedbackAlreadySent = localStorage.getItem(feedbackKey);
-    const conversationAlreadySent = localStorage.getItem(conversationKey);
-    const storedMessages = localStorage.getItem("chatMessages");
-    const conversation = storedMessages ? JSON.parse(storedMessages) : [];
-    if (feedbackAlreadySent && conversationAlreadySent) {
+    
+    // Use the sessionId that was created when starting the chat
+    const sessionId = localStorage.getItem("currentSessionId");
+    if (!sessionId) {
+      console.error("No session ID found. Redirecting to home...");
+      navigate("/");
       return;
     }
-    fetch("http://localhost:8000/api/feedback/structured")
-      .then((res) => res.json())
-      .then((data) => {
-        setFeedback(data);
-        if (data?.metrics) {
-          const feedbackData = {
-            custom_score: data.custom_score,
-            suggestions: data.suggestions || [],
-            issues: data.issues || [],
-            strength: data.strength || [],
-            sessionId
-          };
-          
-          submitFeedbackToSupabase(feedbackData).then((feedbackId) => {
-            localStorage.setItem(feedbackKey, "true");
-            if (
-              feedbackId &&
-              conversation.length > 0 &&
-              !conversationAlreadySent
-            ) {
-              submitConversationToSupabase(feedbackId, conversation).then(() => {
-                localStorage.setItem(conversationKey, "true");
-              });
-            }
-          });
-        }
-      })
-      .catch((err) => {
-        setFeedback({ error: "Error fetching feedback." });
-      });
+
+    // Primero intentamos obtener feedback existente
+    getFeedbackFromSupabase(sessionId).then(existingFeedback => {
+      if (existingFeedback) {
+        // Si existe feedback, lo mostramos
+        setFeedback({
+          metrics: existingFeedback.metrics,
+          custom_score: existingFeedback.metrics,
+          suggestions: existingFeedback.suggestions || [],
+          issues: existingFeedback.issues || [],
+          strength: existingFeedback.strength || []
+        });
+        return;
+      }
+
+      // Si no existe feedback, lo generamos
+      fetch("http://localhost:8000/api/feedback/structured")
+        .then((res) => res.json())
+        .then((data) => {
+          setFeedback(data);
+          if (data?.metrics) {
+            const feedbackData = {
+              custom_score: data.custom_score,
+              suggestions: data.suggestions || [],
+              issues: data.issues || [],
+              strength: data.strength || [],
+              sessionId
+            };
+            
+            submitFeedbackToSupabase(feedbackData).then((feedbackId) => {
+              if (feedbackId) {
+                const storedMessages = localStorage.getItem("chatMessages");
+                const conversation = storedMessages ? JSON.parse(storedMessages) : [];
+                if (conversation.length > 0) {
+                  submitConversationToSupabase(feedbackId, conversation);
+                }
+              }
+            });
+          }
+        })
+        .catch((err) => {
+          setFeedback({ error: "Error fetching feedback." });
+        });
+    });
   }, [routeLocation.pathname]);
 
   const renderSection = (title, items, icon, colorClass) => {
