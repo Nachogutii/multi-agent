@@ -1,0 +1,97 @@
+.summary-background {
+  background-color: #040121;
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.summary-container {
+  width: 100%;
+  max-width: 700px;
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.summary-title {
+  color: #E6EDF3;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  margin-left: 0.5rem;
+}
+
+.summary-phase-card {
+  background: #18143a;
+  border: 1.5px solid #ffffff17;
+  border-radius: 10px;
+  padding: 1.5rem 1.5rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.summary-phase-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary-phase-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #E6EDF3;
+}
+
+.summary-phase-icon {
+  font-size: 1.3em;
+  margin-left: 0.5rem;
+}
+
+.summary-section {
+  margin-bottom: 1rem;
+}
+
+.summary-label {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: #E6EDF3;
+  font-size: 1.05rem;
+  display: block;
+}
+.success-label {
+  color: #1ec28b;
+}
+.failure-label {
+  color: #e05a5a;
+}
+.summary-section ul {
+  margin: 0.2rem 0 0 1.2rem;
+  padding: 0;
+  color: #C9D1D9;
+}
+.summary-section li {
+  margin-bottom: 0.2rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 700px) {
+  .summary-container {
+    max-width: 98vw;
+    margin-top: 1rem;
+    padding: 0 0.5rem;
+  }
+  .summary-title {
+    font-size: 1.1rem;
+    margin-bottom: 1.2rem;
+  }
+  .summary-phase-card {
+    font-size: 1rem;
+    padding: 1rem 0.5rem;
+  }
+} 

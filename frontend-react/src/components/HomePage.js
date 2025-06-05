@@ -8,7 +8,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [loadingStates, setLoadingStates] = useState({
     welcome: false,
-    copilot: false
+    copilot: false,
+    creator: false
   });
 
   const handleStartSimulation = (scenarioType) => {
@@ -20,6 +21,9 @@ export default function HomePage() {
     let scenarioId = 1;
     if (scenarioType === 'copilot') {
       scenarioId = 2;
+    } else if (scenarioType === 'creator') {
+      navigate("/scenario-creator");
+      return;
     }
 
     // Clean up any existing session
@@ -61,25 +65,25 @@ export default function HomePage() {
         </div>
 
         <div className="scenarios-container">
-        <div className="scenario-card">
-          <h2>Copilot Welcome</h2>
-          <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
-          <p><strong>Difficulty:</strong> Intermediate</p>
+          <div className="scenario-card">
+            <h2>Copilot Welcome</h2>
+            <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
+            <p><strong>Difficulty:</strong> Intermediate</p>
 
-          <button
-            className="start-button"
+            <button
+              className="start-button"
               onClick={() => handleStartSimulation('welcome')}
-              disabled={loadingStates.welcome || loadingStates.copilot}
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-          >
+              disabled={loadingStates.welcome || loadingStates.copilot || loadingStates.creator}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
               {loadingStates.welcome ? (
-              <>
-                Starting simulation... <span className="spinner" />
-              </>
-            ) : (
-              "Start Simulation"
-            )}
-          </button>
+                <>
+                  Starting simulation... <span className="spinner" />
+                </>
+              ) : (
+                "Start Simulation"
+              )}
+            </button>
           </div>
 
           <div className="scenario-card">
@@ -90,7 +94,7 @@ export default function HomePage() {
             <button
               className="start-button"
               onClick={() => handleStartSimulation('copilot')}
-              disabled={loadingStates.welcome || loadingStates.copilot}
+              disabled={loadingStates.welcome || loadingStates.copilot || loadingStates.creator}
               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
             >
               {loadingStates.copilot ? (
@@ -99,6 +103,27 @@ export default function HomePage() {
                 </>
               ) : (
                 "Start Simulation"
+              )}
+            </button>
+          </div>
+
+          <div className="scenario-card">
+            <h2>Scenario Creator</h2>
+            <p>Create your own custom scenarios to practice different customer interactions and situations.</p>
+            <p><strong>Difficulty:</strong> Customizable</p>
+
+            <button
+              className="start-button"
+              onClick={() => handleStartSimulation('creator')}
+              disabled={loadingStates.welcome || loadingStates.copilot || loadingStates.creator}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              {loadingStates.creator ? (
+                <>
+                  Loading creator... <span className="spinner" />
+                </>
+              ) : (
+                "Create Scenario"
               )}
             </button>
           </div>
