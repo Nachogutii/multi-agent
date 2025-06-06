@@ -194,4 +194,133 @@ button[type="button"].remove-button:hover {
 .remove-id:hover {
     color: #ff4444;
     background: none;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #040121;
+    padding: 1.5rem;
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid #ffffff17;
+    color: #E6EDF3;
+    animation: popupAppear 0.3s ease-out;
+}
+
+@keyframes popupAppear {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #ffffff17;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #E6EDF3;
+    font-size: 1.5rem;
+}
+
+.modal-body {
+    margin-bottom: 1rem;
+}
+
+.modal-section {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: rgba(115, 114, 133, 0.2);
+    border-radius: 6px;
+    border: 1px solid #ffffff17;
+}
+
+.modal-section h3 {
+    margin: 0 0 0.5rem 0;
+    color: #E6EDF3;
+    font-size: 1.1rem;
+}
+
+.modal-section p {
+    margin: 0.25rem 0;
+    color: #C9D1D9;
+    font-size: 0.9rem;
+}
+
+.modal-section strong {
+    color: #E6EDF3;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #ffffff17;
+}
+
+.modal-button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ffffff17;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    min-width: 100px;
+}
+
+.modal-button.confirm {
+    background-color: #281e70;
+    color: #E6EDF3;
+}
+
+.modal-button.confirm:hover {
+    background-color: #362784;
+    transform: translateY(-1px);
+}
+
+.modal-button.cancel {
+    background-color: rgba(115, 114, 133, 0.392);
+    color: #E6EDF3;
+}
+
+.modal-button.cancel:hover {
+    background-color: rgba(115, 114, 133, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Estilo para las fases dentro del popup */
+.modal-section .modal-section {
+    background-color: rgba(115, 114, 133, 0.1);
+    margin: 0.5rem 0;
+    padding: 0.75rem;
 } 

@@ -2,8 +2,79 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ScenarioCreator.css';
 
+function SummaryModal({ isOpen, onClose, onConfirm, scenarioData }) {
+    if (!isOpen || !scenarioData) return null;
+
+    // Helper function to display arrays
+    const displayArray = (arr) => {
+        if (!arr || !Array.isArray(arr)) return '[]';
+        return `[${arr.join(', ')}]`;
+    };
+
+    // Function to get phase conditions
+    const getPhaseConditions = (phaseId) => {
+        const conditions = scenarioData.phase_conditions
+            .filter(pc => pc.phase_id === phaseId)
+            .map(pc => pc.conditions_id);
+        return displayArray(conditions);
+    };
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <div className="modal-header">
+                    <h2>Scenario Summary</h2>
+                </div>
+                <div className="modal-body">
+                    <div className="modal-section">
+                        <h3>General Information</h3>
+                        <p><strong>Name:</strong> {scenarioData.scenario.name}</p>
+                        <p><strong>System Prompt:</strong> {scenarioData.scenario.system_prompt}</p>
+                    </div>
+
+                    <div className="modal-section">
+                        <h3>Conditions ({scenarioData.conditions.length})</h3>
+                        {scenarioData.conditions.map(c => (
+                            <p key={c.id}><strong>[{c.id}]</strong> {c.description}</p>
+                        ))}
+                    </div>
+
+                    <div className="modal-section">
+                        <h3>Phases ({scenarioData.phases.length})</h3>
+                        {scenarioData.phases.map(p => (
+                            <div key={p.id} className="modal-section" style={{backgroundColor: 'rgba(115, 114, 133, 0.2)'}}>
+                                <p><strong>[{p.id}] {p.name}</strong></p>
+                                <p><strong>System Prompt:</strong> {p.system_prompt}</p>
+                                <p>
+                                    <strong>Success Phases:</strong> {displayArray(p.success_phases)}
+                                </p>
+                                <p>
+                                    <strong>Failure Phases:</strong> {displayArray(p.failure_phases)}
+                                </p>
+                                <p>
+                                    <strong>Conditions:</strong> {getPhaseConditions(p.id)}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="modal-footer">
+                    <button className="modal-button cancel" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <button className="modal-button confirm" onClick={onConfirm}>
+                        Confirm and Create
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function ScenarioCreator() {
     const navigate = useNavigate();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [scenarioData, setScenarioData] = useState(null);
     const [scenario, setScenario] = useState({
         name: '',
         system_prompt: ''
@@ -34,11 +105,10 @@ export default function ScenarioCreator() {
             id: newId,
             name: '',
             system_prompt: '',
-            success_phases: [],  // Array normal para manejar IDs individuales
-            failure_phases: [],  // Array normal para manejar IDs individuales
-            conditions: []  // Array de condition IDs
+            success_phases: [],
+            failure_phases: [],
+            conditions: []
         };
-        console.log('Adding new phase:', newPhase);
         setPhases([...phases, newPhase]);
     };
 
@@ -79,81 +149,94 @@ export default function ScenarioCreator() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Preparar los datos según el schema
-        const scenarioData = {
-            scenario: {
-                name: scenario.name,
-                system_prompt: scenario.system_prompt
-            },
-            conditions: conditions.map(condition => ({
-                id: condition.id,
-                description: condition.description
-            })),
-            phases: phases.map(phase => ({
-                id: phase.id,
-                name: phase.name,
-                system_prompt: phase.system_prompt,
-                success_phases: phase.success_phases,  // Ya es un array
-                failure_phases: phase.failure_phases   // Ya es un array
-            })),
-            phase_conditions: phases.flatMap(phase => 
-                phase.conditions.map(conditionId => ({
-                    phase_id: phase.id,
-                    conditions_id: conditionId
-                }))
-            )
-        };
+        try {
+            // Preparar los datos según el schema
+            const data = {
+                scenario: {
+                    name: scenario.name,
+                    system_prompt: scenario.system_prompt
+                },
+                conditions: conditions.map(condition => ({
+                    id: condition.id,
+                    description: condition.description
+                })),
+                phases: phases.map(phase => ({
+                    id: phase.id,
+                    name: phase.name,
+                    system_prompt: phase.system_prompt,
+                    success_phases: phase.success_phases || [],
+                    failure_phases: phase.failure_phases || []
+                })),
+                phase_conditions: phases.flatMap(phase => 
+                    (phase.conditions || []).map(conditionId => ({
+                        phase_id: phase.id,
+                        conditions_id: Number(conditionId)
+                    }))
+                )
+            };
 
-        console.log('JSON generado:', JSON.stringify(scenarioData, null, 2));
+            // Verificar que los arrays no son undefined
+            data.phases.forEach(phase => {
+                if (!Array.isArray(phase.success_phases)) phase.success_phases = [];
+                if (!Array.isArray(phase.failure_phases)) phase.failure_phases = [];
+            });
 
-        // Mostrar resumen
-        const summary = `
-=== RESUMEN DEL ESCENARIO ===
+            console.log('Datos preparados:', JSON.stringify(data, null, 2));
+            setScenarioData(data);
+            setIsModalOpen(true);
+        } catch (error) {
+            console.error('Error preparing data:', error);
+            alert('Error preparing scenario data: ' + error.message);
+        }
+    };
 
-Nombre: ${scenarioData.scenario.name}
-System Prompt: ${scenarioData.scenario.system_prompt}
-
-=== CONDICIONES (${scenarioData.conditions.length}) ===
-${scenarioData.conditions.map(c => `[${c.id}] ${c.description}`).join('\n')}
-
-=== FASES (${scenarioData.phases.length}) ===
-${scenarioData.phases.map(p => `
-[${p.id}] ${p.name}
-  - System Prompt: ${p.system_prompt}
-  - Success Phases: [${p.success_phases.join(',')}]
-  - Failure Phases: [${p.failure_phases.join(',')}]
-  - Conditions: ${scenarioData.phase_conditions
-    .filter(pc => pc.phase_id === p.id)
-    .map(pc => pc.conditions_id)
-    .join(', ')}`).join('\n')}
-`;
-
-        const confirmed = window.confirm(
-            `Por favor, revisa el resumen del escenario:\n\n${summary}\n\n¿Deseas proceder con la creación?`
-        );
-
-        if (confirmed) {
-            try {
-                const response = await fetch('http://localhost:8000/api/scenarios', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(scenarioData)
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('Respuesta del servidor:', result);
-                    alert(`Escenario creado exitosamente con ID: ${result.scenario_id}`);
-                    navigate('/');  // Ahora sí navegamos ya que se creó en la base de datos
-                } else {
-                    const error = await response.json();
-                    alert('Error: ' + (error.detail || 'Error desconocido'));
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
+    const handleConfirm = async () => {
+        try {
+            if (!scenarioData) {
+                throw new Error('No scenario data to send');
             }
+
+            // Asegurarnos de que los datos están correctamente formateados
+            const dataToSend = {
+                scenario: scenarioData.scenario,
+                conditions: scenarioData.conditions,
+                phases: scenarioData.phases.map(phase => ({
+                    id: phase.id,
+                    name: phase.name,
+                    system_prompt: phase.system_prompt,
+                    success_phases: Array.isArray(phase.success_phases) ? phase.success_phases : [],
+                    failure_phases: Array.isArray(phase.failure_phases) ? phase.failure_phases : []
+                })),
+                phase_conditions: scenarioData.phase_conditions.map(pc => ({
+                    phase_id: Number(pc.phase_id),
+                    conditions_id: Number(pc.conditions_id)
+                }))
+            };
+
+            console.log('Enviando datos al servidor:', JSON.stringify(dataToSend, null, 2));
+            
+            const response = await fetch('http://localhost:8000/api/scenarios', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataToSend)
+            });
+
+            const responseData = await response.json();
+            console.log('Server response:', responseData);
+
+            if (!response.ok) {
+                throw new Error(responseData.detail || 'Error creating scenario');
+            }
+
+            alert(`Scenario successfully created with ID: ${responseData.scenario_id}`);
+            navigate('/');
+        } catch (error) {
+            console.error('Complete error:', error);
+            alert('Error: ' + (error.message || 'Unknown error creating scenario'));
+        } finally {
+            setIsModalOpen(false);
         }
     };
 
@@ -222,7 +305,7 @@ ${scenarioData.phases.map(p => `
                                 <div className="id-input-group">
                                     <input
                                         type="number"
-                                        placeholder="Agregar ID"
+                                        placeholder="Add ID"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
@@ -253,7 +336,7 @@ ${scenarioData.phases.map(p => `
                                 <div className="id-input-group">
                                     <input
                                         type="number"
-                                        placeholder="Agregar ID"
+                                        placeholder="Add ID"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
@@ -284,7 +367,7 @@ ${scenarioData.phases.map(p => `
                                 <div className="id-input-group">
                                     <input
                                         type="number"
-                                        placeholder="Agregar ID"
+                                        placeholder="Add ID"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
@@ -317,6 +400,13 @@ ${scenarioData.phases.map(p => `
 
                 <button type="submit" className="submit-button">Create Scenario</button>
             </form>
+
+            <SummaryModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={handleConfirm}
+                scenarioData={scenarioData}
+            />
         </div>
     );
 } 
