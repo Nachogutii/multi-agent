@@ -61,25 +61,25 @@ export default function HomePage() {
         </div>
 
         <div className="scenarios-container">
-        <div className="scenario-card">
-          <h2>Copilot Welcome</h2>
-          <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
-          <p><strong>Difficulty:</strong> Intermediate</p>
+          <div className="scenario-card">
+            <h2>Copilot Welcome</h2>
+            <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
+            <p><strong>Difficulty:</strong> Intermediate</p>
 
-          <button
-            className="start-button"
+            <button
+              className="start-button"
               onClick={() => handleStartSimulation('welcome')}
               disabled={loadingStates.welcome || loadingStates.copilot}
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-          >
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
               {loadingStates.welcome ? (
-              <>
-                Starting simulation... <span className="spinner" />
-              </>
-            ) : (
-              "Start Simulation"
-            )}
-          </button>
+                <>
+                  Starting simulation... <span className="spinner" />
+                </>
+              ) : (
+                "Start Simulation"
+              )}
+            </button>
           </div>
 
           <div className="scenario-card">
@@ -100,6 +100,20 @@ export default function HomePage() {
               ) : (
                 "Start Simulation"
               )}
+            </button>
+          </div>
+
+          <div className="scenario-card creator-card">
+            <h2>Create New Scenario</h2>
+            <p>Create a custom simulation scenario with your own phases and conditions.</p>
+            <p><strong>Tool:</strong> Scenario Creator</p>
+
+            <button
+              className="start-button creator-button"
+              onClick={() => navigate('/create-scenario')}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              Create Scenario
             </button>
           </div>
         </div>

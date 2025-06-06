@@ -5,6 +5,7 @@ import ChatPage from './components/ChatPage';
 import FeedbackPage from './components/FeedbackPage';
 import LoginPage from "./components/LoginPage";
 import LoadPage from './components/LoadPage';
+import ScenarioCreator from './components/ScenarioCreator';
 import { supabase } from "./lib/supabaseClient";
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
         <Route path="/load" element={<LoadPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
+        <Route path="/create-scenario" element={<ScenarioCreator />} />
       </Routes>
     </Router>
   );
