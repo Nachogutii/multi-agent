@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ScenarioCreator.css';
 
-function SummaryModal({ isOpen, onClose, onConfirm, scenarioData }) {
+function ScenarioSummaryModal({ isOpen, onClose, onConfirm, scenarioData }) {
     if (!isOpen || !scenarioData) return null;
 
     // Helper function to display arrays
@@ -73,101 +73,100 @@ function SummaryModal({ isOpen, onClose, onConfirm, scenarioData }) {
 
 export default function ScenarioCreator() {
     const navigate = useNavigate();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
     const [scenarioData, setScenarioData] = useState(null);
-    const [scenario, setScenario] = useState({
+    const [scenarioInfo, setScenarioInfo] = useState({
         name: '',
         system_prompt: ''
     });
-    const [conditions, setConditions] = useState([]);
-    const [phases, setPhases] = useState([]);
+    const [scenarioConditions, setScenarioConditions] = useState([]);
+    const [scenarioPhases, setScenarioPhases] = useState([]);
 
-    const addCondition = () => {
-        const newId = conditions.length + 1;
-        setConditions([...conditions, { id: newId, description: '' }]);
+    const addScenarioCondition = () => {
+        const newConditionId = scenarioConditions.length + 1;
+        setScenarioConditions([...scenarioConditions, { id: newConditionId, description: '' }]);
     };
 
-    const updateCondition = (index, description) => {
-        const newConditions = [...conditions];
+    const updateScenarioCondition = (index, description) => {
+        const newConditions = [...scenarioConditions];
         newConditions[index] = { ...newConditions[index], description };
-        setConditions(newConditions);
+        setScenarioConditions(newConditions);
     };
 
-    const removeCondition = (index) => {
-        setConditions(conditions.filter((_, i) => i !== index));
+    const removeScenarioCondition = (index) => {
+        setScenarioConditions(scenarioConditions.filter((_, i) => i !== index));
         // Update IDs
-        setConditions(prev => prev.map((cond, i) => ({ ...cond, id: i + 1 })));
+        setScenarioConditions(prev => prev.map((cond, i) => ({ ...cond, id: i + 1 })));
     };
 
-    const addPhase = () => {
-        const newId = phases.length + 1;
+    const addScenarioPhase = () => {
+        const newPhaseId = scenarioPhases.length + 1;
         const newPhase = {
-            id: newId,
+            id: newPhaseId,
             name: '',
             system_prompt: '',
             success_phases: [],
             failure_phases: [],
             conditions: []
         };
-        setPhases([...phases, newPhase]);
+        setScenarioPhases([...scenarioPhases, newPhase]);
     };
 
-    const updatePhase = (index, field, value) => {
-        const newPhases = [...phases];
+    const updateScenarioPhase = (index, field, value) => {
+        const newPhases = [...scenarioPhases];
         newPhases[index] = { ...newPhases[index], [field]: value };
-        setPhases(newPhases);
+        setScenarioPhases(newPhases);
     };
 
-    const addPhaseId = (phaseIndex, field, id) => {
-        if (!/^\d+$/.test(id)) return; // Validar que sea un número
+    const addScenarioPhaseTransition = (phaseIndex, field, id) => {
+        if (!/^\d+$/.test(id)) return;
         
-        const newPhases = [...phases];
+        const newPhases = [...scenarioPhases];
         const currentPhase = { ...newPhases[phaseIndex] };
         const idNumber = parseInt(id);
         
         if (!currentPhase[field].includes(idNumber)) {
             currentPhase[field] = [...currentPhase[field], idNumber];
             newPhases[phaseIndex] = currentPhase;
-            setPhases(newPhases);
+            setScenarioPhases(newPhases);
         }
     };
 
-    const removePhaseId = (phaseIndex, field, id) => {
-        const newPhases = [...phases];
+    const removeScenarioPhaseTransition = (phaseIndex, field, id) => {
+        const newPhases = [...scenarioPhases];
         const currentPhase = { ...newPhases[phaseIndex] };
         currentPhase[field] = currentPhase[field].filter(existingId => existingId !== id);
         newPhases[phaseIndex] = currentPhase;
-        setPhases(newPhases);
+        setScenarioPhases(newPhases);
     };
 
-    const removePhase = (index) => {
-        setPhases(phases.filter((_, i) => i !== index));
+    const removeScenarioPhase = (index) => {
+        setScenarioPhases(scenarioPhases.filter((_, i) => i !== index));
         // Update IDs
-        setPhases(prev => prev.map((phase, i) => ({ ...phase, id: i + 1 })));
+        setScenarioPhases(prev => prev.map((phase, i) => ({ ...phase, id: i + 1 })));
     };
 
-    const handleSubmit = async (e) => {
+    const handleScenarioSubmit = async (e) => {
         e.preventDefault();
         
         try {
-            // Preparar los datos según el schema
             const data = {
                 scenario: {
-                    name: scenario.name,
-                    system_prompt: scenario.system_prompt
+                    name: scenarioInfo.name,
+                    system_prompt: scenarioInfo.system_prompt
                 },
-                conditions: conditions.map(condition => ({
+                conditions: scenarioConditions.map(condition => ({
                     id: condition.id,
                     description: condition.description
                 })),
-                phases: phases.map(phase => ({
+                phases: scenarioPhases.map(phase => ({
                     id: phase.id,
                     name: phase.name,
                     system_prompt: phase.system_prompt,
                     success_phases: phase.success_phases || [],
                     failure_phases: phase.failure_phases || []
                 })),
-                phase_conditions: phases.flatMap(phase => 
+                phase_conditions: scenarioPhases.flatMap(phase => 
                     (phase.conditions || []).map(conditionId => ({
                         phase_id: phase.id,
                         conditions_id: Number(conditionId)
@@ -175,22 +174,21 @@ export default function ScenarioCreator() {
                 )
             };
 
-            // Verificar que los arrays no son undefined
             data.phases.forEach(phase => {
                 if (!Array.isArray(phase.success_phases)) phase.success_phases = [];
                 if (!Array.isArray(phase.failure_phases)) phase.failure_phases = [];
             });
 
-            console.log('Datos preparados:', JSON.stringify(data, null, 2));
+            console.log('Prepared scenario data:', JSON.stringify(data, null, 2));
             setScenarioData(data);
-            setIsModalOpen(true);
+            setIsSummaryModalOpen(true);
         } catch (error) {
-            console.error('Error preparing data:', error);
+            console.error('Error preparing scenario data:', error);
             alert('Error preparing scenario data: ' + error.message);
         }
     };
 
-    const handleConfirm = async () => {
+    const handleScenarioConfirm = async () => {
         try {
             if (!scenarioData) {
                 throw new Error('No scenario data to send');
@@ -236,92 +234,98 @@ export default function ScenarioCreator() {
             console.error('Complete error:', error);
             alert('Error: ' + (error.message || 'Unknown error creating scenario'));
         } finally {
-            setIsModalOpen(false);
+            setIsSummaryModalOpen(false);
         }
     };
 
     return (
-        <div className="scenario-creator">
+        <div className="scenario-creator-container">
             <h1>Create New Scenario</h1>
             
-            <form onSubmit={handleSubmit}>
-                <div className="section">
+            <form onSubmit={handleScenarioSubmit}>
+                <div className="scenario-info-section">
                     <h2>Scenario Information</h2>
                     <input
                         type="text"
                         placeholder="Scenario name"
-                        value={scenario.name}
-                        onChange={(e) => setScenario({...scenario, name: e.target.value})}
+                        value={scenarioInfo.name}
+                        onChange={(e) => setScenarioInfo({...scenarioInfo, name: e.target.value})}
                         required
+                        className="scenario-input"
                     />
                     <textarea
                         placeholder="System prompt"
-                        value={scenario.system_prompt}
-                        onChange={(e) => setScenario({...scenario, system_prompt: e.target.value})}
+                        value={scenarioInfo.system_prompt}
+                        onChange={(e) => setScenarioInfo({...scenarioInfo, system_prompt: e.target.value})}
                         required
+                        className="scenario-textarea"
                     />
                 </div>
 
-                <div className="section">
+                <div className="scenario-conditions-section">
                     <h2>Conditions</h2>
-                    <button type="button" onClick={addCondition}>Add Condition</button>
-                    {conditions.map((condition, index) => (
-                        <div key={index} className="condition-item">
-                            <span>ID: {condition.id}</span>
+                    <button type="button" onClick={addScenarioCondition} className="scenario-add-button">Add Condition</button>
+                    {scenarioConditions.map((condition, index) => (
+                        <div key={index} className="scenario-condition-item">
+                            <span className="scenario-condition-id">ID: {condition.id}</span>
                             <input
                                 type="text"
                                 placeholder="Condition description"
                                 value={condition.description}
-                                onChange={(e) => updateCondition(index, e.target.value)}
+                                onChange={(e) => updateScenarioCondition(index, e.target.value)}
                                 required
+                                className="scenario-input"
                             />
-                            <button type="button" onClick={() => removeCondition(index)}>Remove</button>
+                            <button type="button" onClick={() => removeScenarioCondition(index)} className="scenario-remove-button">Remove</button>
                         </div>
                     ))}
                 </div>
 
-                <div className="section">
+                <div className="scenario-phases-section">
                     <h2>Phases</h2>
-                    <button type="button" onClick={addPhase}>Add Phase</button>
-                    {phases.map((phase, index) => (
-                        <div key={index} className="phase-item">
-                            <span>ID: {phase.id}</span>
+                    <button type="button" onClick={addScenarioPhase} className="scenario-add-button">Add Phase</button>
+                    {scenarioPhases.map((phase, index) => (
+                        <div key={index} className="scenario-phase-item">
+                            <span className="scenario-phase-id">ID: {phase.id}</span>
                             <input
                                 type="text"
                                 placeholder="Phase name"
                                 value={phase.name}
-                                onChange={(e) => updatePhase(index, 'name', e.target.value)}
+                                onChange={(e) => updateScenarioPhase(index, 'name', e.target.value)}
                                 required
+                                className="scenario-input"
                             />
                             <textarea
                                 placeholder="Phase system prompt"
                                 value={phase.system_prompt}
-                                onChange={(e) => updatePhase(index, 'system_prompt', e.target.value)}
+                                onChange={(e) => updateScenarioPhase(index, 'system_prompt', e.target.value)}
                                 required
+                                className="scenario-textarea"
                             />
                             
-                            <div className="array-input-container">
+                            <div className="scenario-transitions-container">
                                 <label>Success phase IDs:</label>
-                                <div className="id-input-group">
+                                <div className="scenario-transition-group">
                                     <input
                                         type="number"
                                         placeholder="Add ID"
+                                        className="scenario-input"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
-                                                addPhaseId(index, 'success_phases', e.target.value);
+                                                addScenarioPhaseTransition(index, 'success_phases', e.target.value);
                                                 e.target.value = '';
                                             }
                                         }}
                                     />
-                                    <div className="id-tags">
+                                    <div className="scenario-transition-tags">
                                         {phase.success_phases.map((id) => (
-                                            <span key={id} className="id-tag">
+                                            <span key={id} className="scenario-transition-tag">
                                                 {id}
                                                 <button 
                                                     type="button" 
-                                                    className="remove-id"
-                                                    onClick={() => removePhaseId(index, 'success_phases', id)}
+                                                    className="scenario-transition-remove"
+                                                    onClick={() => removeScenarioPhaseTransition(index, 'success_phases', id)}
                                                 >
                                                     ×
                                                 </button>
@@ -331,28 +335,29 @@ export default function ScenarioCreator() {
                                 </div>
                             </div>
 
-                            <div className="array-input-container">
+                            <div className="scenario-transitions-container">
                                 <label>Failure phase IDs:</label>
-                                <div className="id-input-group">
+                                <div className="scenario-transition-group">
                                     <input
                                         type="number"
                                         placeholder="Add ID"
+                                        className="scenario-input"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
-                                                addPhaseId(index, 'failure_phases', e.target.value);
+                                                addScenarioPhaseTransition(index, 'failure_phases', e.target.value);
                                                 e.target.value = '';
                                             }
                                         }}
                                     />
-                                    <div className="id-tags">
+                                    <div className="scenario-transition-tags">
                                         {phase.failure_phases.map((id) => (
-                                            <span key={id} className="id-tag">
+                                            <span key={id} className="scenario-transition-tag">
                                                 {id}
                                                 <button 
                                                     type="button" 
-                                                    className="remove-id"
-                                                    onClick={() => removePhaseId(index, 'failure_phases', id)}
+                                                    className="scenario-transition-remove"
+                                                    onClick={() => removeScenarioPhaseTransition(index, 'failure_phases', id)}
                                                 >
                                                     ×
                                                 </button>
@@ -362,28 +367,29 @@ export default function ScenarioCreator() {
                                 </div>
                             </div>
 
-                            <div className="array-input-container">
+                            <div className="scenario-transitions-container">
                                 <label>Condition IDs:</label>
-                                <div className="id-input-group">
+                                <div className="scenario-transition-group">
                                     <input
                                         type="number"
                                         placeholder="Add ID"
+                                        className="scenario-input"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
-                                                addPhaseId(index, 'conditions', e.target.value);
+                                                addScenarioPhaseTransition(index, 'conditions', e.target.value);
                                                 e.target.value = '';
                                             }
                                         }}
                                     />
-                                    <div className="id-tags">
+                                    <div className="scenario-transition-tags">
                                         {phase.conditions.map((id) => (
-                                            <span key={id} className="id-tag">
+                                            <span key={id} className="scenario-transition-tag">
                                                 {id}
                                                 <button 
                                                     type="button" 
-                                                    className="remove-id"
-                                                    onClick={() => removePhaseId(index, 'conditions', id)}
+                                                    className="scenario-transition-remove"
+                                                    onClick={() => removeScenarioPhaseTransition(index, 'conditions', id)}
                                                 >
                                                     ×
                                                 </button>
@@ -393,18 +399,18 @@ export default function ScenarioCreator() {
                                 </div>
                             </div>
 
-                            <button type="button" onClick={() => removePhase(index)}>Remove Phase</button>
+                            <button type="button" onClick={() => removeScenarioPhase(index)} className="scenario-remove-button">Remove Phase</button>
                         </div>
                     ))}
                 </div>
 
-                <button type="submit" className="submit-button">Create Scenario</button>
+                <button type="submit" className="scenario-submit-button">Create Scenario</button>
             </form>
 
-            <SummaryModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onConfirm={handleConfirm}
+            <ScenarioSummaryModal
+                isOpen={isSummaryModalOpen}
+                onClose={() => setIsSummaryModalOpen(false)}
+                onConfirm={handleScenarioConfirm}
                 scenarioData={scenarioData}
             />
         </div>
