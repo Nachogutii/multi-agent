@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import background from '../background.png';
 import "./HomePage.css";
@@ -6,21 +6,29 @@ import logo from '../GIG+.png';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [loadingStates, setLoadingStates] = useState({
-    welcome: false,
-    copilot: false
-  });
+  const [loading, setLoading] = useState(false);
+  const [scenarios, setScenarios] = useState([]);
+  const [selectedScenario, setSelectedScenario] = useState(null);
 
-  const handleStartSimulation = (scenarioType) => {
-    setLoadingStates(prev => ({
-      ...prev,
-      [scenarioType]: true
-    }));
+  useEffect(() => {
+    // Fetch scenarios when component mounts
+    fetch("http://localhost:8000/api/scenarios")
+      .then(response => response.json())
+      .then(data => {
+        setScenarios(data);
+        if (data.length > 0) {
+          setSelectedScenario(data[0].id);
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching scenarios:", err);
+      });
+  }, []);
 
-    let scenarioId = 1;
-    if (scenarioType === 'copilot') {
-      scenarioId = 2;
-    }
+  const handleStartSimulation = () => {
+    if (!selectedScenario) return;
+
+    setLoading(true);
 
     // Clean up any existing session
     localStorage.removeItem("currentSessionId");
@@ -35,20 +43,17 @@ export default function HomePage() {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ id: scenarioId })
+      body: JSON.stringify({ id: selectedScenario })
     })
       .then(() => {
-        localStorage.setItem("scenarioId", scenarioId);
+        localStorage.setItem("scenarioId", selectedScenario);
         localStorage.removeItem("chatMessages");
         localStorage.removeItem("isConversationEnded");
         navigate("/load");
       })
       .catch((err) => {
         console.error("Error starting new simulation:", err);
-        setLoadingStates(prev => ({
-          ...prev,
-          [scenarioType]: false
-        }));
+        setLoading(false);
       });
   };
 
@@ -61,18 +66,26 @@ export default function HomePage() {
         </div>
 
         <div className="scenarios-container">
-          <div className="scenario-card">
-            <h2>Copilot Welcome</h2>
-            <p>Customer is already using Microsoft 365 and wants to get the most out of Copilot.</p>
-            <p><strong>Difficulty:</strong> Intermediate</p>
+          <div className="scenario-selector">
+            <select 
+              className="scenario-dropdown"
+              value={selectedScenario || ""}
+              onChange={(e) => setSelectedScenario(Number(e.target.value))}
+            >
+              {scenarios.map(scenario => (
+                <option key={scenario.id} value={scenario.id}>
+                  {scenario.name}
+                </option>
+              ))}
+            </select>
 
             <button
               className="start-button"
-              onClick={() => handleStartSimulation('welcome')}
-              disabled={loadingStates.welcome || loadingStates.copilot}
+              onClick={handleStartSimulation}
+              disabled={loading || !selectedScenario}
               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
             >
-              {loadingStates.welcome ? (
+              {loading ? (
                 <>
                   Starting simulation... <span className="spinner" />
                 </>
@@ -82,40 +95,12 @@ export default function HomePage() {
             </button>
           </div>
 
-          <div className="scenario-card">
-            <h2>Copilot Chat</h2>
-            <p>Help a Microsoft 365 user understand and adopt Copilot Chat by addressing doubts and demonstrating its value through relevant use cases.</p>
-            <p><strong>Difficulty:</strong> Easy</p>
-
-            <button
-              className="start-button"
-              onClick={() => handleStartSimulation('copilot')}
-              disabled={loadingStates.welcome || loadingStates.copilot}
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
-              {loadingStates.copilot ? (
-                <>
-                  Starting simulation... <span className="spinner" />
-                </>
-              ) : (
-                "Start Simulation"
-              )}
-            </button>
-          </div>
-
-          <div className="scenario-card creator-card">
-            <h2>Create New Scenario</h2>
-            <p>Create a custom simulation scenario with your own phases and conditions.</p>
-            <p><strong>Tool:</strong> Scenario Creator</p>
-
-            <button
-              className="start-button creator-button"
-              onClick={() => navigate('/create-scenario')}
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
-              Create Scenario
-            </button>
-          </div>
+          <button
+            className="creator-button"
+            onClick={() => navigate('/create-scenario')}
+          >
+            Create New Scenario
+          </button>
         </div>
       </div>
     </div>

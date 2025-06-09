@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from ...schemas.scenario import ScenarioCreate
+from ...services.supabase import SupabasePhasesService
 from ...scenario_creator.creator import ScenarioCreator
 from typing import Dict, Any
 import logging
@@ -70,4 +71,23 @@ async def create_scenario(scenario_data: ScenarioCreate):
 
     except Exception as e:
         logger.error(f"\n❌ Error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e)) 
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/scenarios")
+async def get_scenarios():
+    """
+    Endpoint para obtener todos los escenarios disponibles.
+    """
+    try:
+        service = SupabasePhasesService()
+        if not service.initialize():
+            raise HTTPException(status_code=500, detail="No se pudo inicializar el servicio de base de datos")
+
+        response = service.client.table("scenarios").select("*").execute()
+        if not response.data:
+            return []
+
+        return response.data
+    except Exception as e:
+        logger.error(f"Error obteniendo escenarios: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) 
