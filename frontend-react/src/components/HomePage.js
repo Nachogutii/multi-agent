@@ -49,7 +49,7 @@ export default function HomePage() {
         localStorage.setItem("scenarioId", selectedScenario);
         localStorage.removeItem("chatMessages");
         localStorage.removeItem("isConversationEnded");
-        navigate("/load");
+        navigate("/chat");
       })
       .catch((err) => {
         console.error("Error starting new simulation:", err);
