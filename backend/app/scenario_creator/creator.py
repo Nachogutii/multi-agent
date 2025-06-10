@@ -111,8 +111,8 @@ class ScenarioCreator:
                     "id": phase_id,
                     "name": phase.name,
                     "system_prompt": phase.system_prompt,
-                    "success_phases": "[]",  # Inicialmente vacío
-                    "failure_phases": "[]",  # Inicialmente vacío
+                    "success_phases": [],  # Array vacío de números
+                    "failure_phases": [],  # Array vacío de números
                     "scenario_id": scenario_id
                 }).execute()
                 
@@ -138,8 +138,8 @@ class ScenarioCreator:
                 logger.info(f"  - Failure phases: {phase.failure_phases} -> {mapped_failure}")
                 
                 response = self.service.client.table("phases").update({
-                    "success_phases": json.dumps(mapped_success),
-                    "failure_phases": json.dumps(mapped_failure)
+                    "success_phases": mapped_success,  # Array de números directamente
+                    "failure_phases": mapped_failure   # Array de números directamente
                 }).eq("id", new_id).execute()
                 
                 if not response.data:
