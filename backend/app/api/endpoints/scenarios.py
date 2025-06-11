@@ -53,25 +53,34 @@ async def create_scenario(scenario_data: ScenarioCreate):
         logger.info("\n=== CREANDO EN BASE DE DATOS ===")
         creator = ScenarioCreator()
         if not creator.initialized:
-            logger.error("❌ Error: No se pudo inicializar el servicio de Supabase")
-            raise HTTPException(status_code=500, detail="No se pudo inicializar el servicio de base de datos")
+            logger.error("❌ Error: Could not initialize database service")
+            raise HTTPException(status_code=500, detail="Could not initialize database service")
 
         scenario_id = creator.create_scenario_from_validated_data(scenario_data)
         
         if not scenario_id:
-            logger.error("❌ Error: No se pudo crear el escenario en la base de datos")
-            raise HTTPException(status_code=500, detail="Error creando el escenario en la base de datos")
+            logger.error("❌ Error: Could not create scenario in database")
+            raise HTTPException(status_code=500, detail="Error creating scenario in database")
 
-        logger.info(f"✅ Escenario creado exitosamente con ID: {scenario_id}")
+        logger.info(f"✅ Scenario successfully created with ID: {scenario_id}")
         return {
-            "message": "Escenario creado exitosamente",
+            "message": "Scenario successfully created",
             "scenario_id": scenario_id,
             "data": scenario_data.model_dump()
         }
 
+    except HTTPException as e:
+        # Re-lanzar excepciones HTTP tal cual
+        raise e
+    except ValueError as e:
+        # Errores de validación de Pydantic
+        logger.error(f"Validation error: {str(e)}")
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        logger.error(f"\n❌ Error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        # Cualquier otro error
+        error_msg = str(e)
+        logger.error(f"Error creating scenario: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
 
 @router.get("/scenarios")
 async def get_scenarios():

@@ -303,6 +303,17 @@
     transform: translateY(-1px);
 }
 
+.error-message {
+    background-color: rgba(255, 0, 0, 0.1);
+    border: 1px solid rgba(255, 0, 0, 0.3);
+    color: #ff6b6b;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
 /* Scrollbar styling */
 .scenario-creator-container ::-webkit-scrollbar {
     width: 8px;

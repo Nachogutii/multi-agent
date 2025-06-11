@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from ..services.supabase import SupabasePhasesService
 from ..schemas.scenario import ScenarioCreate
 import json
@@ -56,6 +56,83 @@ class ScenarioCreator:
             logger.error(f"❌ Error obteniendo siguiente ID para {table_name}: {str(e)}")
             return 1
 
+    def _prepare_scenario_creation(self, scenario_data: ScenarioCreate) -> Tuple[bool, str, Dict]:
+        """
+        Prepara y valida todos los datos necesarios para crear el escenario.
+        Retorna (éxito, mensaje de error, diccionario con IDs)
+        """
+        try:
+            # Preparar todos los IDs necesarios
+            ids = {
+                "scenario_id": self._get_next_id("scenarios"),
+                "condition_ids": {},  # Mapeo de ID original a nuevo ID
+                "phase_ids": {},      # Mapeo de ID original a nuevo ID
+                "phase_condition_ids": []  # Lista de IDs para phase_conditions
+            }
+
+            # Validar que hay al menos una fase
+            if not scenario_data.phases:
+                return False, "The scenario must have at least one phase", {}
+
+            # Validar que hay al menos una condición
+            if not scenario_data.conditions:
+                return False, "The scenario must have at least one condition", {}
+
+            # Preparar IDs para condiciones
+            for condition in scenario_data.conditions:
+                if not condition.description.strip():
+                    return False, f"Condition {condition.id} has an empty description", {}
+                new_id = self._get_next_id("conditions")
+                ids["condition_ids"][condition.id] = new_id
+
+            # Preparar IDs para fases
+            for phase in scenario_data.phases:
+                if not phase.name.strip():
+                    return False, f"Phase {phase.id} has an empty name", {}
+                if not phase.system_prompt.strip():
+                    return False, f"Phase {phase.id} ({phase.name}) has an empty system prompt", {}
+                new_id = self._get_next_id("phases")
+                ids["phase_ids"][phase.id] = new_id
+
+            # Preparar IDs para phase_conditions
+            for _ in scenario_data.phase_conditions:
+                ids["phase_condition_ids"].append(self._get_next_id("phase_conditions"))
+
+            # Validar que todos los IDs de fase referenciados existen
+            for phase in scenario_data.phases:
+                for phase_id in phase.success_phases:
+                    if phase_id not in ids["phase_ids"]:
+                        return False, f"Error in phase '{phase.name}': Success phase {phase_id} does not exist", {}
+                    if phase_id == phase.id:
+                        return False, f"Error in phase '{phase.name}': A phase cannot have itself as a success phase", {}
+
+                for phase_id in phase.failure_phases:
+                    if phase_id not in ids["phase_ids"]:
+                        return False, f"Error in phase '{phase.name}': Failure phase {phase_id} does not exist", {}
+                    if phase_id == phase.id:
+                        return False, f"Error in phase '{phase.name}': A phase cannot have itself as a failure phase", {}
+
+            # Validar que todas las condiciones referenciadas existen
+            for pc in scenario_data.phase_conditions:
+                if pc.phase_id not in ids["phase_ids"]:
+                    phase_name = next((p.name for p in scenario_data.phases if p.id == pc.phase_id), f"ID {pc.phase_id}")
+                    return False, f"Error in phase conditions: Phase '{phase_name}' does not exist", {}
+                
+                if pc.conditions_id not in ids["condition_ids"]:
+                    condition_desc = next((c.description for c in scenario_data.conditions if c.id == pc.conditions_id), f"ID {pc.conditions_id}")
+                    return False, f"Error in phase conditions: Condition '{condition_desc}' does not exist", {}
+
+            # Validar que cada fase tiene al menos una condición
+            phases_with_conditions = {pc.phase_id for pc in scenario_data.phase_conditions}
+            for phase in scenario_data.phases:
+                if phase.id not in phases_with_conditions:
+                    return False, f"Phase '{phase.name}' has no conditions assigned", {}
+
+            return True, "", ids
+
+        except Exception as e:
+            return False, f"Unexpected error preparing scenario creation: {str(e)}", {}
+
     def create_scenario_from_validated_data(self, scenario_data: ScenarioCreate) -> Optional[int]:
         """
         Crea un escenario completo a partir de datos ya validados por Pydantic.
@@ -70,10 +147,16 @@ class ScenarioCreator:
             logger.error("⚠️ Supabase client not initialized")
             return None
 
+        # Primero validamos y preparamos todos los datos
+        success, error_msg, ids = self._prepare_scenario_creation(scenario_data)
+        if not success:
+            logger.error(f"❌ Error en la validación: {error_msg}")
+            return None
+
         try:
             # 1. Crear escenario
             logger.info("1. Creando escenario...")
-            scenario_id = self._get_next_id("scenarios")
+            scenario_id = ids["scenario_id"]
             
             response = self.service.client.table("scenarios").insert({
                 "id": scenario_id,
@@ -90,7 +173,7 @@ class ScenarioCreator:
             # 2. Crear condiciones
             logger.info("2. Creando condiciones...")
             for condition in scenario_data.conditions:
-                condition_id = self._get_next_id("conditions")
+                condition_id = ids["condition_ids"][condition.id]
                 response = self.service.client.table("conditions").insert({
                     "id": condition_id,
                     "description": condition.description
@@ -106,7 +189,7 @@ class ScenarioCreator:
             # 3. Crear fases (primero sin success/failure phases)
             logger.info("3. Creando fases...")
             for phase in scenario_data.phases:
-                phase_id = self._get_next_id("phases")
+                phase_id = ids["phase_ids"][phase.id]
                 response = self.service.client.table("phases").insert({
                     "id": phase_id,
                     "name": phase.name,
@@ -127,19 +210,19 @@ class ScenarioCreator:
             logger.info("4. Actualizando referencias entre fases...")
             for phase in scenario_data.phases:
                 original_id = phase.id
-                new_id = self.phase_id_mapping[original_id]
+                new_id = ids["phase_ids"][original_id]
                 
-                # Mapear los IDs de success_phases
-                mapped_success = [self.phase_id_mapping[pid] for pid in phase.success_phases]
-                mapped_failure = [self.phase_id_mapping[pid] for pid in phase.failure_phases]
+                # Mapear los IDs de success_phases y failure_phases
+                mapped_success = [ids["phase_ids"][pid] for pid in phase.success_phases]
+                mapped_failure = [ids["phase_ids"][pid] for pid in phase.failure_phases]
                 
                 logger.info(f"Actualizando fase {new_id}:")
                 logger.info(f"  - Success phases: {phase.success_phases} -> {mapped_success}")
                 logger.info(f"  - Failure phases: {phase.failure_phases} -> {mapped_failure}")
                 
                 response = self.service.client.table("phases").update({
-                    "success_phases": mapped_success,  # Array de números directamente
-                    "failure_phases": mapped_failure   # Array de números directamente
+                    "success_phases": mapped_success,
+                    "failure_phases": mapped_failure
                 }).eq("id", new_id).execute()
                 
                 if not response.data:
@@ -148,29 +231,13 @@ class ScenarioCreator:
 
             # 5. Crear relaciones fase-condición
             logger.info("5. Creando relaciones fase-condición...")
-            logger.info("Mapeo de IDs actual:")
-            logger.info("Fases:")
-            for original_id, new_id in self.phase_id_mapping.items():
-                logger.info(f"  - Fase ID original {original_id} -> nuevo ID {new_id}")
-            logger.info("Condiciones:")
-            for original_id, new_id in self.condition_id_mapping.items():
-                logger.info(f"  - Condición ID original {original_id} -> nuevo ID {new_id}")
-
-            for pc in scenario_data.phase_conditions:
-                # Verificar que tenemos los IDs mapeados
-                if pc.phase_id not in self.phase_id_mapping:
-                    logger.error(f"❌ Error: No se encontró mapeo para la fase {pc.phase_id}")
-                    return None
-                if pc.conditions_id not in self.condition_id_mapping:
-                    logger.error(f"❌ Error: No se encontró mapeo para la condición {pc.conditions_id}")
-                    return None
-
-                phase_id = self.phase_id_mapping[pc.phase_id]
-                condition_id = self.condition_id_mapping[pc.conditions_id]
+            for i, pc in enumerate(scenario_data.phase_conditions):
+                phase_id = ids["phase_ids"][pc.phase_id]
+                condition_id = ids["condition_ids"][pc.conditions_id]
+                next_id = ids["phase_condition_ids"][i]
                 
                 logger.info(f"Creando relación: Fase {pc.phase_id}->{phase_id} con Condición {pc.conditions_id}->{condition_id}")
                 
-                next_id = self._get_next_id("phase_conditions")
                 response = self.service.client.table("phase_conditions").insert({
                     "id": next_id,
                     "phase_id": phase_id,

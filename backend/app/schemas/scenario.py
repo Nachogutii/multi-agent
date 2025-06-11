@@ -13,17 +13,17 @@ class PhaseBase(BaseModel):
     id: int
     name: str
     system_prompt: str
-    success_phases: List[int]
-    failure_phases: List[int]
+    success_phases: List[int] = []
+    failure_phases: List[int] = []
 
     @validator('success_phases', 'failure_phases')
     def validate_phase_references(cls, v):
         # Asegurarse de que es una lista válida
         if not isinstance(v, list):
-            raise ValueError('Debe ser una lista de IDs de fase')
+            raise ValueError('Must be a list of phase IDs')
         # Asegurarse de que todos los elementos son enteros positivos
         if not all(isinstance(x, int) and x > 0 for x in v):
-            raise ValueError('Todos los elementos deben ser IDs de fase (enteros positivos)')
+            raise ValueError('All elements must be positive integers')
         return v
 
 class PhaseConditionBase(BaseModel):
@@ -41,24 +41,30 @@ class ScenarioCreate(BaseModel):
         # Verificar que los IDs de las condiciones son únicos
         condition_ids = {cond.id for cond in v}
         if len(condition_ids) != len(v):
-            raise ValueError('Los IDs de las condiciones deben ser únicos')
+            raise ValueError('Condition IDs must be unique')
         return v
 
     @validator('phases')
     def validate_phase_references(cls, v, values):
         if not v:
-            raise ValueError('Al menos debe haber una fase')
+            raise ValueError('At least one phase is required')
 
-        # Obtener todos los IDs de fase disponibles
+        # Obtener todos los IDs de phase disponibles
         phase_ids = {phase.id for phase in v}
 
         for phase in v:
-            # Validar que las fases referenciadas existan
-            for phase_id in phase.success_phases + phase.failure_phases:
+            # Validar que las phases referenciadas existan
+            for phase_id in phase.success_phases:
                 if phase_id not in phase_ids:
-                    raise ValueError(f'La fase {phase_id} está referenciada pero no existe')
+                    raise ValueError(f'Phase {phase_id} is referenced as a success phase but does not exist')
                 if phase_id == phase.id:
-                    raise ValueError(f'La fase {phase.id} no puede referenciarse a sí misma')
+                    raise ValueError(f'Phase {phase.id} cannot reference itself as a success phase')
+
+            for phase_id in phase.failure_phases:
+                if phase_id not in phase_ids:
+                    raise ValueError(f'Phase {phase_id} is referenced as a failure phase but does not exist')
+                if phase_id == phase.id:
+                    raise ValueError(f'Phase {phase.id} cannot reference itself as a failure phase')
 
         return v
 
@@ -74,14 +80,14 @@ class ScenarioCreate(BaseModel):
         # Validar cada relación
         for pc in v:
             if pc.phase_id not in phase_ids:
-                raise ValueError(f'La fase {pc.phase_id} no existe')
+                raise ValueError(f'Phase {pc.phase_id} does not exist')
             if pc.conditions_id not in condition_ids:
-                raise ValueError(f'La condición {pc.conditions_id} no existe en las condiciones proporcionadas')
+                raise ValueError(f'Condition {pc.conditions_id} does not exist')
 
         # Verificar que no hay duplicados en las relaciones
         relations = {(pc.phase_id, pc.conditions_id) for pc in v}
         if len(relations) != len(v):
-            raise ValueError('Hay relaciones fase-condición duplicadas')
+            raise ValueError('Duplicate phase-condition relationships found')
 
         return v
 

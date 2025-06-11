@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ScenarioCreator.css';
 
-function ScenarioSummaryModal({ isOpen, onClose, onConfirm, scenarioData }) {
+function ScenarioSummaryModal({ isOpen, onClose, onConfirm, scenarioData, error }) {
     if (!isOpen || !scenarioData) return null;
 
     // Helper function to display arrays
@@ -19,6 +19,23 @@ function ScenarioSummaryModal({ isOpen, onClose, onConfirm, scenarioData }) {
         return displayArray(conditions);
     };
 
+    // Function to highlight the section with error
+    const getErrorHighlight = (sectionText) => {
+        if (!error) return {};
+        const errorLower = error.toLowerCase();
+        const sectionLower = sectionText.toLowerCase();
+        
+        if (errorLower.includes(sectionLower)) {
+            return {
+                backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                border: '1px solid rgba(255, 0, 0, 0.3)',
+                padding: '0.5rem',
+                borderRadius: '4px'
+            };
+        }
+        return {};
+    };
+
     return (
         <div className="modal-overlay">
             <div className="modal-content">
@@ -26,32 +43,40 @@ function ScenarioSummaryModal({ isOpen, onClose, onConfirm, scenarioData }) {
                     <h2>Scenario Summary</h2>
                 </div>
                 <div className="modal-body">
-                    <div className="modal-section">
+                    {error && (
+                        <div className="error-message">
+                            {error}
+                        </div>
+                    )}
+                    <div className="modal-section" style={getErrorHighlight('scenario')}>
                         <h3>General Information</h3>
                         <p><strong>Name:</strong> {scenarioData.scenario.name}</p>
                         <p><strong>System Prompt:</strong> {scenarioData.scenario.system_prompt}</p>
                     </div>
 
-                    <div className="modal-section">
+                    <div className="modal-section" style={getErrorHighlight('condition')}>
                         <h3>Conditions ({scenarioData.conditions.length})</h3>
                         {scenarioData.conditions.map(c => (
-                            <p key={c.id}><strong>[{c.id}]</strong> {c.description}</p>
+                            <p key={c.id} style={getErrorHighlight(c.description)}><strong>[{c.id}]</strong> {c.description}</p>
                         ))}
                     </div>
 
-                    <div className="modal-section">
+                    <div className="modal-section" style={getErrorHighlight('phase')}>
                         <h3>Phases ({scenarioData.phases.length})</h3>
                         {scenarioData.phases.map(p => (
-                            <div key={p.id} className="modal-section" style={{backgroundColor: 'rgba(115, 114, 133, 0.2)'}}>
+                            <div key={p.id} className="modal-section" style={{
+                                ...getErrorHighlight(p.name),
+                                backgroundColor: 'rgba(115, 114, 133, 0.2)'
+                            }}>
                                 <p><strong>[{p.id}] {p.name}</strong></p>
                                 <p><strong>System Prompt:</strong> {p.system_prompt}</p>
-                                <p>
+                                <p style={getErrorHighlight('success phase')}>
                                     <strong>Success Phases:</strong> {displayArray(p.success_phases)}
                                 </p>
-                                <p>
+                                <p style={getErrorHighlight('failure phase')}>
                                     <strong>Failure Phases:</strong> {displayArray(p.failure_phases)}
                                 </p>
-                                <p>
+                                <p style={getErrorHighlight('condition')}>
                                     <strong>Conditions:</strong> {getPhaseConditions(p.id)}
                                 </p>
                             </div>
@@ -75,6 +100,7 @@ export default function ScenarioCreator() {
     const navigate = useNavigate();
     const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
     const [scenarioData, setScenarioData] = useState(null);
+    const [error, setError] = useState(null);
     const [scenarioInfo, setScenarioInfo] = useState({
         name: '',
         system_prompt: ''
@@ -190,6 +216,7 @@ export default function ScenarioCreator() {
 
     const handleScenarioConfirm = async () => {
         try {
+            setError(null); // Limpiar error anterior
             if (!scenarioData) {
                 throw new Error('No scenario data to send');
             }
@@ -225,16 +252,31 @@ export default function ScenarioCreator() {
             console.log('Server response:', responseData);
 
             if (!response.ok) {
-                throw new Error(responseData.detail || 'Error creating scenario');
+                // Extraer el mensaje de error de la respuesta
+                let errorMessage = 'Unknown error creating scenario';
+                if (responseData.detail) {
+                    if (typeof responseData.detail === 'object') {
+                        // Si detail es un objeto, intentamos extraer el mensaje útil
+                        if (responseData.detail.msg) {
+                            errorMessage = responseData.detail.msg;
+                        } else if (Array.isArray(responseData.detail) && responseData.detail[0]?.msg) {
+                            errorMessage = responseData.detail[0].msg;
+                        }
+                    } else {
+                        // Si detail es una string, la usamos directamente
+                        errorMessage = responseData.detail;
+                    }
+                }
+                throw new Error(errorMessage);
             }
 
             alert(`Scenario successfully created with ID: ${responseData.scenario_id}`);
+            setIsSummaryModalOpen(false);
             navigate('/');
         } catch (error) {
             console.error('Complete error:', error);
-            alert('Error: ' + (error.message || 'Unknown error creating scenario'));
-        } finally {
-            setIsSummaryModalOpen(false);
+            setError(error.message || 'Unknown error creating scenario');
+            // No cerramos el modal para mantener la información
         }
     };
 
@@ -412,6 +454,7 @@ export default function ScenarioCreator() {
                 onClose={() => setIsSummaryModalOpen(false)}
                 onConfirm={handleScenarioConfirm}
                 scenarioData={scenarioData}
+                error={error}
             />
         </div>
     );
