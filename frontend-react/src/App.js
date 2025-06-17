@@ -23,7 +23,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/load" element={<LoadPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/create-scenario" element={<ScenarioCreator />} />
