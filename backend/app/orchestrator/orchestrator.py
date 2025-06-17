@@ -8,8 +8,13 @@ class SimpleOrchestrator:
         self.customer_agent = CustomerAgent(scenario_id=scenario_id)
         self.supabase_service = SupabasePhasesService(scenario_id=scenario_id)
         self.supabase_service.initialize()
-        # Set initial phase
-        self.current_phase = "welcome"
+        
+        # Get all phases and set initial phase to the first one
+        phases = self.supabase_service.get_all_phases()
+        if not phases:
+            raise ValueError("No phases found for this scenario")
+        self.current_phase = phases[0]['name']  # Use first phase as initial phase
+        
         # Dictionary to track conditions by phase
         self.conditions_by_phase = {}
         # Global history of all conditions

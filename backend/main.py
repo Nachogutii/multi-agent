@@ -1,15 +1,18 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import logging
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 from app.orchestrator.orchestrator import SimpleOrchestrator
 from app.agents.feedback import FeedbackAgent
+from app.scenario_creator.creator import ScenarioCreator
+from app.schemas.scenario import ScenarioCreate
+from app.api.api import api_router
 
 # Configure logging
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 # Set uvicorn access logs to warning level only
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 # Set specific loggers to higher levels
@@ -32,8 +35,16 @@ class Message(BaseModel):
 class ResetRequest(BaseModel):
     id: Optional[int] = None
 
+class ScenarioRequest(BaseModel):
+    scenario: Dict[str, str]
+    conditions: List[Dict[str, Any]]
+    phases: List[Dict[str, Any]]
+
 # Inicializar el orquestrador
 orchestrator = SimpleOrchestrator()
+
+# Incluir los routers
+app.include_router(api_router)
 
 @app.post("/api/chat")
 def chat(msg: Message):
@@ -123,6 +134,34 @@ def get_structured_feedback():
     feedback["global_conditions"] = global_conditions
     
     return feedback
+
+@app.post("/api/scenarios")
+async def create_scenario(scenario_data: ScenarioCreate):
+    try:
+        logging.info("Creating new scenario with validated data: %s", scenario_data.dict())
+        
+        creator = ScenarioCreator()
+        if not creator.initialized:
+            logging.error("Failed to initialize Supabase service")
+            raise HTTPException(status_code=500, detail="Could not initialize Supabase service")
+        
+        logging.info("ScenarioCreator initialized successfully")
+        # Los datos ya están validados por Pydantic en este punto
+        scenario_id = creator.create_scenario_from_validated_data(scenario_data)
+        
+        if not scenario_id:
+            logging.error("create_scenario_from_validated_data returned None")
+            raise HTTPException(status_code=400, detail="Failed to create scenario")
+            
+        logging.info("Scenario created successfully with ID: %s", scenario_id)
+        return {"id": scenario_id, "message": "Scenario created successfully"}
+    except ValueError as e:
+        # Errores de validación de Pydantic
+        logging.error("Validation error: %s", str(e))
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        logging.error("Error creating scenario: %s", str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="warning")
