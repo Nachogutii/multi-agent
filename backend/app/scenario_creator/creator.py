@@ -14,6 +14,7 @@ class ScenarioCreator:
         self.initialized = self.service.initialize()
         self.phase_id_mapping = {}  # Para mapear IDs de fases
         self.condition_id_mapping = {}  # Para mapear IDs de condiciones
+        self.used_ids = {}  # Para trackear IDs usados en la transacción actual
         
         if not self.initialized:
             logger.error("❌ Error: No se pudo inicializar el servicio de Supabase")
@@ -41,17 +42,32 @@ class ScenarioCreator:
     def _get_next_id(self, table_name: str) -> int:
         """Obtiene el siguiente ID disponible para una tabla."""
         try:
+            # Obtener todos los IDs y ordenarlos
             response = self.service.client.table(table_name).select("id").execute()
-            existing_ids = set(item['id'] for item in response.data if item.get('id') is not None)
+            existing_ids = sorted([item['id'] for item in response.data if item.get('id') is not None])
+            
+            # Añadir los IDs que ya hemos usado en esta transacción
+            if table_name in self.used_ids:
+                existing_ids.extend(self.used_ids[table_name])
+                existing_ids = sorted(set(existing_ids))  # Eliminar duplicados y ordenar
             
             if not existing_ids:
-                return 1
-                
-            next_id = 1
-            while next_id in existing_ids:
-                next_id += 1
-                
+                next_id = 1
+            else:
+                # Buscar el primer hueco en la secuencia
+                next_id = 1
+                for current_id in existing_ids:
+                    if next_id < current_id:
+                        break
+                    next_id = current_id + 1
+            
+            # Registrar que vamos a usar este ID
+            if table_name not in self.used_ids:
+                self.used_ids[table_name] = []
+            self.used_ids[table_name].append(next_id)
+            
             return next_id
+            
         except Exception as e:
             logger.error(f"❌ Error obteniendo siguiente ID para {table_name}: {str(e)}")
             return 1
@@ -146,6 +162,9 @@ class ScenarioCreator:
         if not self.initialized or not self.service.client:
             logger.error("⚠️ Supabase client not initialized")
             return None
+
+        # Resetear los IDs usados al inicio de cada creación de escenario
+        self.used_ids = {}
 
         # Primero validamos y preparamos todos los datos
         success, error_msg, ids = self._prepare_scenario_creation(scenario_data)
